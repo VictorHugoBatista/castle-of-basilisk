@@ -1,0 +1,14 @@
+# build do Rust
+/target/
+
+# servidores/logs locais
+*.log
+
+# lixo de sistema
+.DS_Store
+Thumbs.db
+
+# editor
+.idea/
+.vscode/
+*.swp

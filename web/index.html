@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Castle of Basilisk</title>
+<style>
+  :root {
+    --amber: #ffb000;
+    --amber-dim: #8a5f00;
+    --bg: #050200;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  #wrap {
+    position: relative;
+    line-height: 0;
+  }
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+    width: min(92vw, calc(92vh * 672 / 576));
+    height: auto;
+  }
+  /* ---- filtro CRT: scanlines + vinheta + croma leve (CSS puro) ---- */
+  #crt {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    /* scanlines: 2px de Periodo, adaptado a escala do canvas via em */
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,0) 0px,
+        rgba(0,0,0,0) 2px,
+        rgba(0,0,0,0.35) 3px,
+        rgba(0,0,0,0.35) 4px
+      ),
+      repeating-linear-gradient(
+        to right,
+        rgba(255,176,0,0.05) 0px,
+        rgba(255,176,0,0) 1px,
+        rgba(255,176,0,0.05) 2px
+      );
+    mix-blend-mode: multiply;
+  }
+  #glass {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(0,0,0,0) 55%,
+      rgba(0,0,0,0.30) 85%,
+      rgba(0,0,0,0.60) 100%
+    );
+  }
+  #flicker {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: rgba(255,176,0,0.03);
+    animation: flicker 120ms steps(2) infinite;
+  }
+  @keyframes flicker {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.55; }
+    100% { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="screen" width="672" height="576"></canvas>
+    <div id="crt"></div>
+    <div id="glass"></div>
+    <div id="flicker"></div>
+  </div>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
