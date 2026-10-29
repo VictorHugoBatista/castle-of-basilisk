@@ -30,8 +30,13 @@ aceitar (Chrome bloqueia `file://`; use o servidor HTTP).
 
 ## como jogar (e sobreviver)
 
-- **`B` = o basilisco.** Se ele *puder ver você* a até 5 tiles (linha de visão
+- **`B` = a cabeça do basilisco.** Se ele *puder ver você* a até 4–5 tiles (linha de visão
   aberta, raios de pilar/porta bloqueiam), o olhar mata.
+- **`~` = o corpo dela.** Escamas do rastro que a serpente deixa ao andar — ~24 anéis
+  que avançam com a cabeça. Ver o corpo é verlumbre, não morte: **o olhar que mata é
+  o da cabeça**. Corpo em tela ganha sombra 3D, halo vermelho e um arrasto grave
+  panlado (`14/15/16`); quando ela entra no seu campo de visão, o sinal "solta"
+  (glitch de fatias por ~0.25 s) e o drone do castelo engorda.
 - Se ele **tocar** você, as escamas matam. Não existe vida.
 - `,` = **sombra**. Imóvel dentro dela, você é quase invisível (visão 2 tiles).
   Anda na sombra? 4 tiles. No claro? Ele te vê a 8.
@@ -74,9 +79,10 @@ O WASM nunca aloca: as views JS são criadas uma vez e ficam válidas.
 
 `1` passo · `2` porta · `3/4` escadas · `5` stinger (ELE TE VIU) · `6` coroa ·
 `7` morte · `8` vitória · `10` alerta (ele ouviu algo) · `11` alívio (perdeu
-seu rastro) · `12` sibilo distante · `13` A BESTA abriu uma porta —
+seu rastro) · `12` sibilo distante · `13` A BESTA abriu uma porta ·
+`14/15/16` escamas do corpo visíveis (centro/esquerda/direita) —
 mais o **batimento cardíaco** contínuo (intervalo/volume/pan pela distância)
-e o drone ambiente do castelo.
+e o drone ambiente do castelo (engorda enquanto o corpo dela está visível).
 
 ## smoke test (headless)
 
@@ -84,10 +90,11 @@ e o drone ambiente do castelo.
 node scripts/smoke.mjs
 ```
 
-Valida: morte por olhar, morte por toque, IA investigando ruído,
-**um playthrough completo por bot BFS** (desce 3 andares, pega a coroa,
-escapa — rotas que evitam a zona de gaze, esquiva geométrica) e fuzz de
-6000 ticks sem estados impossíveis.
+Valida: morte por olhar, morte por toque, IA investigando ruído, **o rastro de
+escamas existindo** (via `pfb_debug_body_ptr`) e **o corpo ficando visível em
+tela em algum momento**, **um playthrough completo por bot BFS** (desce 3
+andares, pega a coroa, escapa — rotas que evitam a zona de gaze, esquiva
+geométrica) e fuzz de 6000 ticks sem estados impossíveis.
 
 ## status do conceito
 

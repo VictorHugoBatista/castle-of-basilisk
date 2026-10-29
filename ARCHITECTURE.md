@@ -79,7 +79,7 @@ Exports (contrato publico — nao quebrar):
 | `pfb_grid_ptr`  | `() u32`                     | ponteiro do grid de render |
 | `pfb_stats_ptr` | `() u32`                     | ponteiro do bloco de stats |
 | `pfb_pop_event` | `() u32`                     | consome fila de audio (0 = vazia) |
-| `pfb_debug_*`   | place/map/probe/give_crown   | somente para testes headless |
+| `pfb_debug_*`   | place/map/probe/body_ptr/give_crown | somente para testes headless |
 
 Layout de memoria:
 - **Grid**: `56x32` celulas x `[char: u8, attr: u8]`. Char da tabela ASCII;
@@ -87,7 +87,8 @@ Layout de memoria:
   `0x80 | indice` quando o tile e "lembrado" (fog of war) e escurece no render.
 - **Stats** (u8[16]): `[0] estado`, `[1] motivo de morte (1 olhar, 2 toque)`,
   `[2] profundidade`, `[3] px`, `[4] py`, `[5] bx`, `[6] by`,
-  `[7] estado da IA (0 patrol, 1 invest, 2 hunt)`, `[8] coroa`.
+  `[7] estado da IA (0 patrol, 1 invest, 2 hunt)`, `[8] coroa`,
+  `[9] segmentos do corpo visíveis` (o JS usa para "engordar" o drone).
   **REGRA DE OURO**: qualquer funcao que mude estado (morte/vitoria/eventos)
   DEVE chamar `sync_stats()`. (Dois bugs ja nasceram de stats obsoletos.)
 - **Eventos**: ring buffer `u32[16]`, produtor (Rust) / consumidor (JS).
@@ -116,8 +117,17 @@ Decisoes:
   (pulso/blink dos attrs) redesenha sempre. Evita redesenho global.
 - **CRT em CSS puro** (scanlines `repeating-linear-gradient`, vinheta
   `radial-gradient`, flicker por keyframes): custo ZERO de runtime vs shaders.
-- **Paleta monocromatica (familia #ffb000) sobre #050200**, basilisco em
-  `#ff8f00` mais quente; coroa e escadas pulsam; attr 9 pisca.
+- **Paleta monocromatica (familia #ffb000) sobre #050200**; a EXCECAO e a
+  serpente, em vermelho para saltar do monocromo: cabeca `B` `#ff2e00`, corpo
+  `~` (attr 11) `#bf1600`; coroa e escadas pulsam; attr 9 pisca.
+  - **Serpente em 3 efeitos JS** (baratos: ~25 glyphs/frame, so quando visivel):
+    sombra de glyph deslocada (+3px quase-preta = "saltando do CRT"), halo
+    `shadowBlur` vermelho e onda de brilho que percorre os anels a partir da
+    cabeca (+ tremor sub-clinico de ±1px). O corpo/cabeca entram no grupo
+    "repinta todo frame" do diff.
+  - **Glitch raro e curto** (eventos 5/14/15/16): ~0.25 s de fatias horizontais
+    deslocadas (`drawImage` de si mesmo) + ghost cromatico da cabeca; ao
+    terminar, remontagem total (`prevGrid.fill(0)` + `needsFull`).
 - **`AudioContext` so no primeiro gesto do usuario** (exigencia dos
   navegadores). Drone grave (55/58,3 Hz triangle + lowpass) e o "hum" do castelo.
 - **Todos os sons sao sintetizados**: oscillator + gain envelope + StereoPanner.
@@ -204,6 +214,11 @@ Ultima atualizacao: 2026-10-29
   (4 tiles). Mata instantaneamente. Pilar/porta fechada bloqueia o olhar.
 - **GRACE**: 14 ticks de imunidade apos cada troca de andar (evita morte
   injusta ao emergir na escada).
+- **Rastro do corpo**: ultimas ~24 posicoes da cabeca (`BODYBUF`, via
+  `pfb_debug_body_ptr`), atualizadas a cada passo real dela (abrir porta gasta
+  turno SEM avancar o corpo — ela esta "enrolada"). Visual/audio apenas:
+  encostar no corpo nao mata e nao alerta; tile `~`, attr 11, eventos 14/15/16
+  (centro/esquerda/direita do segmento visivel mais proximo, cooldown 10 ticks).
 - **CFREEZE**: 15 ticks de atordoamento do basilisco quando a coroa e roubada.
 - **ATTR**: segundo byte do grid; indice da paleta JS + flag `0x80` de
   "lembrado" (fog of war).

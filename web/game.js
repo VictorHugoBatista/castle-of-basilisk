@@ -16,11 +16,12 @@ const PAL = [
   '#ffdd66', // 4 escadas (pulsa)
   '#ffe08a', // 5 coroa § (pulsa)
   '#ffd54d', // 6 jogador @
-  '#ff8f00', // 7 basilisco B (pulsa)
+  '#ff2e00', // 7 basilisco B (cabeça: vermelho quente, halo forte)
   '#b57b00', // 8 UI
   '#ff5000', // 9 alerta (pisca)
   '#ffb000', // 10 título
-  '#201500', '#201500', '#201500', '#201500',
+  '#bf1600', // 11 corpo do basilisco ~ (vermelho sangue, onda + halo no render)
+  '#201500', '#201500', '#201500',
   '#0a0600', // 15 vazio
 ];
 const PULSE_ATTRS = new Set([4, 5, 7]);
@@ -191,7 +192,23 @@ function playEvent(ev, pan) {
       noiseBurst({ dur: 0.25, vol: 0.14, f: 700, q: 1.2, pan });
       blip({ type: 'sine', f0: 90, f1: 60, dur: 0.2, vol: 0.2, delay: 0.05, pan });
       break;
+    case 14: // escamas visíveis: arrasto grave de pedra (centro)
+      bodyRumble(0);
+      break;
+    case 15: // escamas à esquerda
+      bodyRumble(-0.8);
+      break;
+    case 16: // escamas à direita
+      bodyRumble(0.8);
+      break;
   }
+}
+
+// arrastar de escamas sobre pedra: ruído filtrado grave + sub-sine que afunda
+function bodyRumble(pan) {
+  noiseBurst({ dur: 0.55, vol: 0.11, f: 160, q: 0.8, pan });
+  noiseBurst({ dur: 0.3, vol: 0.05, f: 420, q: 1.6, pan, delay: 0.08 });
+  blip({ type: 'sine', f0: 65, f1: 40, dur: 0.5, vol: 0.16, pan });
 }
 
 // coração: intervalo, tom e pan dependem da proximidade dela
@@ -283,18 +300,114 @@ function shade(hex, k) {
   return `rgb(${(r * k) | 0},${(g * k) | 0},${(b * k) | 0})`;
 }
 
+// ============================================================
+// a serpente: sombra 3D, halo, onda no corpo, tremor, glitch
+// ============================================================
+const SERPENT_ATTRS = new Set([7, 11]);
+let glitchUntil = -1e9;
+let prevGlitchOn = false;
+let prevSerp = new Set();
+let droneUp = false;
+
+function redrawWorldCell(i, nowMs) {
+  const x = (i % W) * CELL_W;
+  const y = ((i / W) | 0) * CELL_H;
+  ctx.fillStyle = PAL[15];
+  ctx.fillRect(x, y, CELL_W, CELL_H);
+  const ch = grid[i * 2];
+  const attr = grid[i * 2 + 1];
+  if (ch !== 0 && ch !== 32) {
+    ctx.fillStyle = colorFor(ch, attr, nowMs);
+    ctx.fillText(String.fromCharCode(ch), x + 1, y + CELL_H / 2 + 1);
+  }
+}
+
+function drawSerpentCell(i, nowMs) {
+  const x = (i % W) * CELL_W;
+  const y = ((i / W) | 0) * CELL_H;
+  const ch = grid[i * 2];
+  const c = String.fromCharCode(ch);
+  const isHead = (grid[i * 2 + 1] & 0x7f) === 7;
+  const on = nowMs < glitchUntil;
+
+  // fundo limpo sob e ao redor (o halo vaza pra fora da célula)
+  ctx.fillStyle = PAL[15];
+  ctx.fillRect(x - 4, y - 4, CELL_W + 8, CELL_H + 8);
+  const ci = i % W, cj = ((i / W) | 0);
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const nx = ci + dx, ny = cj + dy;
+    if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+    const ni = ny * W + nx;
+    if (SERPENT_ATTRS.has(grid[ni * 2 + 1] & 0x7f)) continue; // o passada da serpente cuida
+    redrawWorldCell(ni, nowMs);
+  }
+
+  // cor: cabeça pulsa quente; corpo tem onda de brilho viajando do pescoço pra cauda
+  let col;
+  if (isHead) {
+    col = shade('#ff2e00', 0.8 + 0.35 * Math.sin(nowMs * 0.009));
+  } else {
+    const dx = ci - stats[5], dy = cj - stats[6];
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const wave = 0.62 + 0.5 * Math.sin(nowMs * 0.005 + dist * 0.55);
+    col = shade('#bf1600', Math.min(1.3, wave));
+  }
+
+  // sombra deslocada: o peso dela SALTANDO do vidro do CRT
+  ctx.fillStyle = 'rgba(20,1,0,0.92)';
+  ctx.fillText(c, x + 3, y + CELL_H / 2 + 4);
+
+  // halo vermelho
+  ctx.shadowColor = 'rgba(255,26,0,0.9)';
+  ctx.shadowBlur = isHead ? (on ? 16 : 11) : (on ? 14 : 8);
+
+  // tremor sub-clínico + ondulação de deslizamento no corpo
+  const jx = (Math.random() - 0.5) * (isHead ? 1 : 1.6);
+  const wob = isHead ? 0 : Math.sin(nowMs * 0.003 + ci * 0.8) * 1.2;
+  ctx.fillStyle = col;
+  ctx.fillText(c, x + 1 + jx, y + CELL_H / 2 + 1 + wob);
+  ctx.shadowBlur = 0;
+
+  // ghost cromático da cabeça durante o glitch (interferência de sinal)
+  if (on && isHead) {
+    ctx.fillStyle = 'rgba(0,255,204,0.5)';
+    ctx.fillText(c, x - 2, y + CELL_H / 2 + 1);
+    ctx.fillStyle = 'rgba(255,0,0,0.45)';
+    ctx.fillText(c, x + 4, y + CELL_H / 2 + 1);
+  }
+}
+
+// fatias horizontais deslocadas: o mundo inteiro "solta" por um instante
+function glitchSlices() {
+  for (let i = 0; i < 3; i++) {
+    const yy = Math.random() * (canvas.height - 26);
+    const hh = 6 + Math.random() * 18;
+    const dx = (Math.random() - 0.5) * 26;
+    ctx.drawImage(canvas, 0, yy, canvas.width, hh, dx, yy, canvas.width, hh);
+  }
+}
+
 let needsFull = true;
 function forceRedraw() { needsFull = true; }
 
 function render(nowMs) {
+  const inPlay = stats[0] === 1;
   if (needsFull) {
     ctx.fillStyle = PAL[15];
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    prevGrid.fill(0);
     needsFull = false;
   }
+  const serp = new Set();
   for (let i = 0; i < W * H; i++) {
     const ch = grid[i * 2];
     const attr = grid[i * 2 + 1];
+    if (inPlay && SERPENT_ATTRS.has(attr & 0x7f)) {
+      serp.add(i);
+      prevGrid[i * 2] = ch;
+      prevGrid[i * 2 + 1] = attr;
+      continue;
+    }
     const pCh = prevGrid[i * 2];
     const pAttr = prevGrid[i * 2 + 1];
     const anim = (PULSE_ATTRS.has(attr & 0x7f)) || (attr & 0x7f) === BLINK_ATTR;
@@ -313,6 +426,33 @@ function render(nowMs) {
     prevGrid[i * 2] = ch;
     prevGrid[i * 2 + 1] = attr;
   }
+
+  // passada da serpente: cada célula desenhada com sombra/halo/onda;
+  // células onde ela ESTEVA no frame anterior são limpas e remontadas
+  if (serp.size || prevSerp.size) {
+    const dirty = new Set([...prevSerp, ...serp]);
+    const touched = new Set();
+    for (const d of dirty) {
+      const cx = d % W, cy = (d / W) | 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = cx + dx, ny = cy + dy;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        touched.add(ny * W + nx);
+      }
+    }
+    for (const c of touched) {
+      if (serp.has(c)) continue;
+      redrawWorldCell(c, nowMs);
+    }
+    for (const c of serp) drawSerpentCell(c, nowMs);
+  }
+  prevSerp = serp;
+
+  // glitch: fatias deslocadas por alguns frames; ao terminar, remonta a tela
+  const gOn = nowMs < glitchUntil;
+  if (gOn && Math.random() < 0.7) glitchSlices();
+  if (prevGlitchOn && !gOn) { needsFull = true; }
+  prevGlitchOn = gOn;
 }
 
 // ============================================================
@@ -337,8 +477,10 @@ function frame(nowMs) {
       if (stats[0] !== 1) break;
     }
     heartbeat(nowMs);
+    droneSwell();
   } else {
     acc = 0; // menus: fluxo em tempo real não roda
+    droneSwell(); // garante que o droneVolta ao normal fora do jogo
     if (st !== lastState) {
       drainEvents(); // garantir que eventos finais (morte/vitória) soem
     }
@@ -355,7 +497,20 @@ function drainEvents() {
   const dy = stats[6] - stats[4];
   const dist = Math.max(Math.abs(dx), Math.abs(dy));
   const pan = Math.max(-1, Math.min(1, dx / 8));
-  while ((e = w.pfb_pop_event()) !== 0) playEvent(e, (e === 12 || e === 13) ? pan : (e >= 10 && dist > 2 ? pan * 0.6 : 0));
+  while ((e = w.pfb_pop_event()) !== 0) {
+    if (e === 5 || (e >= 14 && e <= 16)) glitchUntil = performance.now() + 280; // vislumbre: o sinal "solta"
+    playEvent(e, (e === 12 || e === 13) ? pan : (e >= 10 && dist > 2 ? pan * 0.6 : 0));
+  }
+}
+
+// drone do castelo engordando enquanto o corpo dela enche o seu campo de visão
+function droneSwell() {
+  if (!AC || !droneNodes) return;
+  const up = stats[0] === 1 && stats[9] > 0;
+  if (up !== droneUp) {
+    droneUp = up;
+    droneNodes.gain.setTargetAtTime(up ? 0.045 : 0.028, AC.currentTime, 0.25);
+  }
 }
 
 // redesenha tudo ao carregar

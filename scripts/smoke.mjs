@@ -27,6 +27,16 @@ let evSeen = {};
 function pump() {
   let e;
   while ((e = w.pfb_pop_event()) !== 0) evSeen[e] = (evSeen[e] || 0) + 1;
+  checkBody();
+}
+
+// o corpo ('~', attr 0x0B) ficou visível em tela em algum momento do teste
+let bodySeen = false;
+function checkBody() {
+  if (stats[0] !== 1 || bodySeen) return;
+  for (let i = 0; i < W * H; i++) {
+    if ((grid[i * 2 + 1] & 0x7f) === 0x0B) { bodySeen = true; return; }
+  }
 }
 
 // ---------- 1. título ----------
@@ -90,6 +100,25 @@ const alert = scenario('ruído acorda IA (EV_ALERT -> INVEST)', () => {
   if (!moved) return false;
   pump();
   return stats[7] === 1 && !!evSeen[10];
+});
+
+// 2d. o rastro: cada passo dela deixa escamas para trás
+const trail = scenario('o corpo dela deixa rastro de escamas', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 60; k++) { w.pfb_step(0); pump(); }
+  const body = new Uint8Array(w.memory.buffer, w.pfb_debug_body_ptr(), 49);
+  const len = body[0];
+  if (len < 1 || len > 24) return false;
+  const hx = stats[5], hy = stats[6];
+  for (let k = 0; k < len; k++) {
+    const x = body[1 + k * 2], y = body[2 + k * 2];
+    if (x >= W || y >= H) return false;
+    if (x === hx && y === hy) return false; // anel jamais coincide com a cabeça
+  }
+  // fim do rastro (último par) tem que ser posição diferente do primeiro (ela andou)
+  const fx = body[1], fy = body[2];
+  const lx = body[1 + (len - 1) * 2], ly = body[2 + (len - 1) * 2];
+  return fx !== lx || fy !== ly;
 });
 
 // ---------- 3. playthrough com bot v2 ----------
@@ -254,12 +283,17 @@ let traps = 0;
 try {
   for (let t = 0; t < 6000; t++) {
     w.pfb_step([0, 1, 2, 4, 8, 16][(Math.random() * 6) | 0]);
+    checkBody();
     if (stats[0] === 2 || stats[0] === 3) w.pfb_new_game(4242 + t);
   }
 } catch (err) { traps++; console.error('TRAP fuzz:', err); }
 console.log(traps === 0 ? 'PASS - fuzz 6000 ticks sem trap' : 'FAIL - fuzz');
 
+console.log(bodySeen
+  ? 'PASS - corpo ficou visível em tela em algum momento (vislumbre OK)'
+  : 'FAIL - corpo nunca ficou visível em tela');
+
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, playthroughOK, traps === 0].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, bodySeen, traps === 0].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

@@ -27,6 +27,7 @@ const A_STAIR: u8 = 4;
 const A_CROWN: u8 = 5;
 const A_PLAYER: u8 = 6;
 const A_BAS: u8 = 7;
+const A_BODY: u8 = 11; // corpo do basilisco '~' — vermelho na paleta JS
 const A_UI: u8 = 8;
 const A_ALERT: u8 = 9;
 const A_TITLE: u8 = 10;
@@ -46,6 +47,9 @@ pub const EV_ALERT: u32 = 10; // ela ouviu algo
 pub const EV_LOST: u32 = 11; // ela perdeu você
 pub const EV_HISS: u32 = 12; // sibilância distante
 pub const EV_DOOR_B: u32 = 13; // A BESTA abriu uma porta
+pub const EV_BODY: u32 = 14; // escamas visíveis (à frente/centro)
+pub const EV_BODY_L: u32 = 15; // escamas visíveis à esquerda
+pub const EV_BODY_R: u32 = 16; // escamas visíveis à direita
 
 // estados do jogo
 pub const ST_TITLE: u8 = 0;
@@ -62,6 +66,7 @@ const GAZE_R: i32 = 4; // olhar mútuo a <= 4 tiles = morte
 const SIGHT_OPEN: i32 = 8;
 const SIGHT_SHADOW_MOVE: i32 = 4;
 const SIGHT_SHADOW_STILL: i32 = 2;
+const BODY_MAX: usize = 24; // comprimento do rastro: anéis de escamas
 
 // ================= estado global =================
 
@@ -98,6 +103,10 @@ static mut LOITER: i32 = 0;
 static mut MOVED: bool = false;
 static mut LD: usize = 0; // última direção de patrulha
 static mut CFREEZE: i32 = 0; // atordoamento do basilisco ao pegar a coroa
+
+// rastro do corpo: [0] = comprimento; depois pares (x, y), o mais recente primeiro
+static mut BODYBUF: [u8; BODY_MAX * 2 + 1] = [0; BODY_MAX * 2 + 1];
+static mut EV_CD: i32 = 0; // cooldown do evento "corpo visível"
 
 static mut DMAP: [u16; N] = [0; N];
 static mut QUEUE: [u16; N] = [0; N];
@@ -476,6 +485,46 @@ fn bfs(tx: usize, ty: usize) {
 
 // ================= basilisco =================
 
+// grava a posição que a cabeça ACABOU de deixar: o corpo avança com ela
+fn body_push(x: u8, y: u8) {
+    unsafe {
+        let n = if BODYBUF[0] < BODY_MAX as u8 { BODYBUF[0] + 1 } else { BODY_MAX as u8 };
+        for k in (1..n as usize).rev() {
+            BODYBUF[k * 2 + 1] = BODYBUF[(k - 1) * 2 + 1];
+            BODYBUF[k * 2 + 2] = BODYBUF[(k - 1) * 2 + 2];
+        }
+        BODYBUF[1] = x;
+        BODYBUF[2] = y;
+        BODYBUF[0] = n;
+    }
+}
+
+// depois do FOV: conta segmentos visíveis, dispara o vislumbre e publica em STATS[9]
+fn body_pass() {
+    unsafe {
+        let len = BODYBUF[0] as usize;
+        let mut vis: u8 = 0;
+        let mut best: (i32, i32, i32) = (i32::MAX, 0, 0); // dist, x, y
+        for k in 0..len {
+            let sx = BODYBUF[k * 2 + 1] as usize;
+            let sy = BODYBUF[k * 2 + 2] as usize;
+            if VIS[idx(sx, sy)] != 1 { continue; }
+            let d = cheb(sx, sy, PX, PY);
+            if d > 14 { continue; }
+            vis += 1;
+            if d < best.0 { best = (d, sx as i32, sy as i32); }
+        }
+        if EV_CD > 0 { EV_CD -= 1; }
+        if vis > 0 && EV_CD == 0 {
+            let dx = best.1 - PX as i32;
+            let ev = if dx <= -2 { EV_BODY_L } else if dx >= 2 { EV_BODY_R } else { EV_BODY };
+            push_event(ev);
+            EV_CD = 10;
+        }
+        STATS[9] = vis;
+    }
+}
+
 #[inline]
 fn cheb(ax: usize, ay: usize, bx: usize, by: usize) -> i32 {
     let dx = (ax as i32 - bx as i32).abs();
@@ -517,8 +566,10 @@ fn bas_step_to(tx: usize, ty: usize) {
             push_event(EV_DOOR_B);
             return; // gastou o passo abrindo
         }
+        let (ox, oy) = (BX as u8, BY as u8);
         BX = nx;
         BY = ny;
+        body_push(ox, oy);
     }
 }
 
@@ -538,9 +589,11 @@ fn patrol_step() {
                     set_door(DEPTH as usize, ni);
                     push_event(EV_DOOR_B);
                 }
+                let (ox, oy) = (BX as u8, BY as u8);
                 BX = nx as usize;
                 BY = ny as usize;
                 LD = d;
+                body_push(ox, oy);
                 return;
             }
         }
@@ -694,6 +747,7 @@ fn place_basilisk() {
         BST = B_PATROL;
         BTICK = 0;
         LD = 0;
+        BODYBUF[0] = 0; // novo andar, serpente inteira: rastro zera
     }
 }
 
@@ -797,6 +851,7 @@ fn game_step(input: u32) {
         if STATE != ST_PLAY { return; }
 
         compute_fov();
+        body_pass();
         render();
         sync_stats();
     }
@@ -936,7 +991,18 @@ fn render() {
         }
 
         if st == ST_PLAY {
-            // basilisco (só o que você CONSEGUE ver)
+            // corpo (rastro de escamas): só o que você CONSEGUE ver dela
+            let blen = BODYBUF[0] as usize;
+            for k in 0..blen {
+                let sx = BODYBUF[k * 2 + 1] as usize;
+                let sy = BODYBUF[k * 2 + 2] as usize;
+                if sx == BX && sy == BY { continue; }
+                let i = idx(sx, sy);
+                if VIS[i] == 1 && cheb(sx, sy, PX, PY) <= 14 {
+                    put(sx, sy, b'~', A_BODY);
+                }
+            }
+            // cabeça (só o que você CONSEGUE ver)
             let bi = idx(BX, BY);
             if VIS[bi] == 1 {
                 let d = cheb(BX, BY, PX, PY);
@@ -968,45 +1034,43 @@ fn render() {
 }
 
 fn render_title() {
-    unsafe {
-        // moldura
-        for x in 0..W {
-            put(x, 0, b'-', A_TITLE);
-            put(x, H - 2, b'-', A_TITLE);
-        }
-        for y in 0..H {
-            put(0, y, b'|', A_TITLE);
-            put(W - 1, y, b'|', A_TITLE);
-        }
-        put(0, 0, b'+', A_TITLE);
-        put(W - 1, 0, b'+', A_TITLE);
-        put(0, H - 2, b'+', A_TITLE);
-        put(W - 1, H - 2, b'+', A_TITLE);
-
-        // silhueta do castelo arrasado
-        let art: [&str; 4] = [
-            "  ##   ###  #.#  ###   ###  #.#  ##      ##  ###  ##   ",
-            "  ##   ###  ###  ###   ###  ###  ##   #  ##  ###  ##.  ",
-            " ####       ##       ##       ##   ####      #  #..... ",
-            " ###  #+####+### ###+#### ###+##+###  ###+#### # ####  ",
-        ];
-        for (r, s) in art.iter().enumerate() {
-            write_str(2, 2 + r as usize, s, A_WALL);
-        }
-        write_str(2, 6, " um reino comido ate os ossos ", A_UI);
-
-        // título
-        write_big(2, 9, "CASTLE OF", A_TITLE);
-        write_big(5, 15, "BASILISK", A_BAS);
-
-        write_center(22, "um conceito de survival horror", A_UI);
-        write_center(24, "nao existe vida. nao existe ouro. existe a besta.", A_UI);
-        write_center(25, "esconda-se. nunca olhe para ela.", A_UI);
-        write_center(27, "WASD/setas - mover      ESPACO - esperar", A_UI);
-
-        // piscar: JS faz attr 9 tremer
-        write_center(30, "PRESSIONE ENTER", A_ALERT);
+    // moldura
+    for x in 0..W {
+        put(x, 0, b'-', A_TITLE);
+        put(x, H - 2, b'-', A_TITLE);
     }
+    for y in 0..H {
+        put(0, y, b'|', A_TITLE);
+        put(W - 1, y, b'|', A_TITLE);
+    }
+    put(0, 0, b'+', A_TITLE);
+    put(W - 1, 0, b'+', A_TITLE);
+    put(0, H - 2, b'+', A_TITLE);
+    put(W - 1, H - 2, b'+', A_TITLE);
+
+    // silhueta do castelo arrasado
+    let art: [&str; 4] = [
+        "  ##   ###  #.#  ###   ###  #.#  ##      ##  ###  ##   ",
+        "  ##   ###  ###  ###   ###  ###  ##   #  ##  ###  ##.  ",
+        " ####       ##       ##       ##   ####      #  #..... ",
+        " ###  #+####+### ###+#### ###+##+###  ###+#### # ####  ",
+    ];
+    for (r, s) in art.iter().enumerate() {
+        write_str(2, 2 + r as usize, s, A_WALL);
+    }
+    write_str(2, 6, " um reino comido ate os ossos ", A_UI);
+
+    // título
+    write_big(2, 9, "CASTLE OF", A_TITLE);
+    write_big(5, 15, "BASILISK", A_BAS);
+
+    write_center(22, "um conceito de survival horror", A_UI);
+    write_center(24, "nao existe vida. nao existe ouro. existe a besta.", A_UI);
+    write_center(25, "esconda-se. nunca olhe para ela.", A_UI);
+    write_center(27, "WASD/setas - mover      ESPACO - esperar", A_UI);
+
+    // piscar: JS faz attr 9 tremer
+    write_center(30, "PRESSIONE ENTER", A_ALERT);
 }
 
 fn render_dead() {
@@ -1046,13 +1110,11 @@ fn render_dead() {
 }
 
 fn render_win() {
-    unsafe {
-        write_center(10, "A COROA E SUA.", A_CROWN);
-        write_center(12, "voce escapou do olhar que comeu uma era.", A_UI);
-        write_center(14, "o castelo fica orfao de reis.", A_UI);
-        write_center(16, "a besta continua, paciente, no escuro.", A_UI);
-        write_center(30, "ENTER - OUTRO DESTINO", A_ALERT);
-    }
+    write_center(10, "A COROA E SUA.", A_CROWN);
+    write_center(12, "voce escapou do olhar que comeu uma era.", A_UI);
+    write_center(14, "o castelo fica orfao de reis.", A_UI);
+    write_center(16, "a besta continua, paciente, no escuro.", A_UI);
+    write_center(30, "ENTER - OUTRO DESTINO", A_ALERT);
 }
 
 fn sync_stats() {
@@ -1093,6 +1155,7 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         SEEDS = [0; 3];
         AUD_H = 0;
         AUD_T = 0;
+        EV_CD = 0;
         R32 = seed | 1;
         let s = rnd();
         SEEDS[0] = s | 1;
@@ -1101,6 +1164,7 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         place_basilisk();
         GRACE = 14;
         compute_fov();
+        body_pass();
         render();
         sync_stats();
     }
@@ -1141,6 +1205,11 @@ pub extern "C" fn pfb_debug_place(px: u32, py: u32) {
 /// [DEBUG] ponteiro para o array de tiles do andar atual (N bytes).
 #[no_mangle]
 pub extern "C" fn pfb_debug_map_ptr() -> u32 { unsafe { MAP.as_ptr() as u32 } }
+
+/// [DEBUG] ponteiro do rastro do corpo: [0] = comprimento; depois pares (x, y),
+/// o segmento mais recente (encostado na cabeça) primeiro. Buffer fixo de 49 bytes.
+#[no_mangle]
+pub extern "C" fn pfb_debug_body_ptr() -> u32 { unsafe { BODYBUF.as_ptr() as u32 } }
 
 /// [DEBUG] probe de célula: bit0 = caminhável, bit1 = LOS do basilisco até lá,
 /// bits 2..9 = distância chebyshev (clamp 255).
