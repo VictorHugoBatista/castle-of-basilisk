@@ -43,6 +43,29 @@ function checkBody() {
 dump('TITLE');
 if (stats[0] !== 0) { console.error('FAIL: title state'); process.exit(1); }
 
+// ---------- 1b. menu do título (navegar, controles, voltar, iniciar) ----------
+let menuOk;
+{
+  const M = { up: 1, down: 2, left: 4, right: 8, ok: 16, back: 64 };
+  w.pfb_menu(M.down);
+  const navig = stats[14] === 1 && stats[0] === 0;      // cursor em CONTROLES
+  w.pfb_menu(M.ok);
+  const ctrl = stats[0] === 4;                          // tela de controles
+  w.pfb_menu(M.right);
+  const mode = stats[15] === 1;                         // modo SETAS
+  w.pfb_menu(M.back);
+  const back = stats[0] === 0;                          // ESC volta
+  w.pfb_menu(M.up);                                     // cursor de volta a INICIAR
+  w.pfb_menu(M.ok);                                     // confirmar INICIAR
+  const startReq = stats[13] === 1 && stats[0] === 0;   // pedido publicado
+  w.pfb_new_game(999);
+  const consumed = stats[0] === 1 && stats[13] === 0;   // JS semeou e limpou
+  menuOk = navig && ctrl && mode && back && startReq && consumed;
+  console.log(menuOk
+    ? 'PASS - menu do título (navegar/controles/voltar/iniciar)'
+    : 'FAIL - menu do título');
+}
+
 // ---------- 2. cenários de morte/alerta ----------
 function findCell(pred) {
   for (let y = 1; y < H - 1; y++)
@@ -301,6 +324,6 @@ console.log(bodySeen
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, bodySeen, traps === 0].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, bodySeen, traps === 0, menuOk].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

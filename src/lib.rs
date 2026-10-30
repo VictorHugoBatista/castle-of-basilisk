@@ -60,6 +60,7 @@ pub const ST_TITLE: u8 = 0;
 pub const ST_PLAY: u8 = 1;
 pub const ST_DEAD: u8 = 2;
 pub const ST_WIN: u8 = 3;
+pub const ST_CONTROLS: u8 = 4; // tela de controles (menu inicial)
 
 // estados da IA do basilisco
 pub const B_PATROL: u8 = 0;
@@ -78,6 +79,15 @@ const BODY_MAX: usize = 24; // comprimento do rastro: anéis de escamas
 // ---- bits extras de input (sneak/run) ----
 pub const IN_SNEAK: u32 = 32; // Shift: passada de sombra — lenta e muda
 pub const IN_RUN: u32 = 64;   // correr: o eco do castelo te denuncia
+
+// ---- bits de input das telas de menu (pfb_menu) ----
+// mesmos valores dos bits de jogo: o JS reusa o mesmo codec de teclado.
+pub const IN_UP: u32 = 1;
+pub const IN_DOWN: u32 = 2;
+pub const IN_LEFT: u32 = 4;
+pub const IN_RIGHT: u32 = 8;
+pub const IN_CONFIRM: u32 = 16; // ENTER/ESPACO: confirmar a opcao
+pub const IN_MENU_BACK: u32 = 64; // ESC: voltar para o menu
 
 // ---- ruído: o eco do castelo vazio ----
 const RUN_NOISE: i32 = 15;   // correr: ouvida de quase todo o andar
@@ -111,6 +121,11 @@ static mut DEPTH: u8 = 1;
 static mut CROWN: bool = false;
 static mut TICK: i32 = 0;
 static mut GRACE: i32 = 0;
+
+// ---- menu inicial ----
+static mut MENU_SEL: u8 = 0; // cursor: 0 = INICIAR, 1 = CONTROLES
+static mut SCHEME: u8 = 0;   // modo de teclas: 0 = WASD, 1 = SETAS
+static mut START_REQ: u8 = 0; // menu pediu "Iniciar": o JS semeia o novo jogo
 
 static mut SEEDS: [u32; 3] = [0; 3];
 static mut MAP: [u8; N] = [0; N];
@@ -1376,6 +1391,13 @@ fn write_big(x: usize, y: usize, s: &str, a: u8) {
     }
 }
 
+// glifos FONT5 centralizados horizontalmente
+fn write_big_center(y: usize, s: &str, a: u8) {
+    let width = s.chars().count() * 6 - 1; // cada glifo avança 6; o ultimo não usa o espaçador
+    if width >= W { write_big(0, y, s, a); return; }
+    write_big((W - width) / 2, y, s, a);
+}
+
 fn attr_of(t: u8) -> u8 {
     match t {
         T_FLOOR => A_FLOOR,
@@ -1448,6 +1470,8 @@ fn render() {
             write_center(H - 1, msg, if BST == B_HUNT { A_ALERT } else { A_UI });
         } else if st == ST_TITLE {
             render_title();
+        } else if st == ST_CONTROLS {
+            render_controls();
         } else if st == ST_DEAD {
             render_dead();
         } else {
@@ -1471,30 +1495,102 @@ fn render_title() {
     put(0, H - 2, b'+', A_TITLE);
     put(W - 1, H - 2, b'+', A_TITLE);
 
-    // silhueta do castelo arrasado
-    let art: [&str; 4] = [
-        "  ##   ###  #.#  ###   ###  #.#  ##      ##  ###  ##   ",
-        "  ##   ###  ###  ###   ###  ###  ##   #  ##  ###  ##.  ",
-        " ####       ##       ##       ##   ####      #  #..... ",
-        " ###  #+####+### ###+#### ###+##+###  ###+#### # ####  ",
-    ];
-    for (r, s) in art.iter().enumerate() {
-        write_str(2, 2 + r as usize, s, A_WALL);
+    // título grande no topo
+    write_big_center(2, "CASTLE OF", A_TITLE);
+    write_big_center(8, "BASILISK", A_BAS);
+
+    write_center(14, "um conceito de survival horror", A_UI);
+    write_center(16, "nao existe vida. nao existe ouro. existe a besta.", A_UI);
+    write_center(17, "esconda-se. nunca olhe para ela.", A_UI);
+
+    // menu centralizado: a opcao com cursor fica em ambar (A_TITLE).
+    // SEM alocacao: format! cresceria a memoria do wasm e desanexava as views do JS.
+    unsafe {
+        let items = [("INICIAR", 21), ("CONTROLES", 23)];
+        for (k, (label, y)) in items.iter().enumerate() {
+            let sel = MENU_SEL == k as u8;
+            let a = if sel { A_TITLE } else { A_UI };
+            let n = label.chars().count();
+            let x = (W - n) / 2;
+            write_str(x, *y, label, a);
+            if sel {
+                write_str(x - 2, *y, "> ", a);
+                write_str(x + n + 1, *y, "<", a);
+            }
+        }
     }
-    write_str(2, 6, " um reino comido ate os ossos ", A_UI);
 
-    // título
-    write_big(2, 9, "CASTLE OF", A_TITLE);
-    write_big(5, 15, "BASILISK", A_BAS);
+    write_center(27, "W/S ou setas escolhem · ENTER confirma", A_UI);
+}
 
-    write_center(22, "um conceito de survival horror", A_UI);
-    write_center(24, "nao existe vida. nao existe ouro. existe a besta.", A_UI);
-    write_center(25, "esconda-se. nunca olhe para ela.", A_UI);
-    write_center(27, "WASD mover · SHIFT calar · X/K correr · ESPACO esperar", A_UI);
+fn render_controls() {
+    // moldura (igual ao titulo, em ambar)
+    for x in 0..W {
+        put(x, 0, b'-', A_TITLE);
+        put(x, H - 2, b'-', A_TITLE);
+    }
+    for y in 0..H {
+        put(0, y, b'|', A_TITLE);
+        put(W - 1, y, b'|', A_TITLE);
+    }
+    put(0, 0, b'+', A_TITLE);
+    put(W - 1, 0, b'+', A_TITLE);
+    put(0, H - 2, b'+', A_TITLE);
+    put(W - 1, H - 2, b'+', A_TITLE);
+
+    // cabeçalho grande
+    write_big_center(1, "CONTROLES", A_TITLE);
+
+    // escolha do esquema de teclas (alternavel com A/D ou esquerda/direita)
+    unsafe {
+        write_center(8, "ESCOLHA COMO VOCE VAI ANDAR:", A_UI);
+        let wasd_on = SCHEME == 0;
+        write_str(15, 10, "WASD", if wasd_on { A_TITLE } else { A_UI });
+        write_str(31, 10, "SETAS", if wasd_on { A_UI } else { A_TITLE });
+        if wasd_on {
+            write_str(13, 10, ">", A_TITLE);
+            write_str(20, 10, "<", A_TITLE);
+        } else {
+            write_str(29, 10, ">", A_TITLE);
+            write_str(37, 10, "<", A_TITLE);
+        }
+        write_center(12, "A/D ou esquerda/direita alternam", A_UI);
+
+        // tabela de comandos: coluna fixa — o modo escolhido ganha ambar (A_TITLE)
+        cmd_row(15, "mover", "WASD  /  SETAS");
+        cmd_row(16, "esperar", "ESPACO");
+        cmd_row(17, "calar-se", "SHIFT");
+        cmd_row(18, "correr", "X      /      K");
+        cmd_row(19, "portais < e >", "andar sobre eles");
+        if wasd_on {
+            write_str(31, 15, "WASD", A_TITLE);
+            write_str(31, 18, "X", A_TITLE);
+        } else {
+            write_str(40, 15, "SETAS", A_TITLE);
+            write_str(45, 18, "K", A_TITLE);
+        }
+    }
+
+    write_center(22, "os dois esquemas funcionam o tempo", A_UI);
+    write_center(23, "todo: o modo so escolhe o atalho", A_UI);
+    write_center(24, "de corrida que cabe na sua mao.", A_UI);
 
     // piscar: JS faz attr 9 tremer
-    write_center(30, "PRESSIONE ENTER", A_ALERT);
+    write_center(28, "ENTER ou ESC - VOLTAR", A_ALERT);
 }
+
+// linha da tabela: rotulo, pontilhado ate a coluna 29 e o valor na 31
+fn cmd_row(y: usize, label: &str, val: &str) {
+    let lx = 11;
+    write_str(lx, y, label, A_UI);
+    let start = lx + label.chars().count() + 1; // 1 respiro depois do rotulo
+    for x in start..30 {
+        put(x, y, b'.', A_UI);
+    }
+    write_str(31, y, val, A_UI);
+}
+
+
 
 fn render_dead() {
     unsafe {
@@ -1554,6 +1650,9 @@ fn sync_stats() {
         STATS[10] = NOISEL;                      // HUD: medidor de som
         STATS[11] = STAM.clamp(0, 100) as u8;    // HUD: fôlego
         STATS[12] = (tile_at(PX, PY) == T_RUBBLE) as u8; // você está nos escombros
+        STATS[13] = START_REQ;                   // menu: pedido de "Iniciar"
+        STATS[14] = MENU_SEL;                    // menu: cursor da tela inicial
+        STATS[15] = SCHEME;                      // menu: modo de teclas (0 WASD, 1 SETAS)
         AI_DBG[0] = ROOMT;
         AI_DBG[1] = RTX;
         AI_DBG[2] = RTY;
@@ -1584,6 +1683,7 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         DEPTH = 1;
         TICK = 0;
         DEATH_R = 0;
+        START_REQ = 0;
         DOORS = [0; 96];
         SEEN = [0; N * 3];
         SEEDS = [0; 3];
@@ -1619,6 +1719,42 @@ pub extern "C" fn pfb_new_game(seed: u32) {
 #[no_mangle]
 pub extern "C" fn pfb_step(input: u32) {
     game_step(input);
+}
+
+/// Input das telas de menu (titulo e controles). Bits:
+/// 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 CONFIRMAR (ENTER/ESPACO), 64 VOLTAR (ESC).
+/// "Iniciar" nao pode ser semeado aqui: publica START_REQ (STATS[13]) e
+/// o JS chama pfb_new_game com a semente de relogio.
+#[no_mangle]
+pub extern "C" fn pfb_menu(input: u32) {
+    unsafe {
+        if STATE == ST_TITLE {
+            match input {
+                IN_UP => { if MENU_SEL > 0 { MENU_SEL -= 1; } }
+                IN_DOWN => { if MENU_SEL < 1 { MENU_SEL += 1; } }
+                IN_CONFIRM => {
+                    if MENU_SEL == 0 {
+                        START_REQ = 1;
+                    } else {
+                        STATE = ST_CONTROLS;
+                        render();
+                    }
+                }
+                _ => {}
+            }
+        } else if STATE == ST_CONTROLS {
+            match input {
+                IN_LEFT => { SCHEME = 0; render(); }
+                IN_RIGHT => { SCHEME = 1; render(); }
+                IN_CONFIRM | IN_MENU_BACK => {
+                    STATE = ST_TITLE;
+                    render();
+                }
+                _ => {}
+            }
+        }
+        sync_stats();
+    }
 }
 
 // ---- dev tools (documentados no README; usados pelo smoke test) ----

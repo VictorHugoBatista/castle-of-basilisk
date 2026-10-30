@@ -24,9 +24,17 @@ aceitar (Chrome bloqueia `file://`; use o servidor HTTP).
 
 | tecla | ação |
 |---|---|
-| WASD / setas | mover |
+| WASD ou setas | mover |
 | ESPAÇO | esperar (ficar imóvel) |
-| ENTER | começar / reiniciar |
+| SHIFT | passada silenciosa (calar-se) |
+| X (modo WASD) ou K (modo setas) | correr — o eco denuncia você |
+| ENTER | confirmar no menu / começar |
+
+Na tela de título: **W/S ou setas** escolhem entre **INICIAR** e **CONTROLES**,
+**ENTER** confirma. A tela de CONTROLES lista os comandos e permite escolher
+jogar com **WASD** ou com **as setas** (A/D ou ←/→ alternam) — ambos os
+esquemas funcionam sempre; o modo define o atalho de corrida.
+ESC volta ao menu.
 
 ## como jogar (e sobreviver)
 
@@ -66,11 +74,14 @@ Nada de wasm-bindgen: o módulo expõe funções `#[no_mangle] extern "C"`:
 
 - `pfb_init()` — desenha a tela de título
 - `pfb_new_game(seed)` — novo jogo
-- `pfb_step(input)` — um tick (bits: 1↑ 2↓ 4← 8→ 16 espera)
+- `pfb_step(input)` — um tick (bits: 1↑ 2↓ 4← 8→ 16 espera 32 furtivo 64 correr)
+- `pfb_menu(input)` — teclado das telas de menu (bits: 1↑ 2↓ 4← 8→
+  16 confirmar/ENTER·ESPAÇO 64 voltar/ESC). "Iniciar" publica `STATS[13]=1`
+  e o JS semeia `pfb_new_game`
 - `pfb_grid_ptr()` / `pfb_stats_ptr()` — ponteiros para o grid (2 bytes por
   célula: `[char][attr]`) e para o bloco de status
 - `pfb_pop_event()` — fila de eventos de áudio
-- `pfb_state()` — 0 título, 1 jogando, 2 morto, 3 vitória
+- `pfb_state()` — 0 título, 1 jogando, 2 morto, 3 vitória, 4 controles
 - `pfb_debug_*` — ferramentas dos testes (place/map/probe/give_crown)
 
 O WASM nunca aloca: as views JS são criadas uma vez e ficam válidas.
