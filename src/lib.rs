@@ -1730,8 +1730,8 @@ pub extern "C" fn pfb_menu(input: u32) {
     unsafe {
         if STATE == ST_TITLE {
             match input {
-                IN_UP => { if MENU_SEL > 0 { MENU_SEL -= 1; } }
-                IN_DOWN => { if MENU_SEL < 1 { MENU_SEL += 1; } }
+                IN_UP => { if MENU_SEL > 0 { MENU_SEL -= 1; } render(); }
+                IN_DOWN => { if MENU_SEL < 1 { MENU_SEL += 1; } render(); }
                 IN_CONFIRM => {
                     if MENU_SEL == 0 {
                         START_REQ = 1;

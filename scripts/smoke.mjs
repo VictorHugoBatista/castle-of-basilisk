@@ -47,7 +47,11 @@ if (stats[0] !== 0) { console.error('FAIL: title state'); process.exit(1); }
 let menuOk;
 {
   const M = { up: 1, down: 2, left: 4, right: 8, ok: 16, back: 64 };
+  // cursor > N O GRID: mover para baixo tem que redesenhar (roda render())
+  const gt0 = grid[(21 * W + 22) * 2] === 0x3E;         // '>' na linha de INICIAR
   w.pfb_menu(M.down);
+  const gt1 = grid[(23 * W + 21) * 2] === 0x3E          // '>' passou p/ CONTROLES
+           && grid[(21 * W + 22) * 2] !== 0x3E;         // ... e sumiu de INICIAR
   const navig = stats[14] === 1 && stats[0] === 0;      // cursor em CONTROLES
   w.pfb_menu(M.ok);
   const ctrl = stats[0] === 4;                          // tela de controles
@@ -57,10 +61,10 @@ let menuOk;
   const back = stats[0] === 0;                          // ESC volta
   w.pfb_menu(M.up);                                     // cursor de volta a INICIAR
   w.pfb_menu(M.ok);                                     // confirmar INICIAR
-  const startReq = stats[13] === 1 && stats[0] === 0;   // pedido publicado
+const startReq = stats[13] === 1 && stats[0] === 0;   // pedido publicado
   w.pfb_new_game(999);
   const consumed = stats[0] === 1 && stats[13] === 0;   // JS semeou e limpou
-  menuOk = navig && ctrl && mode && back && startReq && consumed;
+  menuOk = gt0 && gt1 && navig && ctrl && mode && back && startReq && consumed;
   console.log(menuOk
     ? 'PASS - menu do título (navegar/controles/voltar/iniciar)'
     : 'FAIL - menu do título');
