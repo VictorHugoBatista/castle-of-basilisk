@@ -1307,10 +1307,14 @@ fn put(x: usize, y: usize, ch: u8, a: u8) {
 fn clear_cell(x: usize, y: usize, a: u8) { put(x, y, b' ', a); }
 
 fn write_str(x: usize, y: usize, s: &str, a: u8) {
-    for (k, c) in s.bytes().enumerate() { put(x + k, y, c, a); }
+    for (k, c) in s.chars().enumerate() {
+        // '·' (U+00B7) vira o byte 0xB7 — o JS renderiza fromCharCode(0xB7) = '·'
+        let ch = if c == '\u{B7}' { 0xB7 } else if c.is_ascii() { c as u8 } else { b'?' };
+        put(x + k, y, ch, a);
+    }
 }
 fn write_center(y: usize, s: &str, a: u8) {
-    let n = s.len();
+    let n = s.chars().count();
     let x = if n >= W { 0 } else { (W - n) / 2 };
     write_str(x, y, s, a);
 }
@@ -1357,6 +1361,11 @@ const FONT5: [[&str; 5]; 26] = [
 fn write_big(x: usize, y: usize, s: &str, a: u8) {
     let mut cx = x;
     for chb in s.bytes() {
+        if chb == b' ' {
+            // espaço: avança uma coluna de glifo sem desenhar nada
+            cx += 6;
+            continue;
+        }
         let g = &FONT5[(chb as usize).wrapping_sub(b'A' as usize).min(25)];
         for r in 0..5 {
             for c in 0..5 {
@@ -1481,7 +1490,7 @@ fn render_title() {
     write_center(22, "um conceito de survival horror", A_UI);
     write_center(24, "nao existe vida. nao existe ouro. existe a besta.", A_UI);
     write_center(25, "esconda-se. nunca olhe para ela.", A_UI);
-    write_center(27, "WASD mover  SHIFT calar  X/K correr  ESPACO esperar", A_UI);
+    write_center(27, "WASD mover · SHIFT calar · X/K correr · ESPACO esperar", A_UI);
 
     // piscar: JS faz attr 9 tremer
     write_center(30, "PRESSIONE ENTER", A_ALERT);
