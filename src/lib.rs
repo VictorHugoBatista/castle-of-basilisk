@@ -1564,10 +1564,10 @@ fn render_controls() {
         cmd_row(19, "portais < e >", "andar sobre eles");
         if wasd_on {
             write_str(31, 15, "WASD", A_TITLE);
-            write_str(31, 18, "X", A_TITLE);
+            write_str(45, 18, "K", A_TITLE);
         } else {
             write_str(40, 15, "SETAS", A_TITLE);
-            write_str(45, 18, "K", A_TITLE);
+            write_str(31, 18, "X", A_TITLE);
         }
     }
 

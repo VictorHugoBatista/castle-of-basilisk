@@ -27,7 +27,7 @@ aceitar (Chrome bloqueia `file://`; use o servidor HTTP).
 | WASD ou setas | mover |
 | ESPAÇO | esperar (ficar imóvel) |
 | SHIFT | passada silenciosa (calar-se) |
-| X (modo WASD) ou K (modo setas) | correr — o eco denuncia você |
+| K (modo WASD) ou X (modo setas) | correr — o eco denuncia você |
 | ENTER | confirmar no menu / começar |
 
 Na tela de título: **W/S ou setas** escolhem entre **INICIAR** e **CONTROLES**,

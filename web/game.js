@@ -280,11 +280,11 @@ const KEYMAP = {
   ArrowLeft: IN_LEFT, KeyA: IN_LEFT,
   ArrowRight: IN_RIGHT, KeyD: IN_RIGHT,
 };
-// correr = X ou K (K para jogadores de setas): Ctrl+W fecharia o navegador.
+// correr = X ou K (K para jogadores de WASD): Ctrl+W fecharia o navegador.
 // Shift é passada silenciosa; correr é "você e o eco contra a pedra".
 // O modo escolhido na tela de CONTROLES (stats[15]) decide qual delas responde:
-// 0 = WASD → X ; 1 = SETAS → K.
-const RUNKEYS = () => (stats[15] === 1 ? ['KeyK'] : ['KeyX']);
+// 0 = WASD → K ; 1 = SETAS → X.
+const RUNKEYS = () => (stats[15] === 1 ? ['KeyX'] : ['KeyK']);
 
 // bits de input das telas de menu (mesmos números do WASM):
 // 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 CONFIRMAR, 64 VOLTAR
