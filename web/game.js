@@ -280,31 +280,66 @@ const KEYMAP = {
   ArrowLeft: IN_LEFT, KeyA: IN_LEFT,
   ArrowRight: IN_RIGHT, KeyD: IN_RIGHT,
 };
-// correr = X ou K (K para jogadores de setas): Ctrl+W fecharia o navegador.
+// correr = X ou K (K para jogadores de WASD): Ctrl+W fecharia o navegador.
 // Shift é passada silenciosa; correr é "você e o eco contra a pedra".
-const RUNKEYS = ['KeyX', 'KeyK'];
+// O modo escolhido na tela de CONTROLES (stats[15]) decide qual delas responde:
+// 0 = WASD → K ; 1 = SETAS → X.
+const RUNKEYS = () => (stats[15] === 1 ? ['KeyX'] : ['KeyK']);
+
+// bits de input das telas de menu (mesmos números do WASM):
+// 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 CONFIRMAR, 64 VOLTAR
+const MENU_CODES = {
+  KeyW: 1, ArrowUp: 1,
+  KeyS: 2, ArrowDown: 2,
+  KeyA: 4, ArrowLeft: 4,
+  KeyD: 8, ArrowRight: 8,
+  Enter: 16, Space: 16,
+  Escape: 64,
+};
+
+function startGame() {
+  held.clear();
+  w.pfb_new_game((Date.now() & 0x7fffffff) | 1); // deterministic xorshift32 seed
+  heartT0 = 0;
+}
+
+function menuStep(e) {
+  const code = MENU_CODES[e.code];
+  if (code === undefined) return false;
+  w.pfb_menu(code);
+  if (stats[13] === 1) startGame(); // menu confirmou "Iniciar"
+  forceRedraw();
+  e.preventDefault();
+  return true;
+}
 
 window.addEventListener('keydown', (e) => {
   audioOn();
   if (AC && AC.state === 'suspended') AC.resume();
+  // telas de menu (titulo 0 e controles 4): as teclas vao direto pro WASM
+  if (stats[0] === 0 || stats[0] === 4) {
+    if (menuStep(e)) return;
+  }
+  // morte/vitória: ENTER reinicia (como sempre)
+  if ((stats[0] === 2 || stats[0] === 3) && e.code === 'Enter') {
+    startGame();
+    forceRedraw();
+    e.preventDefault();
+    return;
+  }
   const bit = KEYMAP[e.code];
   if (bit !== undefined) { held.add(bit); lastDir = bit; e.preventDefault(); return; }
   if (e.code === 'Space') { held.add(IN_WAIT); e.preventDefault(); return; }
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { held.add(IN_SNEAK); return; }
-  if (RUNKEYS.includes(e.code)) { held.add(IN_RUN); return; }
-  if (e.code === 'Enter' && stats[0] !== 1) {
-    w.pfb_new_game((Date.now() & 0x7fffffff) | 1);
-    heartT0 = 0;
-    forceRedraw();
-    e.preventDefault();
-  }
+  if (RUNKEYS().includes(e.code)) { held.add(IN_RUN); return; }
 });
 window.addEventListener('keyup', (e) => {
   const bit = KEYMAP[e.code];
   if (bit !== undefined) { held.delete(bit); return; }
   if (e.code === 'Space') held.delete(IN_WAIT);
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') held.delete(IN_SNEAK);
-  if (RUNKEYS.includes(e.code)) held.delete(IN_RUN);
+  if (RUNKEYS().includes(e.code)) held.delete(IN_RUN);
+  if (e.code === 'KeyX' || e.code === 'KeyK') held.delete(IN_RUN); // trocou de modo
 });
 
 function inputBits() {

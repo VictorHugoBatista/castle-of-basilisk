@@ -72,10 +72,11 @@ Exports (contrato publico — nao quebrar):
 
 | export          | assinatura                   | papel |
 |-----------------|------------------------------|-------|
-| `pfb_init`      | `() ()`                      | desenha tela de titulo |
+- `pfb_init`      | `() ()`                      | desenha tela de titulo |
 | `pfb_new_game`  | `(seed: u32)`                | novo jogo deterministico |
 | `pfb_step`      | `(input: u32)`               | um tick (bits: 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 WAIT, 32 SNEAK, 64 RUN) |
-| `pfb_state`     | `() u32`                     | 0 titulo, 1 jogo, 2 morte, 3 vitoria |
+| `pfb_menu`      | `(input: u32)`               | teclado dos menus (bits: 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 OK, 64 BACK) |
+| `pfb_state`     | `() u32`                     | 0 titulo, 1 jogo, 2 morte, 3 vitoria, 4 controles |
 | `pfb_grid_ptr`  | `() u32`                     | ponteiro do grid de render |
 | `pfb_stats_ptr` | `() u32`                     | ponteiro do bloco de stats |
 | `pfb_pop_event` | `() u32`                     | consome fila de audio (0 = vazia) |
@@ -90,7 +91,10 @@ Layout de memoria:
   `[7] estado da IA (0 patrol, 1 invest, 2 hunt)`, `[8] coroa`,
   `[9] segmentos do corpo visíveis` (o JS usa para "engordar" o drone),
   `[10] nivel de ruido do tick (0..3, alimenta o HUD)`, `[11] folego (0..100)`,
-  `[12] jogador esta em escombro (0/1)`.
+  `[12] jogador esta em escombro (0/1)`, `[13] pedido de iniciar (menu -> JS
+  semeia pfb_new_game e limpa)`, `[14] cursor do menu (0 INICIAR, 1 CONTROLES)`,
+  `[15] modo de teclas (0 WASD, 1 SETAS — o J S usa para filtrar a tecla de
+  corrida X/K)`.
   **REGRA DE OURO**: qualquer funcao que mude estado (morte/vitoria/eventos)
   DEVE chamar `sync_stats()`. (Dois bugs ja nasceram de stats obsoletos —
   o terceiro: `return` cedo apos descer de andar deixava o bot do smoke
