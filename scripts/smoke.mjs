@@ -61,11 +61,12 @@ function scenario(name, fn) {
   return r;
 }
 
-// 2a. olhar mútuo → morte (motivo 1) — aquece 15 ticks para passar o GRACE
+// 2a. olhar mútuo → morte (motivo 1) — aquece 15 ticks para passar o GRACE.
+// O olhar dela é DIRECIONADO: célula tem que estar dentro do cone (bit3).
 const gaze = scenario('gaze mata (O OLHAR TE ENCONTROU)', () => {
   w.pfb_new_game(1234567);
   for (let k = 0; k < 16; k++) { w.pfb_step(0); pump(); }
-  const c = findCell((p) => (p & 1) && (p & 2) && ((p >> 2) <= 5) && ((p >> 2) >= 2));
+  const c = findCell((p) => (p & 1) && (p & 2) && ((p >> 2) <= 5) && ((p >> 2) >= 2) && ((p >> 3) & 1));
   if (!c) return false;
   place(c.x, c.y);
   w.pfb_step(0); pump();
@@ -130,6 +131,10 @@ const pass = (i) => {
   const t = map[i];
   return t === 0x2E || t === 0x2C || t === 0x3E || t === 0x3C || t === 0x2B || t === 0xA7;
 };
+// portais (>, <, §) são INTERAÇÕES: só pisável se é o alvo do plano —
+// senão o bot atravessa um '<' sem querer e sobe de andar
+const isStair = (i) => { const t = map[i]; return t === 0x3E || t === 0x3C || t === 0xA7; };
+function stepOk(i, target) { return !isStair(i) || i === target; }
 function findTile(t) { for (let i = 0; i < W * H; i++) if (map[i] === t) return i; return -1; }
 
 let dangerMemo = null;
@@ -155,6 +160,7 @@ function bfsRoute(target, avoid) {
       if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
       const ni = ny * W + nx;
       if (prev[ni] !== -1 || !pass(ni)) continue;
+      if (!stepOk(ni, target)) continue; // não atravessar portais por acidente
       if (avoid && danger(nx, ny)) continue;
       prev[ni] = c; q.push(ni);
     }
@@ -176,7 +182,7 @@ const dirTo = (from, to) => dirBit({ dx: (to % W) - (from % W), dy: ((to / W) | 
 
 // esquiva geométrica: foge no eixo de afastamento; eixo travado evita zigzag
 let fleeAxisWasX = null;
-function dodge() {
+function dodge(target) {
   const bx = stats[5], by = stats[6], px = stats[3], py = stats[4];
   const dxs = px - bx;
   const dys = py - by;
@@ -187,7 +193,8 @@ function dodge() {
   const walk = (dx, dy) => {
     const nx = px + dx, ny = py + dy;
     if (nx < 0 || ny < 0 || nx >= W || ny >= H) return false;
-    return pass(ny * W + nx);
+    const ni = ny * W + nx;
+    return pass(ni) && stepOk(ni, target);
   };
   const opts = [];
   if (sx !== 0) opts.push([sx, 0]);
@@ -263,7 +270,7 @@ while (attempts < 40 && !playthroughOK) {
 
     let mvBit;
     if ((hunted && basDist <= 9) || stepDanger) {
-      const dg = dodge();
+      const dg = dodge(target);
       mvBit = dg ? dirBit(dg) : dirTo(pos, nxt); // sem saída: segue o plano
     } else {
       mvBit = dirTo(pos, nxt);
