@@ -74,12 +74,12 @@ Exports (contrato publico — nao quebrar):
 |-----------------|------------------------------|-------|
 | `pfb_init`      | `() ()`                      | desenha tela de titulo |
 | `pfb_new_game`  | `(seed: u32)`                | novo jogo deterministico |
-| `pfb_step`      | `(input: u32)`               | um tick (bits: 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 WAIT) |
+| `pfb_step`      | `(input: u32)`               | um tick (bits: 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 WAIT, 32 SNEAK, 64 RUN) |
 | `pfb_state`     | `() u32`                     | 0 titulo, 1 jogo, 2 morte, 3 vitoria |
 | `pfb_grid_ptr`  | `() u32`                     | ponteiro do grid de render |
 | `pfb_stats_ptr` | `() u32`                     | ponteiro do bloco de stats |
 | `pfb_pop_event` | `() u32`                     | consome fila de audio (0 = vazia) |
-| `pfb_debug_*`   | place/map/probe/body_ptr/give_crown | somente para testes headless |
+| `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown | somente para testes headless |
 
 Layout de memoria:
 - **Grid**: `56x32` celulas x `[char: u8, attr: u8]`. Char da tabela ASCII;
@@ -88,9 +88,14 @@ Layout de memoria:
 - **Stats** (u8[16]): `[0] estado`, `[1] motivo de morte (1 olhar, 2 toque)`,
   `[2] profundidade`, `[3] px`, `[4] py`, `[5] bx`, `[6] by`,
   `[7] estado da IA (0 patrol, 1 invest, 2 hunt)`, `[8] coroa`,
-  `[9] segmentos do corpo visíveis` (o JS usa para "engordar" o drone).
+  `[9] segmentos do corpo visíveis` (o JS usa para "engordar" o drone),
+  `[10] nivel de ruido do tick (0..3, alimenta o HUD)`, `[11] folego (0..100)`,
+  `[12] jogador esta em escombro (0/1)`.
   **REGRA DE OURO**: qualquer funcao que mude estado (morte/vitoria/eventos)
-  DEVE chamar `sync_stats()`. (Dois bugs ja nasceram de stats obsoletos.)
+  DEVE chamar `sync_stats()`. (Dois bugs ja nasceram de stats obsoletos —
+  o terceiro: `return` cedo apos descer de andar deixava o bot do smoke
+  replanejando com posicao velha sob mapa novo; sincronizar OU seguir o fluxo
+  normal do tick.)
 - **Eventos**: ring buffer `u32[16]`, produtor (Rust) / consumidor (JS).
 
 RNG: xorshift32 com seed POR ANDAR (`SEEDS[3]`), definida em `pfb_new_game`.
@@ -146,6 +151,60 @@ geometrica com eixo travado, desvio do tile quando o alvo esta sob os pes.
 Tecnologia e beneficio: o mesmo WASM serve os dois universos — bug de
 navegador reproduz no node (e vice-versa), entao o gate e real, nao simulado.
 
+### 3.4. Sistema de suspense e furtividade
+
+Nome: subsistemas de `src/lib.rs` (IA, ruido, escombro) + HUD/eco em
+`web/game.js`.
+
+Descricao: transforma o basilisco de "perseguidor sempre colado" em predadora
+de imprevisibilidade: patrulha por salas, caca o seu PASSADO (nao voce), ouve
+por rota (paredes importam) e o jogador ganha passada silenciosa, corrida com
+folego e esconderijos de escombro.
+
+Pilares (constantes tunaveis no topo de `src/lib.rs`):
+
+- **Patrulha por salas** (`pick_next_room`): o mapa se divide nos rects de
+  sala da geracao; ela rota sala a sala, fareja (PLOITER) e escolhe a
+  proxima. O sorteio soma o RASTRO do jogador: `PHIST[6]` e um anel de salas
+  visitadas com carimbo de tick; sala visitada ha 20..140 ticks vale +14
+  (TRAIL_W_RECENT), ha 140..260 vale +5 (TRAIL_W_OLD); a sala onde voce esta
+  AGORA nunca e sorteavel. Daqui nasce o momento "entrei no quarto e ela
+  acabou de sair": ela caca o seu passado, nao o seu presente. E
+  EAR_COOL=42: apos investigar, barulhos fracos sao ignorados por um tempo
+  (impede a cola eterna passo por passo).
+- **Cone de visao** (`in_cone`): ~120 graus na direcao do ultimo passo dela.
+  O olhar letal e DIRECIONADO: gaze morte exige LOS + cone (raspa: d<=2 mata
+  de qualquer modo). Passar ATRAS dela nao mata — premia o flanco e
+  atravessadas dramaticas.
+- **Ruido por rota** (`noise`): BFS no mapa real dela ATE a fonte (distancia
+  de rota, nao chebyshev); cada porta fechada na linha engole -3 (max 2) e
+  escombro engole -3. Ruido ALTO (correr r=15, abrir porta r=13, ou
+  efeito>=10) entrega coordenada exata; ruido curto entrega so o CENTRO da
+  sala mais proxima (regiao). Ruido alto acorda ela sempre; ruido curto
+  respeita o EAR_COOL.
+- **Escombro** (`'%'`, T_RUBBLE / attr 12 cor `#54421c`): becos-sem-saida de
+  2-4 tiles escavados em parede de corredor (`dig_pockets`, 1-3 por andar;
+  regra de construcao one-way: vizinhanca lateral de parede, nunca encurta
+  rota nem quebra conectividade). Andavel por VOCE; para ELA o BFS barra,
+  exceto com prova fresca (RUB_EVIDENCE=30 ticks quando ela TE VE entrar ou
+  ouve ruido alto vindo dali). Imovel ali, voce praticamente some
+  (SIGHT_RUB_STILL=1).
+- **Passada e folego**: SHIFT = sneak (anda a cada 2 ticks, ruido r=1);
+  X/K = correr (dash de 2 tiles, ruido r=15, custo RUN_COST=6 por passo) com
+  STAM (max 100) regenerando 2/tick; abaixo de PANT_AT=25: sem correr e
+  ofego involuntario (evento 17 EV_PANT, ruido r=8 a cada 5 ticks).
+- **HUD**: medidor de som (3 barras, stats[10]) e barra de folego
+  (stats[11]) desenhados no canvas (fundo do jogo, `drawHUD`).
+- **Echo do castelo** (JS): bus `echoIn` (GainNode) -> DelayNode de 170 ms
+  com feedback 0.33 e wet 0.55 manda os passos corridos de volta ao master:
+  voce OUVE seus proprios passos repetidos nos corredores vazios. O som do
+  passo tem 3 intensidades (silencioso/andar/correr) dirigidas pelo medidor
+  de ruido.
+
+Contrato de balanceamento: `node scripts/smoke.mjs` e o gate real — o bot
+joga com a MESMA IA que o humano enfrenta; qualquer tunagem de constante
+re-precisa passar no gate.
+
 ## 4. Armazenamento
 
 Nao existe: o jogo nao persiste nada (nem localStorage) — PoC sem save.
@@ -183,9 +242,10 @@ transforma em codigo.
 Setup: rustup stable + target `wasm32-unknown-unknown`; Node >= 20 para os testes.
 Build: `./build.sh`. Teste: `node scripts/smoke.mjs` (espera-se `SMOKE OK`).
 
-Cenarios cobertos: morte por gaze, morte por toque, IA investiga ruido,
-playthrough completo por bot (ate 40 sementes), fuzz de 6000 ticks contra
-estados impossiveis.
+Cenarios cobertos: morte por gaze (agora exigindo o CONE de visao dela),
+morte por toque, IA investiga ruido, rastro de escamas do corpo, playthrough
+completo por bot (ate 40 tentativas), fuzz de 6000 ticks contra estados
+impossiveis.
 
 ## 9. Consideracoes Futuras / Roadmap
 

@@ -6,6 +6,7 @@ const TICK_MS = 140;
 
 // ---- bits de input (mesmos do WASM) ----
 const IN_UP = 1, IN_DOWN = 2, IN_LEFT = 4, IN_RIGHT = 8, IN_WAIT = 16;
+const IN_SNEAK = 32, IN_RUN = 64;
 
 // ---- paleta (índices de attr do WASM) ----
 const PAL = [
@@ -21,7 +22,8 @@ const PAL = [
   '#ff5000', // 9 alerta (pisca)
   '#ffb000', // 10 título
   '#bf1600', // 11 corpo do basilisco ~ (vermelho sangue, onda + halo no render)
-  '#201500', '#201500', '#201500',
+  '#54421c', // 12 escombro % (becos que ela evita)
+  '#201500', '#201500',
   '#0a0600', // 15 vazio
 ];
 const PULSE_ATTRS = new Set([4, 5, 7]);
@@ -51,6 +53,7 @@ const prevGrid = new Uint8Array(W * H * 2); // para diff de render
 let AC = null;
 let master = null;
 let droneNodes = null;
+let echoIn = null; // barramento do eco do castelo vazio
 
 function audioOn() {
   if (AC) return;
@@ -58,6 +61,21 @@ function audioOn() {
   master = AC.createGain();
   master.gain.value = 0.5;
   master.connect(AC.destination);
+  // eco do castelo vazio: DelayNode com feedback curto — passos corridos
+  // ecoam pelos corredores de pedra vazia
+  echoIn = AC.createGain();
+  echoIn.gain.value = 0.9;
+  const dly = AC.createDelay(0.5);
+  dly.delayTime.value = 0.17;
+  const fb = AC.createGain();
+  fb.gain.value = 0.33;
+  const wet = AC.createGain();
+  wet.gain.value = 0.55;
+  echoIn.connect(dly);
+  dly.connect(fb);
+  fb.connect(dly);
+  dly.connect(wet);
+  wet.connect(master);
   startDrone();
 }
 
@@ -144,9 +162,21 @@ function noiseBurst({ dur = 0.3, vol = 0.15, f = 3000, q = 2, delay = 0, pan = 0
 // sons por evento (mesmos IDs do WASM)
 function playEvent(ev, pan) {
   switch (ev) {
-    case 1: // passo: clique seco, bem discreto
-      blip({ type: 'square', f0: 700, dur: 0.03, vol: 0.045 });
+    case 1: { // passo: intensidade pelo medidor de ruído (stats[10])
+      const lvl = stats[10];
+      if (lvl === 1) {
+        // silencioso: quase nada, um toque de dedo no chão
+        blip({ type: 'square', f0: 460, dur: 0.02, vol: 0.018 });
+      } else if (lvl === 3) {
+        // corrida: bota batendo + eco a preencher o corredor vazio
+        blip({ type: 'square', f0: 520, dur: 0.05, vol: 0.12, out: echoIn });
+        blip({ type: 'sine', f0: 120, f1: 70, dur: 0.1, vol: 0.11 });
+      } else {
+        // andar: clique seco, bem discreto
+        blip({ type: 'square', f0: 700, dur: 0.03, vol: 0.045 });
+      }
       break;
+    }
     case 2: // você abriu uma porta: rangido de madeira
       blip({ type: 'sawtooth', f0: 190, f1: 110, dur: 0.22, vol: 0.14 });
       noiseBurst({ dur: 0.12, vol: 0.05, f: 900, q: 3 });
@@ -201,6 +231,10 @@ function playEvent(ev, pan) {
     case 16: // escamas à direita
       bodyRumble(0.8);
       break;
+    case 17: // ofego: o fôlego dos esforços inclementes
+      noiseBurst({ dur: 0.09, vol: 0.055, f: 480, q: 1.3 });
+      noiseBurst({ dur: 0.08, vol: 0.04, f: 640, q: 1.5, delay: 0.13 });
+      break;
   }
 }
 
@@ -246,6 +280,9 @@ const KEYMAP = {
   ArrowLeft: IN_LEFT, KeyA: IN_LEFT,
   ArrowRight: IN_RIGHT, KeyD: IN_RIGHT,
 };
+// correr = X ou K (K para jogadores de setas): Ctrl+W fecharia o navegador.
+// Shift é passada silenciosa; correr é "você e o eco contra a pedra".
+const RUNKEYS = ['KeyX', 'KeyK'];
 
 window.addEventListener('keydown', (e) => {
   audioOn();
@@ -253,6 +290,8 @@ window.addEventListener('keydown', (e) => {
   const bit = KEYMAP[e.code];
   if (bit !== undefined) { held.add(bit); lastDir = bit; e.preventDefault(); return; }
   if (e.code === 'Space') { held.add(IN_WAIT); e.preventDefault(); return; }
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { held.add(IN_SNEAK); return; }
+  if (RUNKEYS.includes(e.code)) { held.add(IN_RUN); return; }
   if (e.code === 'Enter' && stats[0] !== 1) {
     w.pfb_new_game((Date.now() & 0x7fffffff) | 1);
     heartT0 = 0;
@@ -264,15 +303,20 @@ window.addEventListener('keyup', (e) => {
   const bit = KEYMAP[e.code];
   if (bit !== undefined) { held.delete(bit); return; }
   if (e.code === 'Space') held.delete(IN_WAIT);
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') held.delete(IN_SNEAK);
+  if (RUNKEYS.includes(e.code)) held.delete(IN_RUN);
 });
 
 function inputBits() {
-  if (held.has(IN_UP)) return IN_UP;
-  if (held.has(IN_DOWN)) return IN_DOWN;
-  if (held.has(IN_LEFT)) return IN_LEFT;
-  if (held.has(IN_RIGHT)) return IN_RIGHT;
-  if (held.has(IN_WAIT)) return IN_WAIT;
-  return 0;
+  let b = 0;
+  if (held.has(IN_UP)) b = IN_UP;
+  else if (held.has(IN_DOWN)) b = IN_DOWN;
+  else if (held.has(IN_LEFT)) b = IN_LEFT;
+  else if (held.has(IN_RIGHT)) b = IN_RIGHT;
+  else if (held.has(IN_WAIT)) b = IN_WAIT;
+  if (held.has(IN_SNEAK)) b |= IN_SNEAK;
+  if (held.has(IN_RUN)) b |= IN_RUN;
+  return b;
 }
 
 // ============================================================
@@ -455,6 +499,24 @@ function render(nowMs) {
   prevGlitchOn = gOn;
 }
 
+// HUD: medidor de som (o "quanto te ouviam agora") + fôlego
+function drawHUD() {
+  if (stats[0] !== 1) return;
+  const x0 = 4, y0 = 3;
+  const lvl = stats[10];
+  for (let k = 0; k < 3; k++) {
+    ctx.fillStyle = k < lvl
+      ? (lvl === 3 ? '#ff5000' : '#c98a00')
+      : 'rgba(107,68,0,0.30)';
+    ctx.fillRect(x0 + k * 9, y0, 6, 9);
+  }
+  const stam = stats[11] / 100;
+  ctx.fillStyle = 'rgba(60,38,0,0.55)';
+  ctx.fillRect(x0, y0 + 13, 30, 4);
+  ctx.fillStyle = stats[11] < 25 ? '#ff5000' : '#8a5f00';
+  ctx.fillRect(x0, y0 + 13, Math.max(2, Math.round(30 * stam)), 4);
+}
+
 // ============================================================
 // loop principal
 // ============================================================
@@ -488,6 +550,7 @@ function frame(nowMs) {
   lastState = stats[0];
 
   render(nowMs);
+  drawHUD();
   requestAnimationFrame(frame);
 }
 
