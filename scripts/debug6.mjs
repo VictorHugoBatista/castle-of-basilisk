@@ -3,9 +3,17 @@ import { readFileSync } from 'node:fs';
 const bytes = readFileSync(new URL('../web/wasm/castle_of_basilisk.wasm', import.meta.url));
 const { instance } = await WebAssembly.instantiate(bytes, {});
 const w = instance.exports;
-const W = 56, H = 32;
-const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 16);
-const map = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), W * H);
+const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 24);
+let W = 56, H = 32;
+let map = null;
+function ensureViews(d) {
+  const key = stats[16] | (stats[17] << 8) | ((d ?? stats[2]) << 16);
+  if (map && key === ensureViews.k) return;
+  ensureViews.k = key;
+  W = stats[16]; H = stats[17];
+  map = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), W * H);
+}
+ensureViews();
 
 const pass = (i) => [0x2E, 0x2C, 0x3E, 0x3C, 0x2B, 0xA7].includes(map[i]);
 const findTile = (t) => { for (let i = 0; i < W * H; i++) if (map[i] === t) return i; return -1; };
@@ -92,15 +100,17 @@ let dumped = false;
 for (let attempts = 0; attempts < 40; attempts++) {
   const seed = 1000 + attempts * 7919;
   w.pfb_new_game(seed);
+  ensureViews();
   let steps = 0;
   let route = null, rIdx = 0, lastTarget = -1, recalcAt = 0;
   fleeAxisWasX = null;
   const hist = [];
   for (; steps < 14000 && stats[0] === 1; steps++) {
+    ensureViews();
     let target;
     if (stats[8] === 1) target = findTile(0x3C);              // com coroa: sempre '<'
-    else if (stats[2] < 3) target = findTile(0x3E);           // sem coroa: desce
-    else target = findTile(0xA7);                             // andar 3: coroa
+    else if (stats[2] < 5) target = findTile(0x3E);           // sem coroa: desce
+    else target = findTile(0xA7);                             // andar 5: coroa
     if (target < 0) break;
 
     // está parado sobre o alvo (ex.: a porta '<' após descer)? dê um passo fora e volte

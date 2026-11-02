@@ -4,10 +4,25 @@
 #![allow(static_mut_refs)]
 #![allow(clippy::needless_range_loop)]
 
-pub const W: usize = 56;
-pub const H: usize = 32;
-pub const N: usize = W * H;
+pub const W0: usize = 56;  // castelo: o mapa de sempre
+pub const H0: usize = 32;
+pub const W_MAX: usize = 80; // esgotos: a rede imperial, consideravelmente maior
+pub const H_MAX: usize = 44;
+pub const N_MAX: usize = W_MAX * H_MAX;
 pub const FLOORS: usize = 5; // 1 = térreo · 2-3 = masmorras · 4-5 = esgotos
+
+// ---- dimensões do andar atual (runtime): variam por tema. W()/H() leem. ----
+static mut DIMW: usize = W0;
+static mut DIMH: usize = H0;
+
+/// largura do mapa atual (nome curto para byte-a-byte: o W de W_MAX não cabe aqui)
+#[inline]
+#[allow(non_snake_case)]
+fn W() -> usize { unsafe { DIMW } }
+
+#[inline]
+#[allow(non_snake_case)]
+fn H() -> usize { unsafe { DIMH } }
 
 // ---- tiles (bytes) ----
 const T_WALL: u8 = b'#';
@@ -110,8 +125,8 @@ const TRAIL_W_OLD: i32 = 5;     // peso de sala visitada a 140..260 ticks
 
 // ================= estado global =================
 
-static mut GRID: [u8; N * 2] = [0; N * 2];
-static mut STATS: [u8; 16] = [0; 16];
+static mut GRID: [u8; N_MAX * 2] = [0; N_MAX * 2];
+static mut STATS: [u8; 24] = [0; 24];
 static mut AUD: [u32; 16] = [0; 16];
 static mut AUD_H: usize = 0;
 static mut AUD_T: usize = 0;
@@ -129,10 +144,10 @@ static mut SCHEME: u8 = 0;   // modo de teclas: 0 = WASD, 1 = SETAS
 static mut START_REQ: u8 = 0; // menu pediu "Iniciar": o JS semeia o novo jogo
 
 static mut SEEDS: [u32; FLOORS] = [0; FLOORS];
-static mut MAP: [u8; N] = [0; N];
-static mut SEEN: [u8; N * FLOORS] = [0; N * FLOORS];
-static mut VIS: [u8; N] = [0; N];
-static mut DOORS: [u64; N * FLOORS / 64] = [0; N * FLOORS / 64];
+static mut MAP: [u8; N_MAX] = [0; N_MAX];
+static mut SEEN: [u8; N_MAX * FLOORS] = [0; N_MAX * FLOORS];
+static mut VIS: [u8; N_MAX] = [0; N_MAX];
+static mut DOORS: [u64; N_MAX * FLOORS / 64] = [0; N_MAX * FLOORS / 64];
 
 static mut PX: usize = 0;
 static mut PY: usize = 0;
@@ -169,8 +184,12 @@ static mut PH_HEAD: usize = 0;
 static mut BODYBUF: [u8; BODY_MAX * 2 + 1] = [0; BODY_MAX * 2 + 1];
 static mut EV_CD: i32 = 0; // cooldown do evento "corpo visível"
 
-static mut DMAP: [u16; N] = [0; N];
-static mut QUEUE: [u16; N] = [0; N];
+static mut DMAP: [u16; N_MAX] = [0; N_MAX];
+static mut QUEUE: [u16; N_MAX] = [0; N_MAX];
+
+// barra de UI (dica contextual + nome do andar): 1 linha fixa do viewport,
+// composta pelo JS sobre a última linha da tela — segue a câmera no esgoto
+static mut UIROW: [u8; W0 * 2] = [0; W0 * 2];
 static mut R32: u32 = 1;
 
 // [DEBUG] espelho do estado da IA, atualizado a cada tick (leitura pelo smoke)
@@ -207,26 +226,26 @@ fn repick() {
 // ================= helpers =================
 
 #[inline]
-fn idx(x: usize, y: usize) -> usize { y * W + x }
+fn idx(x: usize, y: usize) -> usize { y * W() + x }
 
 #[inline]
 fn tile_at(x: usize, y: usize) -> u8 {
-    if x >= W || y >= H { T_WALL } else { unsafe { MAP[idx(x, y)] } }
+    if x >= W() || y >= H() { T_WALL } else { unsafe { MAP[idx(x, y)] } }
 }
 
 #[inline]
 fn door_open(depth: usize, i: usize) -> bool {
-    let d = (depth - 1) * N + i;
+    let d = (depth - 1) * N_MAX + i;
     unsafe { (DOORS[d / 64] >> (d % 64)) & 1 == 1 }
 }
 #[inline]
 fn set_door(depth: usize, i: usize) {
-    let d = (depth - 1) * N + i;
+    let d = (depth - 1) * N_MAX + i;
     unsafe { DOORS[d / 64] |= 1u64 << (d % 64); }
 }
 
 fn opaque(x: i32, y: i32) -> bool {
-    if x < 0 || y < 0 || x >= W as i32 || y >= H as i32 { return true; }
+    if x < 0 || y < 0 || x >= W() as i32 || y >= H() as i32 { return true; }
     let t = tile_at(x as usize, y as usize);
     if t == T_WALL || t == T_PILLAR { return true; }
     if t == T_DOOR { return !unsafe { door_open(DEPTH as usize, idx(x as usize, y as usize)) }; }
@@ -234,7 +253,7 @@ fn opaque(x: i32, y: i32) -> bool {
 }
 
 fn walkable(x: i32, y: i32) -> bool {
-    if x < 0 || y < 0 || x >= W as i32 || y >= H as i32 { return false; }
+    if x < 0 || y < 0 || x >= W() as i32 || y >= H() as i32 { return false; }
     let t = tile_at(x as usize, y as usize);
     t != T_WALL && t != T_PILLAR
 }
@@ -244,7 +263,7 @@ fn walkable(x: i32, y: i32) -> bool {
 // Na patrulha ela evita: conhece o castelo, sabe que beco sem saída não tem fuga.
 fn bas_walkable(x: i32, y: i32) -> bool {
     unsafe {
-        if x < 0 || y < 0 || x >= W as i32 || y >= H as i32 { return false; }
+        if x < 0 || y < 0 || x >= W() as i32 || y >= H() as i32 { return false; }
         if tile_at(x as usize, y as usize) == T_RUBBLE {
             BST == B_HUNT && RH > 0
         } else {
@@ -317,7 +336,7 @@ fn rget(r: usize, k: usize) -> i32 { unsafe { ROOMS[r * 4 + k] } }
 fn carve_h(y: i32, x0: i32, x1: i32) {
     let (a, b) = if x0 <= x1 { (x0, x1) } else { (x1, x0) };
     for x in a..=b {
-        if x > 0 && x < W as i32 - 1 && y > 0 && y < H as i32 - 1 {
+        if x > 0 && x < W() as i32 - 1 && y > 0 && y < H() as i32 - 1 {
             let i = idx(x as usize, y as usize);
             unsafe {
                 if MAP[i] == T_WALL { MAP[i] = T_FLOOR; }
@@ -328,7 +347,7 @@ fn carve_h(y: i32, x0: i32, x1: i32) {
 fn carve_v(x: i32, y0: i32, y1: i32) {
     let (a, b) = if y0 <= y1 { (y0, y1) } else { (y1, y0) };
     for y in a..=b {
-        if x > 0 && x < W as i32 - 1 && y > 0 && y < H as i32 - 1 {
+        if x > 0 && x < W() as i32 - 1 && y > 0 && y < H() as i32 - 1 {
             let i = idx(x as usize, y as usize);
             unsafe {
                 if MAP[i] == T_WALL { MAP[i] = T_FLOOR; }
@@ -356,7 +375,7 @@ fn room_of(x: i32, y: i32) -> i32 {
 // alvo caminhável dentro da sala (o centro pode cair em pilar)
 fn room_target(r: usize) -> (usize, usize) {
     unsafe {
-        if r >= RN { return (W / 2, H / 2); }
+        if r >= RN { return (W() / 2, H() / 2); }
         let (cx, cy) = rcenter(r);
         if walkable(cx, cy) { return (cx as usize, cy as usize); }
         for _ in 0..24 {
@@ -434,14 +453,14 @@ fn clear_player_trail() {
 fn connectivity_ok(depth: u8) -> bool {
     unsafe {
         let mut up: usize = usize::MAX;
-        for i in 0..N {
+        for i in 0..N_MAX {
             if MAP[i] == T_UP { up = i; break; }
         }
         if up == usize::MAX { return false; }
-        let (ux, uy) = (up % W, up / W);
+        let (ux, uy) = (up % W(), up / W());
         bfs(ux, uy); // trata portas fechadas como abertas (abíveis)
         let need: u8 = if depth < FLOORS as u8 { T_DOWN } else { T_CROWN };
-        for i in 0..N {
+        for i in 0..N_MAX {
             if MAP[i] == need && DMAP[i] == 0xFFFF { return false; }
         }
         let rn = RN;
@@ -463,9 +482,18 @@ fn gen_floor(depth: u8, seed: u32) {
     }
 }
 
+fn floor_dims(depth: u8) -> (usize, usize) {
+    // térreo e masmorras: o castelo de sempre. Esgotos: a rede imperial é
+    // consideravelmente maior — dois andares inteiros de cloaca para atravessar.
+    if depth >= 4 { (W_MAX, H_MAX) } else { (W0, H0) }
+}
+
 fn gen_once(depth: u8, seed: u32) {
     unsafe {
-        MAP = [T_WALL; N];
+        let (fw, fh) = floor_dims(depth);
+        DIMW = fw;
+        DIMH = fh;
+        MAP = [T_WALL; N_MAX];
         RN = 0;
         repick();
         R32 = seed;
@@ -476,8 +504,8 @@ fn gen_once(depth: u8, seed: u32) {
         if unsafe { RN } >= 12 { break; }
         let w = (rndn(6) + 5) as i32;  // 5..10
         let h = (rndn(4) + 4) as i32;  // 4..7
-        let x0 = (rndn(W - w as usize - 2) + 1) as i32;
-        let y0 = (rndn(H - h as usize - 2) + 1) as i32;
+        let x0 = (rndn(W() - w as usize - 2) + 1) as i32;
+        let y0 = (rndn(H() - h as usize - 2) + 1) as i32;
         let x1 = x0 + w - 1;
         let y1 = y0 + h - 1;
         let mut ok = true;
@@ -500,7 +528,7 @@ fn gen_once(depth: u8, seed: u32) {
     if rn < 2 {
         // fallback: sala única gigante
         unsafe {
-            MAP = [T_WALL; N];
+            MAP = [T_WALL; N_MAX];
             for y in 6..26 { for x in 8..48 { MAP[idx(x, y)] = T_FLOOR; } }
             set_room(0, 8, 6, 47, 25);
             set_room(1, 14, 10, 41, 21);
@@ -554,8 +582,8 @@ fn gen_once(depth: u8, seed: u32) {
     }
 
     // ---- portas nos gargalos de corredor ----
-    for y in 1..H - 1 {
-        for x in 1..W - 1 {
+    for y in 1..H() - 1 {
+        for x in 1..W() - 1 {
             let i = idx(x, y);
             if tile_at(x, y) != T_FLOOR { continue; }
             let u = tile_at(x, y - 1);
@@ -585,8 +613,8 @@ fn gen_once(depth: u8, seed: u32) {
 
     // ---- poças de sombra ----
     for _ in 0..55 {
-        let x = 1 + rndn(W - 2);
-        let y = 1 + rndn(H - 2);
+        let x = 1 + rndn(W() - 2);
+        let y = 1 + rndn(H() - 2);
         unsafe {
             let i = idx(x, y);
             if MAP[i] == T_FLOOR { MAP[i] = T_SHADOW; }
@@ -608,7 +636,7 @@ fn gen_once(depth: u8, seed: u32) {
         for off in [(-2, 0i32), (2, 0), (0, -2), (0, 2), (-2, -2), (2, 2), (-2, 2), (2, -2)] {
             let tx = dx + off.0;
             let ty = dy + off.1;
-            if tx > 0 && tx < W as i32 - 1 && ty > 0 && ty < H as i32 - 1 {
+            if tx > 0 && tx < W() as i32 - 1 && ty > 0 && ty < H() as i32 - 1 {
                 unsafe {
                     let i = idx(tx as usize, ty as usize);
                     if MAP[i] == T_FLOOR { MAP[i] = T_PILLAR; }
@@ -631,10 +659,10 @@ fn set_room_t(x: i32, y: i32, t: u8) {
 // algo especial (<, >, §, outro escombro) perto demais do ponto (px,py)?
 fn near_tile(px: i32, py: i32, lim: i32) -> bool {
     unsafe {
-        for i in 0..N {
+        for i in 0..N_MAX {
             let t = MAP[i];
             if t == T_UP || t == T_DOWN || t == T_CROWN || t == T_RUBBLE {
-                let (ix, iy) = ((i % W) as i32, (i / W) as i32);
+                let (ix, iy) = ((i % W()) as i32, (i / W()) as i32);
                 if (ix - px).abs() + (iy - py).abs() <= lim { return true; }
             }
         }
@@ -653,8 +681,8 @@ fn dig_pockets(depth: u8) {
         let mut placed = 0usize;
         for _ in 0..260 {
             if placed >= quota { break; }
-            let x = rndn(W - 2) as i32 + 1;
-            let y = rndn(H - 2) as i32 + 1;
+            let x = rndn(W() - 2) as i32 + 1;
+            let y = rndn(H() - 2) as i32 + 1;
             let t0 = MAP[idx(x as usize, y as usize)];
             if t0 != T_FLOOR && t0 != T_SHADOW { continue; }        // só corredor
             if room_of(x, y) >= 0 { continue; }                     // fora de sala
@@ -670,14 +698,14 @@ fn dig_pockets(depth: u8) {
                 let mut cells: [usize; 4] = [0; 4];
                 for s in 0..len {
                     tx += dx; ty += dy;
-                    if tx < 1 || ty < 1 || tx >= W as i32 - 1 || ty >= H as i32 - 1 { ok = false; break; }
+                    if tx < 1 || ty < 1 || tx >= W() as i32 - 1 || ty >= H() as i32 - 1 { ok = false; break; }
                     let i = idx(tx as usize, ty as usize);
                     if MAP[i] != T_WALL { ok = false; break; }
                     // vizinhos além da linha do beco: só parede ou forro do mapa
                     for (nx, ny) in [(tx + 1, ty), (tx - 1, ty), (tx, ty + 1), (tx, ty - 1)] {
                         let is_line = (nx == tx - dx && ny == ty - dy) || (nx == x && ny == y);
                         if is_line { continue; }
-                        if nx < 0 || ny < 0 || nx >= W as i32 || ny >= H as i32 { continue; }
+                        if nx < 0 || ny < 0 || nx >= W() as i32 || ny >= H() as i32 { continue; }
                         let nt = tile_at(nx as usize, ny as usize);
                         if nt != T_WALL { ok = false; break; }
                     }
@@ -699,7 +727,7 @@ fn dig_pockets(depth: u8) {
 // ela" evitando escombros; true: terreno do jogador (conectividade/audição).
 fn bfs_impl(tx: usize, ty: usize, rubble_ok: bool) {
     unsafe {
-        DMAP = [0xFFFF_u16; N];
+        DMAP = [0xFFFF_u16; N_MAX];
         let src_ok = if rubble_ok { walkable(tx as i32, ty as i32) } else { bas_walkable(tx as i32, ty as i32) };
         if !src_ok { return; }
         let start = idx(tx, ty);
@@ -711,16 +739,16 @@ fn bfs_impl(tx: usize, ty: usize, rubble_ok: bool) {
             let c = QUEUE[qh] as usize;
             qh += 1;
             let d = DMAP[c] + 1;
-            let cx = c % W;
-            let cy = c / W;
+            let cx = c % W();
+            let cy = c / W();
             for (nx, ny) in [(cx + 1, cy), (cx.wrapping_sub(1), cy), (cx, cy + 1), (cx, cy.wrapping_sub(1))] {
-                if nx >= W || ny >= H { continue; }
+                if nx >= W() || ny >= H() { continue; }
                 let ni = idx(nx, ny);
                 if DMAP[ni] <= d { continue; }
                 let ok = if rubble_ok { walkable(nx as i32, ny as i32) } else { bas_walkable(nx as i32, ny as i32) };
                 if !ok { continue; }
                 DMAP[ni] = d;
-                if qt < N { QUEUE[qt] = ni as u16; qt += 1; }
+                if qt < N_MAX { QUEUE[qt] = ni as u16; qt += 1; }
             }
         }
     }
@@ -821,7 +849,7 @@ fn bas_step_to(tx: usize, ty: usize) {
         let cx = BX; let cy = BY;
         let mut best: (u16, i32, i32) = (0xFFFF, 0, 0);
         for (nx, ny) in [(cx + 1, cy), (cx.wrapping_sub(1), cy), (cx, cy + 1), (cx, cy.wrapping_sub(1))] {
-            if nx >= W || ny >= H { continue; }
+            if nx >= W() || ny >= H() { continue; }
             let d = DMAP[idx(nx, ny)];
             if d < best.0 { best = (d, nx as i32, ny as i32); }
         }
@@ -989,7 +1017,7 @@ fn step_out_of_rubble() {
         for (dx, dy) in [(1i32, 0), (-1, 0), (0, 1), (0, -1)] {
             let nx = BX as i32 + dx;
             let ny = BY as i32 + dy;
-            if nx >= 0 && ny >= 0 && (nx as usize) < W && (ny as usize) < H {
+            if nx >= 0 && ny >= 0 && (nx as usize) < W() && (ny as usize) < H() {
                 if walkable(nx, ny) && MAP[idx(nx as usize, ny as usize)] != T_RUBBLE {
                     let (ox, oy) = (BX as u8, BY as u8);
                     BX = nx as usize;
@@ -1074,15 +1102,15 @@ fn doors_on_line(x0: usize, y0: usize, x1: usize, y1: usize) -> i32 {
 
 fn place_player_at_tile(t: u8) {
     unsafe {
-        for i in 0..N {
+        for i in 0..N_MAX {
             if MAP[i] == t {
-                PX = i % W;
-                PY = i / W;
+                PX = i % W();
+                PY = i / W();
                 return;
             }
         }
-        PX = W / 2;
-        PY = H / 2;
+        PX = W() / 2;
+        PY = H() / 2;
     }
 }
 
@@ -1115,7 +1143,7 @@ fn place_basilisk() {
                 }
             }
         }
-        if !walkable(bx, by) { bx = W as i32 / 2; by = H as i32 / 2; }
+        if !walkable(bx, by) { bx = W() as i32 / 2; by = H() as i32 / 2; }
         BX = bx as usize;
         BY = by as usize;
         BST = B_PATROL;
@@ -1204,7 +1232,7 @@ fn game_step(input: u32) {
             for k in 0..nsteps {
                 let nx = PX as i32 + dx;
                 let ny = PY as i32 + dy;
-                if nx < 0 || ny < 0 || (nx as usize) >= W || (ny as usize) >= H { break; }
+                if nx < 0 || ny < 0 || (nx as usize) >= W() || (ny as usize) >= H() { break; }
                 let nx = nx as usize;
                 let ny = ny as usize;
                 let ni = idx(nx, ny);
@@ -1285,15 +1313,48 @@ fn game_step(input: u32) {
     }
 }
 
+// ================= barra de UI =================
+
+// a dica contextual mora na ÚLTIMA LINHA DA TELA (não do mapa): com a câmera
+// do esgoto, a linha de baixo do mapa nem sempre está visível.
+#[inline]
+fn put_ui(x: usize, ch: u8, a: u8) {
+    if x < W0 {
+        let i = x * 2;
+        unsafe { UIROW[i] = ch; UIROW[i + 1] = a; }
+    }
+}
+
+// write_center para a barra de UI (mesma regra de glifos)
+fn write_ui_center(s: &str, a: u8) {
+    let n = s.chars().count();
+    let x = if n >= W0 { 0 } else { (W0 - n) / 2 };
+    for (k, c) in s.chars().enumerate() {
+        let ch = if c == '\u{B7}' { 0xB7 } else if c.is_ascii() { c as u8 } else { b'?' };
+        put_ui(x + k, ch, a);
+    }
+}
+
+// glifo único na barra de UI (nome do andar, sem centralizar) — usado pelo
+// anúncio de tema ao entrar num piso
+#[allow(dead_code)]
+#[inline]
+fn put_ui_str(x: usize, s: &str, a: u8) {
+    for (k, c) in s.chars().enumerate() {
+        let ch = if c == '\u{B7}' { 0xB7 } else if c.is_ascii() { c as u8 } else { b'?' };
+        put_ui(x + k, ch, a);
+    }
+}
+
 // ================= FOV =================
 
 fn compute_fov() {
     unsafe {
-        VIS = [0; N];
+        VIS = [0; N_MAX];
         let y0 = PY.saturating_sub(8);
-        let y1 = (PY + 8).min(H - 1);
+        let y1 = (PY + 8).min(H() - 1);
         let x0 = PX.saturating_sub(8);
-        let x1 = (PX + 8).min(W - 1);
+        let x1 = (PX + 8).min(W() - 1);
         for y in y0..=y1 {
             for x in x0..=x1 {
                 let ddx = x as i32 - PX as i32;
@@ -1304,7 +1365,7 @@ fn compute_fov() {
                 if los(PX, PY, x, y) {
                     let i = idx(x, y);
                     VIS[i] = 1;
-                    SEEN[(DEPTH as usize - 1) * N + i] = 1;
+                    SEEN[(DEPTH as usize - 1) * N_MAX + i] = 1;
                 }
             }
         }
@@ -1315,7 +1376,7 @@ fn compute_fov() {
 
 #[inline]
 fn put(x: usize, y: usize, ch: u8, a: u8) {
-    if x < W && y < H {
+    if x < W() && y < H() {
         let i = idx(x, y) * 2;
         unsafe { GRID[i] = ch; GRID[i + 1] = a; }
     }
@@ -1332,7 +1393,7 @@ fn write_str(x: usize, y: usize, s: &str, a: u8) {
 }
 fn write_center(y: usize, s: &str, a: u8) {
     let n = s.chars().count();
-    let x = if n >= W { 0 } else { (W - n) / 2 };
+    let x = if n >= W() { 0 } else { (W() - n) / 2 };
     write_str(x, y, s, a);
 }
 
@@ -1340,7 +1401,7 @@ fn write_center(y: usize, s: &str, a: u8) {
 // interno vem dos espaços à esquerda de cada literal (nunca torto).
 fn write_block_center(y0: usize, rows: &[&str], a: u8) {
     let maxlen = rows.iter().map(|r| r.len()).max().unwrap_or(0);
-    let x0 = if maxlen >= W { 0 } else { (W - maxlen) / 2 };
+    let x0 = if maxlen >= W() { 0 } else { (W() - maxlen) / 2 };
     for (k, r) in rows.iter().enumerate() {
         write_str(x0, y0 + k, r, a);
     }
@@ -1396,8 +1457,8 @@ fn write_big(x: usize, y: usize, s: &str, a: u8) {
 // glifos FONT5 centralizados horizontalmente
 fn write_big_center(y: usize, s: &str, a: u8) {
     let width = s.chars().count() * 6 - 1; // cada glifo avança 6; o ultimo não usa o espaçador
-    if width >= W { write_big(0, y, s, a); return; }
-    write_big((W - width) / 2, y, s, a);
+    if width >= W() { write_big(0, y, s, a); return; }
+    write_big((W() - width) / 2, y, s, a);
 }
 
 fn attr_of(t: u8) -> u8 {
@@ -1418,11 +1479,11 @@ fn render() {
     unsafe {
         let st = STATE;
         // fundo
-        for y in 0..H {
-            for x in 0..W {
+        for y in 0..H() {
+            for x in 0..W() {
                 let i = idx(x, y);
                 if st == ST_PLAY {
-                    if SEEN[(DEPTH as usize - 1) * N + i] == 1 {
+                    if SEEN[(DEPTH as usize - 1) * N_MAX + i] == 1 {
                         let t = MAP[i];
                         let a = attr_of(t) | if VIS[i] == 1 { 0 } else { DIM };
                         put(x, y, t, a);
@@ -1469,7 +1530,7 @@ fn render() {
             } else {
                 "UM TOQUE MATA. UM OLHAR MATA. SE ESCONDA"
             };
-            write_center(H - 1, msg, if BST == B_HUNT { A_ALERT } else { A_UI });
+            write_ui_center(msg, if BST == B_HUNT { A_ALERT } else { A_UI });
         } else if st == ST_TITLE {
             render_title();
         } else if st == ST_CONTROLS {
@@ -1484,18 +1545,18 @@ fn render() {
 
 fn render_title() {
     // moldura
-    for x in 0..W {
+    for x in 0..W() {
         put(x, 0, b'-', A_TITLE);
-        put(x, H - 2, b'-', A_TITLE);
+        put(x, H() - 2, b'-', A_TITLE);
     }
-    for y in 0..H {
+    for y in 0..H() {
         put(0, y, b'|', A_TITLE);
-        put(W - 1, y, b'|', A_TITLE);
+        put(W() - 1, y, b'|', A_TITLE);
     }
     put(0, 0, b'+', A_TITLE);
-    put(W - 1, 0, b'+', A_TITLE);
-    put(0, H - 2, b'+', A_TITLE);
-    put(W - 1, H - 2, b'+', A_TITLE);
+    put(W() - 1, 0, b'+', A_TITLE);
+    put(0, H() - 2, b'+', A_TITLE);
+    put(W() - 1, H() - 2, b'+', A_TITLE);
 
     // título grande no topo
     write_big_center(2, "CASTLE OF", A_TITLE);
@@ -1513,7 +1574,7 @@ fn render_title() {
             let sel = MENU_SEL == k as u8;
             let a = if sel { A_TITLE } else { A_UI };
             let n = label.chars().count();
-            let x = (W - n) / 2;
+            let x = (W() - n) / 2;
             write_str(x, *y, label, a);
             if sel {
                 write_str(x - 2, *y, "> ", a);
@@ -1527,18 +1588,18 @@ fn render_title() {
 
 fn render_controls() {
     // moldura (igual ao titulo, em ambar)
-    for x in 0..W {
+    for x in 0..W() {
         put(x, 0, b'-', A_TITLE);
-        put(x, H - 2, b'-', A_TITLE);
+        put(x, H() - 2, b'-', A_TITLE);
     }
-    for y in 0..H {
+    for y in 0..H() {
         put(0, y, b'|', A_TITLE);
-        put(W - 1, y, b'|', A_TITLE);
+        put(W() - 1, y, b'|', A_TITLE);
     }
     put(0, 0, b'+', A_TITLE);
-    put(W - 1, 0, b'+', A_TITLE);
-    put(0, H - 2, b'+', A_TITLE);
-    put(W - 1, H - 2, b'+', A_TITLE);
+    put(W() - 1, 0, b'+', A_TITLE);
+    put(0, H() - 2, b'+', A_TITLE);
+    put(W() - 1, H() - 2, b'+', A_TITLE);
 
     // cabeçalho grande
     write_big_center(1, "CONTROLES", A_TITLE);
@@ -1597,18 +1658,18 @@ fn cmd_row(y: usize, label: &str, val: &str) {
 fn render_dead() {
     unsafe {
         // moldura completa da tela
-        for x in 0..W {
+        for x in 0..W() {
             put(x, 0, b'-', A_ALERT);
-            put(x, H - 1, b'-', A_ALERT);
+            put(x, H() - 1, b'-', A_ALERT);
         }
-        for y in 0..H {
+        for y in 0..H() {
             put(0, y, b'|', A_ALERT);
-            put(W - 1, y, b'|', A_ALERT);
+            put(W() - 1, y, b'|', A_ALERT);
         }
         put(0, 0, b'+', A_ALERT);
-        put(W - 1, 0, b'+', A_ALERT);
-        put(0, H - 1, b'+', A_ALERT);
-        put(W - 1, H - 1, b'+', A_ALERT);
+        put(W() - 1, 0, b'+', A_ALERT);
+        put(0, H() - 1, b'+', A_ALERT);
+        put(W() - 1, H() - 1, b'+', A_ALERT);
 
         // crânio da besta (todas as linhas com 26 colunas, espelhadas no eixo)
         let skull: [&str; 7] = [
@@ -1655,6 +1716,8 @@ fn sync_stats() {
         STATS[13] = START_REQ;                   // menu: pedido de "Iniciar"
         STATS[14] = MENU_SEL;                    // menu: cursor da tela inicial
         STATS[15] = SCHEME;                      // menu: modo de teclas (0 WASD, 1 SETAS)
+        STATS[16] = W().min(255) as u8;            // largura do mapa atual
+        STATS[17] = H().min(255) as u8;            // altura do mapa atual
         AI_DBG[0] = ROOMT;
         AI_DBG[1] = RTX;
         AI_DBG[2] = RTY;
@@ -1671,6 +1734,14 @@ fn sync_stats() {
 #[no_mangle]
 pub extern "C" fn pfb_grid_ptr() -> u32 { unsafe { GRID.as_ptr() as u32 } }
 
+/// tamanho máximo dos buffers de grid/mapa (W_MAX*H_MAX): o JS dimensiona as views
+#[no_mangle]
+pub extern "C" fn pfb_max_n() -> u32 { N_MAX as u32 }
+
+/// [ch, attr] por célula da barra de UI fabricada (W0 células): dica contextual
+#[no_mangle]
+pub extern "C" fn pfb_ui_ptr() -> u32 { unsafe { UIROW.as_ptr() as u32 } }
+
 #[no_mangle]
 pub extern "C" fn pfb_stats_ptr() -> u32 { unsafe { STATS.as_ptr() as u32 } }
 
@@ -1686,8 +1757,8 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         TICK = 0;
         DEATH_R = 0;
         START_REQ = 0;
-        DOORS = [0; N * FLOORS / 64];
-        SEEN = [0; N * FLOORS];
+        DOORS = [0; N_MAX * FLOORS / 64];
+        SEEN = [0; N_MAX * FLOORS];
         SEEDS = [0; FLOORS];
         AUD_H = 0;
         AUD_T = 0;
@@ -1775,7 +1846,7 @@ pub extern "C" fn pfb_init() {
 #[no_mangle]
 pub extern "C" fn pfb_debug_place(px: u32, py: u32) {
     unsafe {
-        if (px as usize) < W && (py as usize) < H {
+        if (px as usize) < W() && (py as usize) < H() {
             PX = px as usize;
             PY = py as usize;
             MOVED = false;
@@ -1805,7 +1876,7 @@ pub extern "C" fn pfb_debug_ai() -> u32 { unsafe { AI_DBG.as_ptr() as u32 } }
 #[no_mangle]
 pub extern "C" fn pfb_debug_probe(px: u32, py: u32) -> u32 {
     unsafe {
-        if (px as usize) >= W || (py as usize) >= H { return 0; }
+        if (px as usize) >= W() || (py as usize) >= H() { return 0; }
         let x = px as usize;
         let y = py as usize;
         let walk = walkable(x as i32, y as i32) as u32;

@@ -1,7 +1,8 @@
 // Castle of Basilisk — glue JS: render diff, WebAudio sintetizado, loop de ticks.
 // WASM ABI crua: lemos grid/stats direto da memória exportada.
 
-const W = 56, H = 32, CELL_W = 12, CELL_H = 18;
+// viewport fixo da tela (câmera desliza por cima de mapas maiores)
+const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
 const TICK_MS = 140;
 
 // ---- bits de input (mesmos do WASM) ----
@@ -43,9 +44,17 @@ const { instance } = await WebAssembly.instantiate(await res.arrayBuffer(), {});
 const w = instance.exports;
 w.pfb_init();
 
-const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 16);
-const grid = new Uint8Array(w.memory.buffer, w.pfb_grid_ptr(), W * H * 2);
-const prevGrid = new Uint8Array(W * H * 2); // para diff de render
+const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 24);
+const N_MAX = w.pfb_max_n();
+const grid = new Uint8Array(w.memory.buffer, w.pfb_grid_ptr(), N_MAX * 2);
+const uirow = new Uint8Array(w.memory.buffer, w.pfb_ui_ptr(), VW * 2);
+const prevGrid = new Uint8Array(VW * VH * 2); // diff de render, em células DE TELA
+
+// ---- câmera: mapa do andar atual (stats[16]/[17]) desliza sob a viewport ----
+let MWd = VW, MHd = VH;
+let camX = 0, camY = 0;
+let prevCamX = -1, prevCamY = -1, prevDepth = -1, prevMW = 0, prevMH = 0;
+const clampInt = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 // ============================================================
 // áudio sintetizado
@@ -385,40 +394,48 @@ function shade(hex, k) {
 const SERPENT_ATTRS = new Set([7, 11]);
 let glitchUntil = -1e9;
 let prevGlitchOn = false;
-let prevSerp = new Set();
+let prevSerp = new Map();
+let inPlayPrev = false;
 let droneUp = false;
 
-function redrawWorldCell(i, nowMs) {
-  const x = (i % W) * CELL_W;
-  const y = ((i / W) | 0) * CELL_H;
+function redrawWorldCell(si, wi, nowMs) {
+  const x = (si % VW) * CELL_W;
+  const y = ((si / VW) | 0) * CELL_H;
   ctx.fillStyle = PAL[15];
   ctx.fillRect(x, y, CELL_W, CELL_H);
-  const ch = grid[i * 2];
-  const attr = grid[i * 2 + 1];
+  const ch = grid[wi * 2];
+  const attr = grid[wi * 2 + 1];
   if (ch !== 0 && ch !== 32) {
     ctx.fillStyle = colorFor(ch, attr, nowMs);
     ctx.fillText(String.fromCharCode(ch), x + 1, y + CELL_H / 2 + 1);
   }
 }
 
-function drawSerpentCell(i, nowMs) {
-  const x = (i % W) * CELL_W;
-  const y = ((i / W) | 0) * CELL_H;
-  const ch = grid[i * 2];
+// attr de uma célula DO MUNDO (a serpente consulta vizinhança fora da telha)
+function worldAttr(wx, wy) {
+  if (wx < 0 || wy < 0 || wx >= MWd || wy >= MHd) return 0;
+  return grid[(wy * MWd + wx) * 2 + 1];
+}
+
+function drawSerpentCell(si, wi, nowMs) {
+  const x = (si % VW) * CELL_W;
+  const y = ((si / VW) | 0) * CELL_H;
+  const wx = wi % MWd, wy = (wi / MWd) | 0;
+  const ch = grid[wi * 2];
   const c = String.fromCharCode(ch);
-  const isHead = (grid[i * 2 + 1] & 0x7f) === 7;
+  const isHead = (grid[wi * 2 + 1] & 0x7f) === 7;
   const on = nowMs < glitchUntil;
 
   // fundo limpo sob e ao redor (o halo vaza pra fora da célula)
   ctx.fillStyle = PAL[15];
   ctx.fillRect(x - 4, y - 4, CELL_W + 8, CELL_H + 8);
-  const ci = i % W, cj = ((i / W) | 0);
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-    const nx = ci + dx, ny = cj + dy;
-    if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
-    const ni = ny * W + nx;
-    if (SERPENT_ATTRS.has(grid[ni * 2 + 1] & 0x7f)) continue; // o passada da serpente cuida
-    redrawWorldCell(ni, nowMs);
+    const nx = wx + dx, ny = wy + dy;
+    if (nx < 0 || ny < 0 || nx >= MWd || ny >= MHd) continue;
+    if (SERPENT_ATTRS.has(worldAttr(nx, ny))) continue; // o passada da serpente cuida
+    const nsi = (ny - camY) * VW + (nx - camX);
+    if (nsi < 0 || nsi >= VW * VH) continue;
+    redrawWorldCell(nsi, ny * MWd + nx, nowMs);
   }
 
   // cor: cabeça pulsa quente; corpo tem onda de brilho viajando do pescoço pra cauda
@@ -426,7 +443,7 @@ function drawSerpentCell(i, nowMs) {
   if (isHead) {
     col = shade('#ff2e00', 0.8 + 0.35 * Math.sin(nowMs * 0.009));
   } else {
-    const dx = ci - stats[5], dy = cj - stats[6];
+    const dx = wx - stats[5], dy = wy - stats[6];
     const dist = Math.sqrt(dx * dx + dy * dy);
     const wave = 0.62 + 0.5 * Math.sin(nowMs * 0.005 + dist * 0.55);
     col = shade('#bf1600', Math.min(1.3, wave));
@@ -442,7 +459,7 @@ function drawSerpentCell(i, nowMs) {
 
   // tremor sub-clínico + ondulação de deslizamento no corpo
   const jx = (Math.random() - 0.5) * (isHead ? 1 : 1.6);
-  const wob = isHead ? 0 : Math.sin(nowMs * 0.003 + ci * 0.8) * 1.2;
+  const wob = isHead ? 0 : Math.sin(nowMs * 0.003 + wx * 0.8) * 1.2;
   ctx.fillStyle = col;
   ctx.fillText(c, x + 1 + jx, y + CELL_H / 2 + 1 + wob);
   ctx.shadowBlur = 0;
@@ -471,29 +488,50 @@ function forceRedraw() { needsFull = true; }
 
 function render(nowMs) {
   const inPlay = stats[0] === 1;
+  // ---- câmera: segue o jogador, clampada nas bordas do andar ----
+  if (inPlay) {
+    MWd = stats[16]; MHd = stats[17];
+    if (stats[2] !== prevDepth || MWd !== prevMW || MHd !== prevMH) {
+      needsFull = true;
+      prevDepth = stats[2]; prevMW = MWd; prevMH = MHd;
+    }
+    camX = clampInt(stats[3] - (VW >> 1), 0, Math.max(0, MWd - VW));
+    camY = clampInt(stats[4] - (VH >> 1), 0, Math.max(0, MHd - VH));
+    if (camX !== prevCamX || camY !== prevCamY) {
+      needsFull = true; // reposicionou a janela: remonta tudo
+      prevCamX = camX; prevCamY = camY;
+    }
+  } else {
+    if (inPlayPrev) needsFull = true; // menus/telas: viewport integral 56x32
+    MWd = VW; MHd = VH; camX = 0; camY = 0;
+    prevCamX = 0; prevCamY = 0;
+  }
+  inPlayPrev = inPlay;
+
   if (needsFull) {
     ctx.fillStyle = PAL[15];
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     prevGrid.fill(0);
     needsFull = false;
   }
-  const serp = new Set();
-  for (let i = 0; i < W * H; i++) {
-    const ch = grid[i * 2];
-    const attr = grid[i * 2 + 1];
+  const serp = new Map(); // si (tela) -> wi (mundo)
+  for (let si = 0; si < VW * VH; si++) {
+    const wi = (camY + ((si / VW) | 0)) * MWd + camX + (si % VW);
+    const ch = grid[wi * 2];
+    const attr = grid[wi * 2 + 1];
     if (inPlay && SERPENT_ATTRS.has(attr & 0x7f)) {
-      serp.add(i);
-      prevGrid[i * 2] = ch;
-      prevGrid[i * 2 + 1] = attr;
+      serp.set(si, wi);
+      prevGrid[si * 2] = ch;
+      prevGrid[si * 2 + 1] = attr;
       continue;
     }
-    const pCh = prevGrid[i * 2];
-    const pAttr = prevGrid[i * 2 + 1];
+    const pCh = prevGrid[si * 2];
+    const pAttr = prevGrid[si * 2 + 1];
     const anim = (PULSE_ATTRS.has(attr & 0x7f)) || (attr & 0x7f) === BLINK_ATTR;
     const prevAnim = (PULSE_ATTRS.has(pAttr & 0x7f)) || (pAttr & 0x7f) === BLINK_ATTR;
     if (ch === pCh && attr === pAttr && !anim && !prevAnim) continue;
-    const x = (i % W) * CELL_W;
-    const y = ((i / W) | 0) * CELL_H;
+    const x = (si % VW) * CELL_W;
+    const y = ((si / VW) | 0) * CELL_H;
     // limpa célula
     ctx.fillStyle = PAL[15];
     ctx.fillRect(x, y, CELL_W, CELL_H);
@@ -502,30 +540,48 @@ function render(nowMs) {
       ctx.fillStyle = colorFor(ch, attr, nowMs);
       ctx.fillText(c, x + 1, y + CELL_H / 2 + 1);
     }
-    prevGrid[i * 2] = ch;
-    prevGrid[i * 2 + 1] = attr;
+    prevGrid[si * 2] = ch;
+    prevGrid[si * 2 + 1] = attr;
   }
 
   // passada da serpente: cada célula desenhada com sombra/halo/onda;
   // células onde ela ESTEVA no frame anterior são limpas e remontadas
   if (serp.size || prevSerp.size) {
-    const dirty = new Set([...prevSerp, ...serp]);
+    const dirty = new Set([...prevSerp.keys(), ...serp.keys()]);
     const touched = new Set();
-    for (const d of dirty) {
-      const cx = d % W, cy = (d / W) | 0;
+    for (const si of dirty) {
+      const wi = serp.get(si) ?? prevSerp.get(si);
+      const wx = wi % MWd, wy = (wi / MWd) | 0;
       for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-        const nx = cx + dx, ny = cy + dy;
-        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
-        touched.add(ny * W + nx);
+        const nx = wx + dx, ny = wy + dy;
+        if (nx < 0 || ny < 0 || nx >= MWd || ny >= MHd) continue;
+        if (SERPENT_ATTRS.has(worldAttr(nx, ny))) continue;
+        const nsi = (ny - camY) * VW + (nx - camX);
+        if (nsi < 0 || nsi >= VW * VH) continue;
+        touched.add(nsi);
       }
     }
-    for (const c of touched) {
-      if (serp.has(c)) continue;
-      redrawWorldCell(c, nowMs);
+    const scrToWorld = (si) => (camY + ((si / VW) | 0)) * MWd + camX + (si % VW);
+    for (const t of touched) {
+      if (serp.has(t)) continue;
+      redrawWorldCell(t, scrToWorld(t), nowMs);
     }
-    for (const c of serp) drawSerpentCell(c, nowMs);
+    for (const [si, wi] of serp) drawSerpentCell(si, wi, nowMs);
   }
   prevSerp = serp;
+
+  // barra de UI: dica contextual fixa na ÚLTIMA LINHA da tela (segue a câmera)
+  if (inPlay) {
+    ctx.fillStyle = PAL[15];
+    ctx.fillRect(0, (VH - 1) * CELL_H, canvas.width, CELL_H);
+    for (let x = 0; x < VW; x++) {
+      const ch = uirow[x * 2], a = uirow[x * 2 + 1];
+      if (ch !== 0 && ch !== 32) {
+        ctx.fillStyle = colorFor(ch, a, nowMs);
+        ctx.fillText(String.fromCharCode(ch), x * CELL_W + 1, (VH - 1) * CELL_H + CELL_H / 2 + 1);
+      }
+    }
+  }
 
   // glitch: fatias deslocadas por alguns frames; ao terminar, remonta a tela
   const gOn = nowMs < glitchUntil;
