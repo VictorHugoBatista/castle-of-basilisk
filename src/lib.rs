@@ -131,8 +131,37 @@ const PANT_AT: i32 = 25;     // abaixo disso: ofego audível e sem corrida
 const RUB_EVIDENCE: i32 = 30; // ticks de prova fresca para ela entrar no escombro
 const EAR_COOL: i32 = 42;     // após uma investigação, ela desconcentra (ticks)
 const TRAIL_SCENT: i32 = 260; // por quanto tempo uma sala visitada ainda "cheira"
-const TRAIL_W_RECENT: i32 = 14; // peso de sala visitada a 20..140 ticks
-const TRAIL_W_OLD: i32 = 5;     // peso de sala visitada a 140..260 ticks
+const TRAIL_W_RECENT: i32 = 14; // peso de sala visitada a 20..140 ticks (masmorra)
+const TRAIL_W_OLD: i32 = 5;     // peso de sala visitada a 140..260 ticks (masmorra)
+
+// ---- temperamento por tema: fora do habitat ela é quase adormecida; na
+// masmorra, a besta de sempre; nos esgotos (CASA dela), mortífera ----
+#[inline]
+fn speed_patrol() -> i32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 6, TH_DUNGEON => 4, _ => 3 } }
+#[inline]
+fn speed_invest() -> i32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 4, TH_DUNGEON => 3, _ => 2 } }
+#[inline]
+fn speed_hunt() -> i32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 3, TH_DUNGEON => 2, _ => 2 } }
+#[inline]
+fn ear_cool() -> i32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 60, TH_DUNGEON => EAR_COOL, _ => 30 } }
+#[inline]
+fn hiss_mod() -> u32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 90, TH_DUNGEON => 47, _ => 23 } }
+// peso do rastro do jogador no sorteio de salas: no térreo o passado cheira
+// pouco; nos esgotos o cheiro dela é um cão de caça eterno
+#[inline]
+fn trail_weights() -> (i32, i32) {
+    match theme(unsafe { DEPTH }) { TH_CASTLE => (7, 2), TH_DUNGEON => (TRAIL_W_RECENT, TRAIL_W_OLD), _ => (21, 8) }
+}
+// o olhar dela é mais letal no habitat: a Cloaca engole luz e pessoas
+#[inline]
+fn gaze_r() -> i32 { if theme(unsafe { DEPTH }) == TH_SEWER { GAZE_R + 1 } else { GAZE_R } }
+// bônus de habitat: na água ela anda a CADA TICK — é o meio nativo dela
+#[inline]
+fn speed_now(base: i32) -> i32 {
+    unsafe {
+        if tile_at(BX, BY) == T_WATER && base > 1 { base - 1 } else { base }
+    }
+}
 
 // ================= estado global =================
 
@@ -423,8 +452,9 @@ fn pick_next_room() {
             for k in 0..6 {
                 if PHIST[k] == r as i32 {
                     let ago = TICK - PHT[k];
-                    if ago >= 20 && ago < 140 { score += TRAIL_W_RECENT; }
-                    else if ago >= 140 && ago < TRAIL_SCENT { score += TRAIL_W_OLD; }
+                    let (w_recent, w_old) = trail_weights();
+                    if ago >= 20 && ago < 140 { score += w_recent; }
+                    else if ago >= 140 && ago < TRAIL_SCENT { score += w_old; }
                     break;
                 }
             }
@@ -1023,8 +1053,11 @@ fn basilisk_turn() {
             return; // o grito da coroa roubada: ela foca e recomeça
         }
         let speed = if BST == B_HUNT {
-            if CROWN { 3 } else { 2 } // com a coroa: caça a 1/3; ordem: meia-velocidade
-        } else if BST == B_INVEST { 3 } else { 4 }; // inquirindo: metade e meia, sem pisar no seu calo
+            // caça: a cada tema insere o próprio toque; com a coroa ela é
+            // mais lenta (fôlego e fúria em conflito); na água vai a 1/1
+            let h = speed_hunt();
+            if CROWN { speed_now(h) + 1 } else { speed_now(h) }
+        } else if BST == B_INVEST { speed_now(speed_invest()) } else { speed_now(speed_patrol()) };
         if BTICK % speed == 0 {
             match BST {
                 B_HUNT => {
@@ -1053,7 +1086,7 @@ fn basilisk_turn() {
                             // DELIBERADAMENTE longe de você, e se acalma
                             BST = B_PATROL;
                             PLOITER = 0;
-                            EAR_CD = EAR_COOL;
+                            EAR_CD = ear_cool();
                             pick_next_room();
                         }
                     } else {
@@ -1090,7 +1123,7 @@ fn basilisk_turn() {
                                 pick_next_room();
                             }
                         }
-                        if rnd() % 47 == 0 { push_event(EV_HISS); }
+                        if rnd() % hiss_mod() == 0 { push_event(EV_HISS); }
                     } else if rndn(9) == 0 {
                         // rota impossível (mapa mudou?): troca de sala
                         pick_next_room();
@@ -1108,7 +1141,7 @@ fn basilisk_turn() {
         // Nas costas dela a distância não interessa: morre quem atravessa a face.
         if d2 <= 1 {
             death(2);
-        } else if have_los && d2 <= GAZE_R && GRACE <= 0 && (in_cone(PX, PY) || d2 <= 2) {
+        } else if have_los && d2 <= gaze_r() && GRACE <= 0 && (in_cone(PX, PY) || d2 <= 2) {
             death(1);
         }
     }
