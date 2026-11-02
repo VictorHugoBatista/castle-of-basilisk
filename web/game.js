@@ -24,9 +24,11 @@ const PAL = [
   '#ffb000', // 10 título
   '#bf1600', // 11 corpo do basilisco ~ (vermelho sangue, onda + halo no render)
   '#54421c', // 12 escombro % (becos que ela evita)
-  '#201500', '#201500',
+  '#4a6a3a', // 13 água '=' (esgoto: lodo ondulante — o lar dela)
+  '#201500',
   '#0a0600', // 15 vazio
 ];
+const WATER_ATTR = 13;
 const PULSE_ATTRS = new Set([4, 5, 7]);
 const BLINK_ATTR = 9;
 const DIM_FLAG = 0x80;
@@ -49,6 +51,7 @@ const N_MAX = w.pfb_max_n();
 const grid = new Uint8Array(w.memory.buffer, w.pfb_grid_ptr(), N_MAX * 2);
 const uirow = new Uint8Array(w.memory.buffer, w.pfb_ui_ptr(), VW * 2);
 const prevGrid = new Uint8Array(VW * VH * 2); // diff de render, em células DE TELA
+const mapview = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), N_MAX); // tiles do andar
 
 // ---- câmera: mapa do andar atual (stats[16]/[17]) desliza sob a viewport ----
 let MWd = VW, MHd = VH;
@@ -140,7 +143,7 @@ function blip({ type = 'square', f0 = 600, f1 = null, dur = 0.08, vol = 0.12,
   o.stop(t0 + dur + 0.05);
 }
 
-function noiseBurst({ dur = 0.3, vol = 0.15, f = 3000, q = 2, delay = 0, pan = 0 }) {
+function noiseBurst({ dur = 0.3, vol = 0.15, f = 3000, q = 2, delay = 0, pan = 0, out = null }) {
   if (!AC) return;
   const t0 = AC.currentTime + delay;
   const len = Math.floor(AC.sampleRate * dur);
@@ -164,25 +167,37 @@ function noiseBurst({ dur = 0.3, vol = 0.15, f = 3000, q = 2, delay = 0, pan = 0
     node = p;
   }
   src.connect(bp); bp.connect(g);
-  node.connect(master);
+  node.connect(out || master);
   src.start(t0);
 }
 
 // sons por evento (mesmos IDs do WASM)
 function playEvent(ev, pan) {
   switch (ev) {
-    case 1: { // passo: intensidade pelo medidor de ruído (stats[10])
+    case 1: { // passo: intensidade pelo medidor de ruído (stats[10]) + esgoto respinga
       const lvl = stats[10];
+      const onWater = mapview[stats[3] + stats[4] * MWd] === 0x3D; // T_WATER sob os pés
       if (lvl === 1) {
         // silencioso: quase nada, um toque de dedo no chão
-        blip({ type: 'square', f0: 460, dur: 0.02, vol: 0.018 });
+        if (onWater) blip({ type: 'sine', f0: 640, f1: 260, dur: 0.05, vol: 0.03, out: echoIn });
+        else blip({ type: 'square', f0: 460, dur: 0.02, vol: 0.018 });
       } else if (lvl === 3) {
         // corrida: bota batendo + eco a preencher o corredor vazio
-        blip({ type: 'square', f0: 520, dur: 0.05, vol: 0.12, out: echoIn });
-        blip({ type: 'sine', f0: 120, f1: 70, dur: 0.1, vol: 0.11 });
+        if (onWater) {
+          noiseBurst({ dur: 0.12, vol: 0.12, f: 1100, q: 1.1, out: echoIn });
+          blip({ type: 'sine', f0: 820, f1: 180, dur: 0.12, vol: 0.1, out: echoIn });
+        } else {
+          blip({ type: 'square', f0: 520, dur: 0.05, vol: 0.12, out: echoIn });
+          blip({ type: 'sine', f0: 120, f1: 70, dur: 0.1, vol: 0.11 });
+        }
       } else {
-        // andar: clique seco, bem discreto
-        blip({ type: 'square', f0: 700, dur: 0.03, vol: 0.045 });
+        // andar: clique seco, bem discreto (respingo curto na água)
+        if (onWater) {
+          noiseBurst({ dur: 0.06, vol: 0.055, f: 1500, q: 1.4 });
+          blip({ type: 'sine', f0: 760, f1: 300, dur: 0.05, vol: 0.055 });
+        } else {
+          blip({ type: 'square', f0: 700, dur: 0.03, vol: 0.045 });
+        }
       }
       break;
     }
@@ -370,7 +385,11 @@ function colorFor(ch, attr, nowMs) {
   const dim = (attr & DIM_FLAG) !== 0;
   const a = attr & 0x7f;
   let col = PAL[a] || PAL[0];
-  if (PULSE_ATTRS.has(a)) {
+  if (a === WATER_ATTR) {
+    // ondulação lenta de lodo: cada célula corrói o brilho no tempo
+    const p = 0.78 + 0.22 * Math.sin(nowMs * 0.0028);
+    col = shade(col, p);
+  } else if (PULSE_ATTRS.has(a)) {
     // brilho respirando
     const p = 0.75 + 0.25 * Math.sin(nowMs * 0.006);
     col = shade(col, p);
@@ -527,8 +546,8 @@ function render(nowMs) {
     }
     const pCh = prevGrid[si * 2];
     const pAttr = prevGrid[si * 2 + 1];
-    const anim = (PULSE_ATTRS.has(attr & 0x7f)) || (attr & 0x7f) === BLINK_ATTR;
-    const prevAnim = (PULSE_ATTRS.has(pAttr & 0x7f)) || (pAttr & 0x7f) === BLINK_ATTR;
+    const anim = (PULSE_ATTRS.has(attr & 0x7f)) || (attr & 0x7f) === BLINK_ATTR || (attr & 0x7f) === WATER_ATTR;
+    const prevAnim = (PULSE_ATTRS.has(pAttr & 0x7f)) || (pAttr & 0x7f) === BLINK_ATTR || (pAttr & 0x7f) === WATER_ATTR;
     if (ch === pCh && attr === pAttr && !anim && !prevAnim) continue;
     const x = (si % VW) * CELL_W;
     const y = ((si / VW) | 0) * CELL_H;

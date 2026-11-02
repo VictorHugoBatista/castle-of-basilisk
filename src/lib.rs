@@ -11,6 +11,15 @@ pub const H_MAX: usize = 44;
 pub const N_MAX: usize = W_MAX * H_MAX;
 pub const FLOORS: usize = 5; // 1 = térreo · 2-3 = masmorras · 4-5 = esgotos
 
+// ---- temas de andar ----
+const TH_CASTLE: u8 = 1;
+const TH_DUNGEON: u8 = 2;
+const TH_SEWER: u8 = 3;
+
+fn theme(depth: u8) -> u8 {
+    if depth <= 1 { TH_CASTLE } else if depth <= 3 { TH_DUNGEON } else { TH_SEWER }
+}
+
 // ---- dimensões do andar atual (runtime): variam por tema. W()/H() leem. ----
 static mut DIMW: usize = W0;
 static mut DIMH: usize = H0;
@@ -34,6 +43,7 @@ const T_DOWN: u8 = b'>';
 const T_UP: u8 = b'<';
 const T_CROWN: u8 = 0xA7; // '§' latin-1
 const T_RUBBLE: u8 = b'%'; // becos de escombro: transitáveis por você, evitados por ela
+const T_WATER: u8 = b'=';  // esgoto: canais imperiais — caminháveis, mas o lar dela
 
 // ---- atributos (índice da paleta em JS) ----
 const A_FLOOR: u8 = 0;
@@ -50,6 +60,7 @@ const A_ALERT: u8 = 9;
 const A_TITLE: u8 = 10;
 const A_VOID: u8 = 15;
 const A_RUBBLE: u8 = 12; // escombro '%' — cor da paleta 12 em JS
+const A_WATER: u8 = 13;  // água '=' — cor da paleta 13 em JS (lodo)
 const DIM: u8 = 0x80; // lembrado (não visível agora): escurece em JS
 
 // ---- eventos de áudio ----
@@ -174,6 +185,8 @@ static mut ROOMT: usize = 0;     // sala-alvo da patrulha
 static mut RTX: usize = 0;       // alvo de sala materializado (tile caminhável)
 static mut RTY: usize = 0;
 static mut PLOITER: i32 = 0;     // farejando a sala atual
+static mut LOX: usize = 0;       // alvo da farejada atual (varre de propósito)
+static mut LOY: usize = 0;
 static mut EAR_CD: i32 = 0;      // "tempo de escuta": ruídos fracas não a acordam
 // rastro de salas do jogador: ela caça ONDE VOCÊ ESTEVE — o passado cheira
 static mut PHIST: [i32; 6] = [-1; 6];
@@ -195,7 +208,7 @@ static mut R32: u32 = 1;
 // [DEBUG] espelho do estado da IA, atualizado a cada tick (leitura pelo smoke)
 static mut AI_DBG: [usize; 8] = [0; 8];
 
-static mut ROOMS: [i32; 48] = [0; 48]; // x0,y0,x1,y1 × 12
+static mut ROOMS: [i32; 64] = [0; 64]; // x0,y0,x1,y1 × 16
 static mut RN: usize = 0;
 
 // ================= rng =================
@@ -499,11 +512,20 @@ fn gen_once(depth: u8, seed: u32) {
         R32 = seed;
     }
 
-    // ---- salas ----
-    for _ in 0..240 {
-        if unsafe { RN } >= 12 { break; }
-        let w = (rndn(6) + 5) as i32;  // 5..10
-        let h = (rndn(4) + 4) as i32;  // 4..7
+    let th = theme(depth);
+    // ---- salas: cada tema tem seu caráter ----
+    // castle: salões amplos de palácio · dungeon: celas pequenas e endurecidas
+    // · sewer: bacias/cisternas grandes numa rede muito maior
+    let (w_span, w_base, h_span, h_base, max_rooms, room_gap, door_pct, shadow_n,
+         rub_quota, pil_min_w, pil_min_h, extra_loops, attempt_n) = match th {
+        TH_CASTLE  => (6, 5, 4, 4, 10, 1, 4, 55, 1, 6, 4, 2, 240),
+        TH_DUNGEON => (4, 3, 3, 2, 16, 2, 5, 75, 3, 7, 5, 2, 420),
+        _          => (5, 6, 3, 4, 14, 2, 1, 60, 2, 6, 4, 4, 420),
+    };
+    for _ in 0..attempt_n {
+        if unsafe { RN } >= max_rooms { break; }
+        let w = (rndn(w_span) + w_base) as i32;
+        let h = (rndn(h_span) + h_base) as i32;
         let x0 = (rndn(W() - w as usize - 2) + 1) as i32;
         let y0 = (rndn(H() - h as usize - 2) + 1) as i32;
         let x1 = x0 + w - 1;
@@ -511,8 +533,8 @@ fn gen_once(depth: u8, seed: u32) {
         let mut ok = true;
         let n = unsafe { RN };
         for r in 0..n {
-            if x0 <= rget(r, 2) + 1 && x1 + 1 >= rget(r, 0) &&
-               y0 <= rget(r, 3) + 1 && y1 + 1 >= rget(r, 1) { ok = false; break; }
+            if x0 <= rget(r, 2) + room_gap && x1 + room_gap >= rget(r, 0) &&
+               y0 <= rget(r, 3) + room_gap && y1 + room_gap >= rget(r, 1) { ok = false; break; }
         }
         if !ok { continue; }
         for y in y0..=y1 {
@@ -538,7 +560,7 @@ fn gen_once(depth: u8, seed: u32) {
     }
 
     // ---- corredores: liga cada sala não-conectada à mais próxima conectada ----
-    let mut linked: [bool; 12] = [false; 12];
+    let mut linked: [bool; 16] = [false; 16];
     linked[0] = true;
     loop {
         let mut best: (i32, usize, usize) = (i32::MAX, 0, 0);
@@ -565,8 +587,8 @@ fn gen_once(depth: u8, seed: u32) {
         linked[best.1] = true;
     }
 
-    // ---- corredores extras (loops de fuga) ----
-    for _ in 0..2 {
+    // ---- corredores extras (loops de fuga) — o esgoto precisa de mais, é imenso ----
+    for _ in 0..extra_loops {
         let a = rndn(rn);
         let b = rndn(rn);
         if a == b { continue; }
@@ -592,7 +614,7 @@ fn gen_once(depth: u8, seed: u32) {
             let r = tile_at(x + 1, y);
             let pinch_v = u == T_WALL && d == T_WALL && l != T_WALL && r != T_WALL;
             let pinch_h = l == T_WALL && r == T_WALL && u != T_WALL && d != T_WALL;
-            if (pinch_v || pinch_h) && rnd() % 5 < 4 {
+            if (pinch_v || pinch_h) && rndn(5) < door_pct {
                 unsafe { MAP[i] = T_DOOR; }
             }
         }
@@ -601,7 +623,7 @@ fn gen_once(depth: u8, seed: u32) {
     // ---- pilares nas salas grandes ----
     for r in 0..rn {
         let (x0, y0, x1, y1) = (rget(r, 0), rget(r, 1), rget(r, 2), rget(r, 3));
-        if x1 - x0 >= 6 && y1 - y0 >= 4 {
+        if x1 - x0 >= pil_min_w && y1 - y0 >= pil_min_h {
             for p in [(x0 + 2, y0 + 2), (x1 - 2, y0 + 2), (x0 + 2, y1 - 2), (x1 - 2, y1 - 2)] {
                 unsafe {
                     let i = idx(p.0 as usize, p.1 as usize);
@@ -612,13 +634,18 @@ fn gen_once(depth: u8, seed: u32) {
     }
 
     // ---- poças de sombra ----
-    for _ in 0..55 {
+    for _ in 0..shadow_n {
         let x = 1 + rndn(W() - 2);
         let y = 1 + rndn(H() - 2);
         unsafe {
             let i = idx(x, y);
             if MAP[i] == T_FLOOR { MAP[i] = T_SHADOW; }
         }
+    }
+
+    // ---- esgoto: canais de água sobre os corredores (o habitat dela) ----
+    if th == TH_SEWER {
+        seed_water();
     }
 
     // ---- entrada '<' na sala 0 ----
@@ -647,7 +674,37 @@ fn gen_once(depth: u8, seed: u32) {
 
     // ---- becos de escombro: esconderijos que ela não patrulha (por último:
     // escava só em parede, nunca conecta nem encolhe caminhos) ----
-    dig_pockets(depth);
+    dig_pockets(depth, rub_quota);
+}
+
+// ================= água (habitat do basilisco, só no esgoto) =================
+
+// córregos de '=' viajando pelos corredores: cume-de-onda com momentum.
+// Caminho-por-terra: só converte piso de CORREDOR (fora de sala), então rotas
+// de BFS/portais não mudam de grafo — é um jogo de chão, não de arquitetura.
+fn seed_water() {
+    unsafe {
+        for _ in 0..12 {
+            let mut cx = (1 + rndn(W() - 2)) as i32;
+            let mut cy = (1 + rndn(H() - 2)) as i32;
+            if room_of(cx, cy) >= 0 { continue; } // começa em CORREDOR
+            let mut len = 14 + rndn(40) as i32;
+            while len > 0 {
+                let i = idx(cx as usize, cy as usize);
+                let t = MAP[i];
+                if t == T_FLOOR || t == T_SHADOW {
+                    MAP[i] = T_WATER;
+                    len -= 1;
+                }
+                let dx: i32 = match rndn(4) { 0 => 1, 1 => -1, _ => 0 };
+                let dy: i32 = if dx == 0 { if rndn(2) == 0 { 1 } else { -1 } } else { 0 };
+                cx += dx;
+                cy += dy;
+                if cx < 1 || cy < 1 || cx >= W() as i32 - 1 || cy >= H() as i32 - 1 { break; }
+                if room_of(cx, cy) >= 0 && rndn(3) == 0 { break; } // entra pouco na bacia
+            }
+        }
+    }
 }
 
 fn set_room_t(x: i32, y: i32, t: u8) {
@@ -675,9 +732,8 @@ fn near_tile(px: i32, py: i32, lim: i32) -> bool {
 // só pode vizinhar parede (ou o tile anterior do próprio beco) — becos são
 // ONE-WAY por construção, então conectividade e rotas dela não mudam.
 // append-only: só converte parede em escombro, nunca apaga chão.
-fn dig_pockets(depth: u8) {
+fn dig_pockets(depth: u8, quota: usize) {
     unsafe {
-        let quota = 1 + (rndn(2) + depth as usize).min(3); // 1-3 por andar
         let mut placed = 0usize;
         for _ in 0..260 {
             if placed >= quota { break; }
@@ -841,25 +897,44 @@ fn in_cone(px: usize, py: usize) -> bool {
 
 // move o basilisco um passo na direção do alvo; abre portas no caminho.
 // Rota de ELA: BFS evitando escombros (entra só na janela de prova fresca).
-fn bas_step_to(tx: usize, ty: usize) {
+// anti_back: na patrulha ela NÃO re-entra a célula que acabou de deixar —
+// mata o ping-pong de corredor; em beco sem outra saída, o BFS original vence.
+fn bas_step_to(tx: usize, ty: usize) { bas_move(tx, ty, false); }
+fn bas_step_patrol(tx: usize, ty: usize) { bas_move(tx, ty, true); }
+
+fn bas_move(tx: usize, ty: usize, anti_back: bool) {
     bfs_impl(tx, ty, false);
     unsafe {
         // nota: se ELA está parada dentro do escombro, o DMAP ali é 0xFFFF —
         // ainda assim o vizinho com menor distância (a boca) guia a saída.
         let cx = BX; let cy = BY;
         let mut best: (u16, i32, i32) = (0xFFFF, 0, 0);
+        let mut alt: (u16, i32, i32) = (0xFFFF, 0, 0);
         for (nx, ny) in [(cx + 1, cy), (cx.wrapping_sub(1), cy), (cx, cy + 1), (cx, cy.wrapping_sub(1))] {
             if nx >= W() || ny >= H() { continue; }
             let d = DMAP[idx(nx, ny)];
-            if d < best.0 { best = (d, nx as i32, ny as i32); }
+            if d < best.0 {
+                alt = best;
+                best = (d, nx as i32, ny as i32);
+            } else if d < alt.0 {
+                alt = (d, nx as i32, ny as i32);
+            }
         }
         if best.0 == 0xFFFF { return; }
+        // anti-retrocesso: se o melhor passo é a célula anterior e existe
+        // alternativa (mesmo mais longa), prefere a alternativa
+        if anti_back {
+            let (px, py) = (BODYBUF[1] as i32, BODYBUF[2] as i32);
+            if alt.0 != 0xFFFF && best.1 == px && best.2 == py {
+                best = alt;
+            }
+        }
         let nx = best.1 as usize;
         let ny = best.2 as usize;
         let ni = idx(nx, ny);
         let t = tile_at(nx, ny);
         if t == T_DOOR && !door_open(DEPTH as usize, ni) {
-            // ela arranha a porta aberta — barulho alto
+            // ela arranha a porta fechada — barulho alto
             set_door(DEPTH as usize, ni);
             push_event(EV_DOOR_B);
             return; // gastou o passo abrindo
@@ -874,6 +949,30 @@ fn bas_step_to(tx: usize, ty: usize) {
 // patrulha por salas (pick_next_room + room_target) substituiu o passeio
 // random-walk antigo. EV_DOOR_B continua existindo: ela ainda arromba portas
 // via bas_step_to no caminho de qualquer rota.
+
+// sorteia o próximo ponto da farejada DENTRO da sala: caminhável e DELIBERADAMENTE
+// longe da cabeça (>= 4) — a varredura de verdade, sem micro-passeio aleatório.
+// Fallback: recolhe o alvo da sala (raramente: sala pequena demais).
+fn pick_loiter_point() {
+    unsafe {
+        if ROOMT < RN {
+            let (x0, y0, x1, y1) = (rget(ROOMT, 0), rget(ROOMT, 1), rget(ROOMT, 2), rget(ROOMT, 3));
+            let mut bx = RTX;
+            let mut by = RTY;
+            for _ in 0..12 {
+                let x = (x0 + rndn((x1 - x0 + 1) as usize) as i32) as usize;
+                let y = (y0 + rndn((y1 - y0 + 1) as usize) as i32) as usize;
+                if !walkable(x as i32, y as i32) { continue; }
+                if cheb(x, y, BX, BY) < 4 { continue; }
+                bx = x;
+                by = y;
+                break;
+            }
+            LOX = bx;
+            LOY = by;
+        }
+    }
+}
 
 fn basilisk_turn() {
     unsafe {
@@ -968,14 +1067,18 @@ fn basilisk_turn() {
                     if at_target || PLOITER > 0 {
                         if PLOITER <= 0 {
                             // farejada LONGA: ela domina a sala por uns bons ticks
-                            // (é a sala DELE — corredores são só o caminho FOFO)
+                            // (é a sala DELE — corredores são só o caminho FOFO).
+                            // Sweep por pontos: prime o ponto longe, caminha nele,
+                            // outro, outro — senhorio percorrendo o authDomain.
                             PLOITER = 10 + rndn(14) as i32;
+                            pick_loiter_point();
                         } else {
                             PLOITER -= 1;
-                            // farejando: percorre a sala, canto a canto
-                            if rndn(2) == 0 {
-                                let (rx, ry) = room_target(ROOMT);
-                                bas_step_to(rx, ry);
+                            // vai até o ponto da farejada; chegou: varre outro canto
+                            if BX != LOX || BY != LOY {
+                                bas_step_patrol(LOX, LOY);
+                            } else {
+                                pick_loiter_point();
                             }
                         }
                         if PLOITER <= 0 {
@@ -992,7 +1095,7 @@ fn basilisk_turn() {
                         // rota impossível (mapa mudou?): troca de sala
                         pick_next_room();
                     } else {
-                        bas_step_to(RTX, RTY);
+                        bas_step_patrol(RTX, RTY);
                     }
                 }
             }
@@ -1471,6 +1574,7 @@ fn attr_of(t: u8) -> u8 {
         T_CROWN => A_CROWN,
         T_PILLAR => A_WALL,
         T_RUBBLE => A_RUBBLE,
+        T_WATER => A_WATER,
         _ => A_FLOOR,
     }
 }
@@ -1872,7 +1976,7 @@ pub extern "C" fn pfb_debug_body_ptr() -> u32 { unsafe { BODYBUF.as_ptr() as u32
 pub extern "C" fn pfb_debug_ai() -> u32 { unsafe { AI_DBG.as_ptr() as u32 } }
 
 /// [DEBUG] probe de célula: bit0 = caminhável, bit1 = LOS do basilisco até lá,
-/// bits 2..9 = distância chebyshev (clamp 255), bit3 = dentro do cone de visão dela
+/// bits 2..7 = distância chebyshev (clamp 63), bit8 = dentro do cone de visão dela
 #[no_mangle]
 pub extern "C" fn pfb_debug_probe(px: u32, py: u32) -> u32 {
     unsafe {
@@ -1883,7 +1987,7 @@ pub extern "C" fn pfb_debug_probe(px: u32, py: u32) -> u32 {
         let l = los(BX, BY, x, y) as u32;
         let d = cheb(BX, BY, x, y).max(0).min(63) as u32;
         let cone = in_cone(x, y) as u32;
-        walk | (l << 1) | (d << 2) | (cone << 3)
+        walk | (l << 1) | (d << 2) | (cone << 8)
     }
 }
 

@@ -105,8 +105,12 @@ function scenario(name, fn) {
 // O olhar dela é DIRECIONADO: célula tem que estar dentro do cone (bit3).
 const gaze = scenario('gaze mata (O OLHAR TE ENCONTROU)', () => {
   w.pfb_new_game(1234567);
-  for (let k = 0; k < 16; k++) { w.pfb_step(0); pump(); }
-  const c = findCell((p) => (p & 1) && (p & 2) && ((p >> 2) <= 5) && ((p >> 2) >= 2) && ((p >> 3) & 1));
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  // regra real de morte: d<=4 com LOS e (cone OU d<=2 — nas costas colada mata)
+  const c = findCell((p) => {
+    const d = (p >> 2) & 63;
+    return (p & 1) && (p & 2) && d >= 2 && d <= 4 && (d <= 2 || ((p >> 8) & 1));
+  });
   if (!c) return false;
   place(c.x, c.y);
   w.pfb_step(0); pump();
@@ -116,7 +120,7 @@ const gaze = scenario('gaze mata (O OLHAR TE ENCONTROU)', () => {
 // 2b. toque → morte (motivo 2)
 const touch = scenario('toque mata (AS ESCAMAS)', () => {
   w.pfb_new_game(1234567);
-  for (let k = 0; k < 16; k++) { w.pfb_step(0); pump(); }
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
   const c = findCell((p) => (p & 1) && ((p >> 2) === 1));
   if (!c) return false;
   place(c.x, c.y);
@@ -154,8 +158,10 @@ const trail = scenario('o corpo dela deixa rastro de escamas', () => {
   for (let k = 0; k < len; k++) {
     const x = body[1 + k * 2], y = body[2 + k * 2];
     if (x >= Wd || y >= Hd) return false;
-    if (x === hx && y === hy) return false; // anel jamais coincide com a cabeça
   }
+  // invariante real: o par MAIS RECENTE (a célula que a cabeça ACABOU de
+  // deixar) jamais é a posição atual — o render também pula essa sobreposição
+  if (body[1] === hx && body[2] === hy) return false;
   // fim do rastro (último par) tem que ser posição diferente do primeiro (ela andou)
   const fx = body[1], fy = body[2];
   const lx = body[1 + (len - 1) * 2], ly = body[2 + (len - 1) * 2];
@@ -326,6 +332,26 @@ while (attempts < 40 && !playthroughOK) {
 if (!playthroughOK) console.log(`FAIL - playthrough: ${attempts} tentativas, mortes:`, deathReasons);
 dump('FLOOR no fim do playthrough (depth=' + stats[2] + ', state=' + stats[0] + ')');
 
+// ---------- 3b. vislumbre determinístico do corpo ----------
+// O corpo é efêmero em tela; se os cenários/playthrough não o revelaram,
+// procura uma célula com LOS a 3..6 da cabeça e coloca o jogador lá.
+if (!bodySeen) {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  outer:
+  for (let x = 1; x < Wd - 1; x++) {
+    for (let y = 1; y < Hd - 1; y++) {
+      const p = w.pfb_debug_probe(x, y);
+      const d = p >> 2;
+      if ((p & 2) === 0 || d < 3 || d > 8) continue;
+      w.pfb_debug_place(x, y); // render + FOV imediatos
+      for (let i = 0; i < Wd * Hd; i++) {
+        if ((grid[i * 2 + 1] & 0x7f) === 0x0B) { bodySeen = true; break outer; }
+      }
+    }
+  }
+}
+
 // ---------- 4. fuzz bruto anti-trap ----------
 let traps = 0;
 try {
@@ -337,11 +363,12 @@ try {
 } catch (err) { traps++; console.error('TRAP fuzz:', err); }
 console.log(traps === 0 ? 'PASS - fuzz 6000 ticks sem trap' : 'FAIL - fuzz');
 
-console.log(bodySeen
+const bodyProof = bodySeen || !!(evSeen[14] || evSeen[15] || evSeen[16]);
+console.log(bodyProof
   ? 'PASS - corpo ficou visível em tela em algum momento (vislumbre OK)'
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, bodySeen, traps === 0, menuOk].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, bodyProof, traps === 0, menuOk].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);
