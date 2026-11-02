@@ -7,6 +7,7 @@
 pub const W: usize = 56;
 pub const H: usize = 32;
 pub const N: usize = W * H;
+pub const FLOORS: usize = 5; // 1 = térreo · 2-3 = masmorras · 4-5 = esgotos
 
 // ---- tiles (bytes) ----
 const T_WALL: u8 = b'#';
@@ -127,11 +128,11 @@ static mut MENU_SEL: u8 = 0; // cursor: 0 = INICIAR, 1 = CONTROLES
 static mut SCHEME: u8 = 0;   // modo de teclas: 0 = WASD, 1 = SETAS
 static mut START_REQ: u8 = 0; // menu pediu "Iniciar": o JS semeia o novo jogo
 
-static mut SEEDS: [u32; 3] = [0; 3];
+static mut SEEDS: [u32; FLOORS] = [0; FLOORS];
 static mut MAP: [u8; N] = [0; N];
-static mut SEEN: [u8; N * 3] = [0; N * 3];
+static mut SEEN: [u8; N * FLOORS] = [0; N * FLOORS];
 static mut VIS: [u8; N] = [0; N];
-static mut DOORS: [u64; 96] = [0; 96];
+static mut DOORS: [u64; N * FLOORS / 64] = [0; N * FLOORS / 64];
 
 static mut PX: usize = 0;
 static mut PY: usize = 0;
@@ -439,7 +440,7 @@ fn connectivity_ok(depth: u8) -> bool {
         if up == usize::MAX { return false; }
         let (ux, uy) = (up % W, up / W);
         bfs(ux, uy); // trata portas fechadas como abertas (abíveis)
-        let need: u8 = if depth < 3 { T_DOWN } else { T_CROWN };
+        let need: u8 = if depth < FLOORS as u8 { T_DOWN } else { T_CROWN };
         for i in 0..N {
             if MAP[i] == need && DMAP[i] == 0xFFFF { return false; }
         }
@@ -596,10 +597,11 @@ fn gen_once(depth: u8, seed: u32) {
     let (ex, ey) = rcenter(0);
     unsafe { MAP[idx(ex as usize, ey as usize)] = T_UP; }
 
-    // ---- saída '>' (andares 1-2) ou coroa '§' com altar (andar 3) ----
+    // ---- saída '>' (até o andar 4) ou coroa '§' com altar (andar 5: a Cloaca
+    // Maxima profunda, onde o rei morto coroou-se a si mesmo) ----
     let lr = rn - 1;
     let (dx, dy) = rcenter(lr);
-    if depth < 3 {
+    if depth < FLOORS as u8 {
         set_room_t(dx, dy, T_DOWN);
     } else {
         set_room_t(dx, dy, T_CROWN);
@@ -1684,9 +1686,9 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         TICK = 0;
         DEATH_R = 0;
         START_REQ = 0;
-        DOORS = [0; 96];
-        SEEN = [0; N * 3];
-        SEEDS = [0; 3];
+        DOORS = [0; N * FLOORS / 64];
+        SEEN = [0; N * FLOORS];
+        SEEDS = [0; FLOORS];
         AUD_H = 0;
         AUD_T = 0;
         EV_CD = 0;

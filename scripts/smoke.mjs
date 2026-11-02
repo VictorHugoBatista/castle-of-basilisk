@@ -251,8 +251,8 @@ while (attempts < 40 && !playthroughOK) {
     steps++;
     let target;
     if (stats[8] === 1) target = findTile(0x3C);       // com coroa: sempre '<'
-    else if (stats[2] < 3) target = findTile(0x3E);    // sem coroa: desce
-    else target = findTile(0xA7);                      // andar 3: a coroa
+    else if (stats[2] < 5) target = findTile(0x3E);    // sem coroa: desce (5 andares)
+    else target = findTile(0xA7);                      // andar 5: a coroa
     if (target < 0) break;
 
     const pos0 = stats[3] + stats[4] * W;
