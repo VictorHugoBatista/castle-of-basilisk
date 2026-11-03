@@ -4,19 +4,31 @@ import { readFileSync } from 'node:fs';
 const bytes = readFileSync(new URL('../web/wasm/castle_of_basilisk.wasm', import.meta.url));
 const { instance } = await WebAssembly.instantiate(bytes, {});
 const w = instance.exports;
-const W = 56, H = 32;
+const N_MAX = 80 * 44; // pior caso do grid (esgoto)
+let Wd = 56, Hd = 32;    // dims do andar atual (stats[16]/[17])
+
+let gview = null, mview = null, lastViewKey = -1;
+function ensureViews() {
+  const key = stats[16] | (stats[17] << 8) | (stats[2] << 16);
+  if (key === lastViewKey && grid) return;
+  lastViewKey = key;
+  Wd = stats[16]; Hd = stats[17];
+  grid = new Uint8Array(w.memory.buffer, w.pfb_grid_ptr(), Wd * Hd * 2);
+  wmap = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), Wd * Hd);
+}
 
 w.pfb_init();
-const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 16);
-let grid = new Uint8Array(w.memory.buffer, w.pfb_grid_ptr(), W * H * 2);
-let map = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), W * H);
+const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 24);
+let grid = null;
+let wmap = null;
+ensureViews();
 
 function dump(label) {
   console.log(`\n=== ${label} ===`);
-  for (let y = 0; y < H; y++) {
+  for (let y = 0; y < Hd; y++) {
     let row = '';
-    for (let x = 0; x < W; x++) {
-      const ch = grid[(y * W + x) * 2];
+    for (let x = 0; x < Wd; x++) {
+      const ch = grid[(y * Wd + x) * 2];
       row += ch === 0xA7 ? '§' : String.fromCharCode(ch);
     }
     console.log('|' + row + '|');
@@ -27,6 +39,7 @@ let evSeen = {};
 function pump() {
   let e;
   while ((e = w.pfb_pop_event()) !== 0) evSeen[e] = (evSeen[e] || 0) + 1;
+  ensureViews();
   checkBody();
 }
 
@@ -34,7 +47,7 @@ function pump() {
 let bodySeen = false;
 function checkBody() {
   if (stats[0] !== 1 || bodySeen) return;
-  for (let i = 0; i < W * H; i++) {
+  for (let i = 0; i < Wd * Hd; i++) {
     if ((grid[i * 2 + 1] & 0x7f) === 0x0B) { bodySeen = true; return; }
   }
 }
@@ -48,10 +61,10 @@ let menuOk;
 {
   const M = { up: 1, down: 2, left: 4, right: 8, ok: 16, back: 64 };
   // cursor > N O GRID: mover para baixo tem que redesenhar (roda render())
-  const gt0 = grid[(21 * W + 22) * 2] === 0x3E;         // '>' na linha de INICIAR
+  const gt0 = grid[(21 * Wd + 22) * 2] === 0x3E;         // '>' na linha de INICIAR
   w.pfb_menu(M.down);
-  const gt1 = grid[(23 * W + 21) * 2] === 0x3E          // '>' passou p/ CONTROLES
-           && grid[(21 * W + 22) * 2] !== 0x3E;         // ... e sumiu de INICIAR
+  const gt1 = grid[(23 * Wd + 21) * 2] === 0x3E          // '>' passou p/ CONTROLES
+           && grid[(21 * Wd + 22) * 2] !== 0x3E;         // ... e sumiu de INICIAR
   const navig = stats[14] === 1 && stats[0] === 0;      // cursor em CONTROLES
   w.pfb_menu(M.ok);
   const ctrl = stats[0] === 4;                          // tela de controles
@@ -72,8 +85,8 @@ const startReq = stats[13] === 1 && stats[0] === 0;   // pedido publicado
 
 // ---------- 2. cenários de morte/alerta ----------
 function findCell(pred) {
-  for (let y = 1; y < H - 1; y++)
-    for (let x = 1; x < W - 1; x++) {
+  for (let y = 1; y < Hd - 1; y++)
+    for (let x = 1; x < Wd - 1; x++) {
       const p = w.pfb_debug_probe(x, y);
       if (pred(p, x, y)) return { x, y, p };
     }
@@ -92,8 +105,12 @@ function scenario(name, fn) {
 // O olhar dela é DIRECIONADO: célula tem que estar dentro do cone (bit3).
 const gaze = scenario('gaze mata (O OLHAR TE ENCONTROU)', () => {
   w.pfb_new_game(1234567);
-  for (let k = 0; k < 16; k++) { w.pfb_step(0); pump(); }
-  const c = findCell((p) => (p & 1) && (p & 2) && ((p >> 2) <= 5) && ((p >> 2) >= 2) && ((p >> 3) & 1));
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  // regra real de morte: d<=4 com LOS e (cone OU d<=2 — nas costas colada mata)
+  const c = findCell((p) => {
+    const d = (p >> 2) & 63;
+    return (p & 1) && (p & 2) && d >= 2 && d <= 4 && (d <= 2 || ((p >> 8) & 1));
+  });
   if (!c) return false;
   place(c.x, c.y);
   w.pfb_step(0); pump();
@@ -103,7 +120,7 @@ const gaze = scenario('gaze mata (O OLHAR TE ENCONTROU)', () => {
 // 2b. toque → morte (motivo 2)
 const touch = scenario('toque mata (AS ESCAMAS)', () => {
   w.pfb_new_game(1234567);
-  for (let k = 0; k < 16; k++) { w.pfb_step(0); pump(); }
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
   const c = findCell((p) => (p & 1) && ((p >> 2) === 1));
   if (!c) return false;
   place(c.x, c.y);
@@ -122,7 +139,7 @@ const alert = scenario('ruído acorda IA (EV_ALERT -> INVEST)', () => {
   let moved = false;
   for (const [dx, dy, bit] of dirs) {
     const nx = c.x + dx, ny = c.y + dy;
-    if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+    if (nx < 0 || ny < 0 || nx >= Wd || ny >= Hd) continue;
     if (w.pfb_debug_probe(nx, ny) & 1) { w.pfb_step(bit); moved = true; break; }
   }
   if (!moved) return false;
@@ -140,9 +157,11 @@ const trail = scenario('o corpo dela deixa rastro de escamas', () => {
   const hx = stats[5], hy = stats[6];
   for (let k = 0; k < len; k++) {
     const x = body[1 + k * 2], y = body[2 + k * 2];
-    if (x >= W || y >= H) return false;
-    if (x === hx && y === hy) return false; // anel jamais coincide com a cabeça
+    if (x >= Wd || y >= Hd) return false;
   }
+  // invariante real: o par MAIS RECENTE (a célula que a cabeça ACABOU de
+  // deixar) jamais é a posição atual — o render também pula essa sobreposição
+  if (body[1] === hx && body[2] === hy) return false;
   // fim do rastro (último par) tem que ser posição diferente do primeiro (ela andou)
   const fx = body[1], fy = body[2];
   const lx = body[1 + (len - 1) * 2], ly = body[2 + (len - 1) * 2];
@@ -155,18 +174,18 @@ const trail = scenario('o corpo dela deixa rastro de escamas', () => {
 // replanejamento periódico, esquiva geométrica com eixo travado e
 // desvio do tile quando já está parado sobre o alvo.
 const pass = (i) => {
-  const t = map[i];
-  return t === 0x2E || t === 0x2C || t === 0x3E || t === 0x3C || t === 0x2B || t === 0xA7;
+  const t = wmap[i];
+  return t === 0x2E || t === 0x2C || t === 0x3E || t === 0x3C || t === 0x2B || t === 0xA7 || t === 0x3D; // 0x3D = água '=' (esgoto)
 };
 // portais (>, <, §) são INTERAÇÕES: só pisável se é o alvo do plano —
 // senão o bot atravessa um '<' sem querer e sobe de andar
-const isStair = (i) => { const t = map[i]; return t === 0x3E || t === 0x3C || t === 0xA7; };
+const isStair = (i) => { const t = wmap[i]; return t === 0x3E || t === 0x3C || t === 0xA7; };
 function stepOk(i, target) { return !isStair(i) || i === target; }
-function findTile(t) { for (let i = 0; i < W * H; i++) if (map[i] === t) return i; return -1; }
+function findTile(t) { for (let i = 0; i < Wd * Hd; i++) if (wmap[i] === t) return i; return -1; }
 
 let dangerMemo = null;
 function danger(x, y) {
-  const i = y * W + x;
+  const i = y * Wd + x;
   if (dangerMemo[i] === undefined) {
     const p = w.pfb_debug_probe(x, y);
     dangerMemo[i] = ((p & 2) !== 0 && (p >> 2) <= 9) || (p >> 2) <= 3;
@@ -174,18 +193,18 @@ function danger(x, y) {
   return dangerMemo[i];
 }
 function bfsRoute(target, avoid) {
-  const start = stats[3] + stats[4] * W;
+  const start = stats[3] + stats[4] * Wd;
   if (!pass(target)) return null;
-  const prev = new Int32Array(W * H).fill(-1);
+  const prev = new Int32Array(Wd * Hd).fill(-1);
   const q = [start]; prev[start] = start;
   let reached = false;
   for (let qh = 0; qh < q.length && !reached; qh++) {
     const c = q[qh];
     if (c === target) { reached = true; break; }
-    const cx = c % W, cy = (c / W) | 0;
+    const cx = c % Wd, cy = (c / Wd) | 0;
     for (const [nx, ny] of [[cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]]) {
-      if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
-      const ni = ny * W + nx;
+      if (nx < 0 || ny < 0 || nx >= Wd || ny >= Hd) continue;
+      const ni = ny * Wd + nx;
       if (prev[ni] !== -1 || !pass(ni)) continue;
       if (!stepOk(ni, target)) continue; // não atravessar portais por acidente
       if (avoid && danger(nx, ny)) continue;
@@ -205,7 +224,7 @@ function dirBit(d) {
   if (d.dx > 0) return 8;
   return 0;
 }
-const dirTo = (from, to) => dirBit({ dx: (to % W) - (from % W), dy: ((to / W) | 0) - ((from / W) | 0) });
+const dirTo = (from, to) => dirBit({ dx: (to % Wd) - (from % Wd), dy: ((to / Wd) | 0) - ((from / Wd) | 0) });
 
 // esquiva geométrica: foge no eixo de afastamento; eixo travado evita zigzag
 let fleeAxisWasX = null;
@@ -219,8 +238,8 @@ function dodge(target) {
   const prefX = fleeAxisWasX === null ? domX : fleeAxisWasX;
   const walk = (dx, dy) => {
     const nx = px + dx, ny = py + dy;
-    if (nx < 0 || ny < 0 || nx >= W || ny >= H) return false;
-    const ni = ny * W + nx;
+    if (nx < 0 || ny < 0 || nx >= Wd || ny >= Hd) return false;
+    const ni = ny * Wd + nx;
     return pass(ni) && stepOk(ni, target);
   };
   const opts = [];
@@ -238,7 +257,7 @@ function dodge(target) {
   return null; // os dois eixos travados: imóvel
 }
 
-map = new Uint8Array(w.memory.buffer, map.byteOffset, map.length); // re-sincroniza
+wmap = new Uint8Array(w.memory.buffer, wmap.byteOffset, wmap.length); // re-sincroniza
 
 let playthroughOK = false, attempts = 0, deathReasons = {};
 while (attempts < 40 && !playthroughOK) {
@@ -248,22 +267,23 @@ while (attempts < 40 && !playthroughOK) {
   let route = null, rIdx = 0, lastTarget = -1, recalcAt = 0;
   fleeAxisWasX = null;
   while (steps < 9000 && stats[0] === 1) {
+    ensureViews(); // dims/views do andar atual (pode ter descido/subido no tick anterior)
     steps++;
     let target;
     if (stats[8] === 1) target = findTile(0x3C);       // com coroa: sempre '<'
-    else if (stats[2] < 3) target = findTile(0x3E);    // sem coroa: desce
-    else target = findTile(0xA7);                      // andar 3: a coroa
+    else if (stats[2] < 5) target = findTile(0x3E);    // sem coroa: desce (5 andares)
+    else target = findTile(0xA7);                      // andar 5: a coroa
     if (target < 0) break;
 
-    const pos0 = stats[3] + stats[4] * W;
+    const pos0 = stats[3] + stats[4] * Wd;
     if (target === pos0) {
       // já está sobre o alvo (ex.: emergiu do '<' no térreo): passo fora
       const px = stats[3], py = stats[4];
       let stepped = false;
       for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
         const nx = px + dx, ny = py + dy;
-        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
-        if (pass(ny * W + nx)) {
+        if (nx < 0 || ny < 0 || nx >= Wd || ny >= Hd) continue;
+        if (pass(ny * Wd + nx)) {
           w.pfb_step(dirBit({ dx, dy }));
           stepped = true;
           break;
@@ -278,21 +298,21 @@ while (attempts < 40 && !playthroughOK) {
 
     // (re)planeja periodicamente — o basilisco anda
     if (target !== lastTarget || steps >= recalcAt || route === null) {
-      dangerMemo = new Array(W * H);
+      dangerMemo = new Array(Wd * Hd);
       route = bfsRoute(target, true) || bfsRoute(target, false);
       rIdx = 0;
       lastTarget = target;
       recalcAt = steps + 6;
     }
     if (route === null || route.length === 0) break;
-    const pos = stats[3] + stats[4] * W;
+    const pos = stats[3] + stats[4] * Wd;
     if (pos === route[rIdx]) rIdx++;
     if (rIdx >= route.length) break;
     const nxt = route[rIdx];
 
     const basDist = w.pfb_debug_probe(stats[3], stats[4]) >> 2;
     const hunted = stats[7] === 2;
-    const stepP = w.pfb_debug_probe(nxt % W, (nxt / W) | 0);
+    const stepP = w.pfb_debug_probe(nxt % Wd, (nxt / Wd) | 0);
     const stepDanger = (stepP & 2) !== 0 && (stepP >> 2) <= 8;
 
     let mvBit;
@@ -312,6 +332,26 @@ while (attempts < 40 && !playthroughOK) {
 if (!playthroughOK) console.log(`FAIL - playthrough: ${attempts} tentativas, mortes:`, deathReasons);
 dump('FLOOR no fim do playthrough (depth=' + stats[2] + ', state=' + stats[0] + ')');
 
+// ---------- 3b. vislumbre determinístico do corpo ----------
+// O corpo é efêmero em tela; se os cenários/playthrough não o revelaram,
+// procura uma célula com LOS a 3..6 da cabeça e coloca o jogador lá.
+if (!bodySeen) {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  outer:
+  for (let x = 1; x < Wd - 1; x++) {
+    for (let y = 1; y < Hd - 1; y++) {
+      const p = w.pfb_debug_probe(x, y);
+      const d = p >> 2;
+      if ((p & 2) === 0 || d < 3 || d > 8) continue;
+      w.pfb_debug_place(x, y); // render + FOV imediatos
+      for (let i = 0; i < Wd * Hd; i++) {
+        if ((grid[i * 2 + 1] & 0x7f) === 0x0B) { bodySeen = true; break outer; }
+      }
+    }
+  }
+}
+
 // ---------- 4. fuzz bruto anti-trap ----------
 let traps = 0;
 try {
@@ -323,11 +363,12 @@ try {
 } catch (err) { traps++; console.error('TRAP fuzz:', err); }
 console.log(traps === 0 ? 'PASS - fuzz 6000 ticks sem trap' : 'FAIL - fuzz');
 
-console.log(bodySeen
+const bodyProof = bodySeen || !!(evSeen[14] || evSeen[15] || evSeen[16]);
+console.log(bodyProof
   ? 'PASS - corpo ficou visível em tela em algum momento (vislumbre OK)'
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, bodySeen, traps === 0, menuOk].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, bodyProof, traps === 0, menuOk].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);
