@@ -18,7 +18,8 @@ castle-of-basilisc/
 │       └── castle_of_basilisk.wasm   # Binario compilado (~37 KB), comitado
 ├── scripts/
 │   ├── smoke.mjs           # Gate de testes headless (so merge com "SMOKE OK")
-│   └── debug6.mjs          # Bancada do bot playthrough (mede taxa de vitoria)
+│   ├── debug6.mjs          # Bancada do bot playthrough (mede taxa de vitoria)
+│   └── fear_bench.mjs      # Bancada do MEDO: telemetria de niveis/alucinacoes
 ├── build.sh                # cargo build release + copia para web/wasm
 ├── Cargo.toml              # cdylib, zero dependencias
 ├── README.md               # Como jogar
@@ -82,7 +83,7 @@ Exports (contrato publico — nao quebrar):
 | `pfb_ui_ptr`    | `() u32`                     | barra de UI fabricada (W0 celulas x [char,attr]): dica contextual / nome do andar |
 | `pfb_stats_ptr` | `() u32`                     | ponteiro do bloco de stats |
 | `pfb_pop_event` | `() u32`                     | consome fila de audio (0 = vazia) |
-| `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown | somente para testes headless |
+| `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown/fear/fear_ptr | somente para testes headless |
 
 Layout de memoria:
 - **Grid**: buffer maximo `W_MAX x H_MAX` (80x44) celulas x `[char: u8, attr: u8]`,
@@ -91,7 +92,8 @@ Layout de memoria:
   ASCII; coroa = byte `0xA7` ('§' latin-1), agua = `'='` (0x3D). Attr = indice da
   paleta (0..15) OU `0x80 | indice` quando o tile e "lembrado" (fog of war) e
   escurece no render.
-- **Stats** (u8[24]): `[0] estado`, `[1] motivo de morte (1 olhar, 2 toque)`,
+- **Stats** (u8[32]): `[0] estado`, `[1] motivo de morte (1 olhar, 2 toque —
+  o medo nunca mata)`,
   `[2] profundidade`, `[3] px`, `[4] py`, `[5] bx`, `[6] by`,
   `[7] estado da IA (0 patrol, 1 invest, 2 hunt)`, `[8] coroa`,
   `[9] segmentos do corpo visíveis` (o JS usa para "engordar" o drone),
@@ -99,13 +101,18 @@ Layout de memoria:
   `[12] jogador esta em escombro (0/1)`, `[13] pedido de iniciar (menu -> JS
   semeia pfb_new_game e limpa)`, `[14] cursor do menu (0 INICIAR, 1 CONTROLES)`,
   `[15] modo de teclas (0 WASD, 1 SETAS — o J S usa para filtrar a tecla de
-  corrida X/K)`, `[16] largura do andar atual`, `[17] altura do andar atual`.
+  corrida X/K)`, `[16] largura do andar atual`, `[17] altura do andar atual`,
+  `[18] medo (0..100)`, `[19] nivel do medo (0..4; 4 = COLAPSO, efeitos
+  máximos — e o medo nunca mata)`.
   **REGRA DE OURO**: qualquer funcao que mude estado (morte/vitoria/eventos)
   DEVE chamar `sync_stats()`. (Dois bugs ja nasceram de stats obsoletos —
   o terceiro: `return` cedo apos descer de andar deixava o bot do smoke
   replanejando com posicao velha sob mapa novo; sincronizar OU seguir o fluxo
   normal do tick.)
 - **Eventos**: ring buffer `u32[16]`, produtor (Rust) / consumidor (JS).
+  `18` EV_WHISPER (sussurro: nasceu alucinacao) · `19` EV_WHELP (soluco
+  involuntario do medo) · `20` EV_VANISH (alucinacao evaporou de perto) ·
+  `21` EV_VANISH_C (a coroa-fantasma evaporou).
 
 RNG: xorshift32 com seed POR ANDAR (`SEEDS[FLOORS]`, FLOORS=5), definida em
 `pfb_new_game`. Subir e descer NAO regenera o mapa: o mesmo seed reproduz o
@@ -167,12 +174,16 @@ Decisoes:
 
 ### 3.3. Testes headless
 
-Nome: `scripts/smoke.mjs` (gate) e `scripts/debug6.mjs` (bancada)
+Nome: `scripts/smoke.mjs` (gate) e `scripts/debug6.mjs` (bancada de vitoria)
+e `scripts/fear_bench.mjs` (bancada do medo)
 
 Descricao: rodam o MESMO binario do navegador direto no Node. O smoke valida
 regras por cenario e um bot joga do zero ate vencer. Bot: BFS que EVITA a zona
 de perigo (LOS<=9 ou dist<=3), replanejamento a cada 6 passos, esquiva
 geometrica com eixo travado, desvio do tile quando o alvo esta sob os pes.
+O fear_bench roda o mesmo bot com telemetria por tick do medo (nivel, pico,
+alucinacoes nascidas/evaporadas) — e a prova numerica de que um ajuste de
+balance torna o medo VISIVEL sem matar o bot (ver secao 3.6).
 
 Tecnologia e beneficio: o mesmo WASM serve os dois universos — bug de
 navegador reproduz no node (e vice-versa), entao o gate e real, nao simulado.
@@ -253,6 +264,11 @@ terreo.
 
 - **Mapa maior no esgoto** (`floor_dims`): 80x44 vs 56x32; todos os buffers
   em `N_MAX`, dims reais publicadas em `STATS[16]/[17]`, camera no JS.
+  **REGRA DE UI**: as telas FORA de jogo (titulo/controles/morte/vitoria)
+  sao compostas SEMPRE no viewport padrao 56x32 — `render()` volta `DIMW/DIMH`
+  para `W0/H0` quando `STATE != ST_PLAY` (o JS fora de jogo le o grid como
+  56 colunas; morrer no esgoto com stride 80 rasgava a tela em diagonal).
+  `gen_once` restaura as dims do andar quando ele regenera.
 - **Agua** (`seed_water`, so esgoto; tile `'='` / attr 13): rachaduras de
   rio por passeio aleatorio que convertem APENAS piso de CORREDOR (fora de
   sala) — o grafo de BFS/portas nao muda, muda o chao: caminhar na agua
@@ -269,6 +285,87 @@ terreo.
 Contrato de balanceamento: `node scripts/smoke.mjs` e o gate real — o bot
 joga com a MESMA IA que o humano enfrenta; qualquer tunagem de constante
 re-precisa passar no gate.
+
+### 3.6. Medo e loucura
+
+Nome: subsistema de `src/lib.rs` (`fear_update`, `fear_haunt`, `phantoms_tick`,
+`render_phantoms`) + HUD/áudio em `web/game.js`.
+
+Descricao: exposição à besta sobe o medo; ausência desce — MAS devagar, e
+quanto mais alto o nível, MAIS lenta a queda (histerese do susto). O medo tem
+dois CHÕES que ele jamais desce abaixo (regra "o susto fica preso no corpo"):
+o TRAUMA (um terço do pico histórico da run, `FEAR_PK/3`) e o PAVOR AMBIENTE
+(`AMBF`, teto por profundidade). E o **TOPO NÃO MATA**: em 100 de medo nada
+acontece além do proprio teatro do pavor no máximo (`COLAPSO` — decisão de
+design: o medo atrapalha e fascina; a morte é trabalho dela, `DEATH_R` 1/2).
+
+Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
+
+- **Exposição**: visao mutua sobe por faixa (d<=3: +7, d<=8: +3, d<=12: +1;
+  sem LOS mas d<=3 "halito de costas": +2; escamas visiveis +2; EV_STINGER
+  pico +15). No esgoto (habitat) ganho x1.5.
+- **Queda**: 8 ticks calado comecam a acalmar; nivel 0: -2/2 ticks · nivel 1:
+  -1/2 · nivel 2: -1/3 · nivel 3: -1/5 · nivel 4 (COLAPSO): -1/6, a mais lenta
+  de todas — desce sempre mais lento do que sobe; e para no chão (trauma
+  ou pavor ambiente, o que for maior).
+- **Trauma (`FEAR_PK`)**: todo ganho marca o pico; a queda NUNCA leva o medo
+  abaixo de um TERÇO dele. Uma caçada até 60 deixa o jogador assombrado (20)
+  para sempre — cicatriz, não sentença — e a espiral de terror acumula entre
+  andares.
+- **Pavor ambiente (`AMBF`/`AMBT`)**: sem exposição, o medo rasteja +1 a cada
+  `FEAR_AMB_N` ticks até o teto `FEAR_AMB_CAP` da profundidade (terreo 6 ·
+  masmorras 12/18 · esgoto 24/30). Monótono na run: voltar ao térreo não
+  desaprende o que o esgoto ensinou. No habitat dela o teto é 30 = nivel 1
+  sozinho: o LUGAR assombra.
+- **Freio do limiar (`fear_absorb`)**: lá em cima TODO susto rende menos —
+  72+: metade, 86+: um quarto; e susto MIUDO (creep sem LOS d<=3, escamas do
+  rastro: gain < 3) NÃO empurra o topo de jeito nenhum. O COLAPSO só avança
+  por aquilo que o jogador VÊ — chegar a 100 exige vê-la de novo e de novo
+  ao longo da run (de ~7 ticks no rosto dela para uns 16+, intercalados por
+  andares). Aplicado nos dois caminhos de ganho (exposição e spike do
+  EV_STINGER).
+- **Niveis** (0..4): 30 assombrado · 55 paranoico · 75 panico · 100 COLAPSO
+  (NAO mata — teatro máximo: FOV raio 6, soluco sem parar (ruido r=2),
+  glitch-fantasma (EV_BODY sem corpo em tela), tudo tremendo). A decisão
+  central: o medo é a DECORAÇÃO do horror; a morte é trabalho dela.
+- **Pele (CSS, `fearScreen` em game.js)**: o #wrap inteiro treme (duas
+  senoides desafinadas; amp 1.4px nv2, 2.6px nv3) e a vinheta #fearv(vermelho
+  radial) fecha pulsando com o batimento (nv2 0.12+-0.06, nv3 0.30+-0.10).
+  Fora do grid de propósito: complexidade nenhuma no WASM, efeitos nenhuma na
+  logica — e sobrevive ao render incremental (overlay, nao celulas).
+- **Alucinacoes — rendem no GRID de render, NUNCA em MAP/SEEN** (a logica,
+  BFS/IA/gaze, jamais as ve; os fantasmas nao bloqueiam nem entregam nada):
+  fantasma 'o' (attr 14, A_GHOST: trespassa paredes, evapora a d<=2, fora do
+  VIS escurece como tile lembrado; TTL longo e 50% dos passos vem NA DIRECAO
+  do jogador — eles assombram VOCE, mas evaporam antes de alcançar), falso 'B'
+  (attr 7 do real: o coracao dele nao responde, nao gera glitch de corpo, nasce
+  so com a real a >12 tiles), coroa-fantasma (T_CROWN com attr 5 real, estatica,
+  a 8..14 tiles em corredor LEMBRADO — spawn exige SEEN==1 e fora do VIS, senao
+  o render a desenharia num buraco nunca visto; evapora a d<=2 — a ilusao de
+  vitoria custa folego e ruido r=15 se voce correr atras, fechando a espiral
+  com a IA dela).
+- **Cadencia de spawn** (tabelas PH_*): fantasma 1/30 · 1/18 · 1/12 · 1/9 por
+  nivel — paranoia Lenta e presente desde o grau baixo (max 2/3/4 em tela;
+  NV1-2: 1 em 4 nascimentos entra A LUZ, o vislumbre no seu campo); falso B
+  entra ja no nv1 rarefeito e sobe: 1/120 · 1/25 · 1/18 · 1/13; coroa
+  1/45 · 1/30 · 1/22 (NV 2+); bafarra (EV_WHISPER sem fantasma) 1/240 ·
+  1/25 · 1/20 · 1/14 · 1/10 — no CALMO ela e o "foi impressao minha?"; corpo
+  falso (EV_BODY center-pan: arrasto separado de lugar nenhum) 1/240 ·
+  1/150 · 1/60 · 1/40, metade sorteada: passos que nao existem. Tudo isso e
+  APRESENTACAO: nenhuma restrutura na IA — o bot segue vencendo igual.
+  PH_CD=10 espaça os nascimentos; cores no attr 14 da paleta por tema (JS).
+- **Bancada de balance** (`scripts/fear_bench.mjs`): 40 jogos do bot surdo do
+  debug6 com telemetria do medo (ticks por nivel, pico, alucinacoes nascidas).
+  Evolução do ajuste, 40 jogos SEMPRE com 16/40 vitorias: baseline 94% dos
+  ticks no nv0, 3/40 com alucinação, coroa 0/40 → trauma+pavor (19/40
+  alucinando) → cadencias+freio do limiar (23/40) → terço do pico + "só a
+  visão empurra o topo" (23/40, 102 fantasmas) → paranoia do grau baixo + "o
+  TOPO NAO MATA": 33/40 jogos alucinando; nos jogos RESOLVIDOS (36), o medo
+  mora em 81% no nivel 0 e teatraliza ~19% do tempo (nv1-4), o COLAPSO
+  propriamente dito e 1.0% — decoracao dramática, nunca carcere. As mortes do
+  bot sao exclusivamente dela (gaze/toque; o motivo 3 foi removido: o medo
+  nunca mata). 4 jogos ficam TRAVADOS no dodge infinito do bot surdo (bancada
+  apenas: o contador `travados` os segrega — o jogador humano não os vê).
 
 ## 4. Armazenamento
 
@@ -356,6 +453,12 @@ Ultima atualizacao: 2026-11-03
 - **Sombra** (`,`) — tile que esconde: imovel = visao dela 2 tiles; andando = 4;
   no claro = 8. Com a coroa: andar em sombra = farol; imovel em sombra = o
   basilisco persegue sua ultima posicao conhecida, nao voce.
+- **Falso `B` / coroa-fantasma / fantasma** (`o`): alucinações do medo (seção
+  3.6) — rendem apenas no GRID de render; `pfb_debug_fear(f)` injeta medo e
+  `pfb_debug_fear_ptr()` publica o espelho `[FEAR, nivel, n fantasmas, fake B,
+  coroa falsa]` para o smoke.
+- **EV_18..21**: eventos mentais (sussurro / soluço / evaporou / coroa mentiu).
+  O JS não os panlama pela posição real da besta: acontecem dentro da cabeça.
 - **tick**: ciclo de jogo de 140 ms. O basilisco move a cada N ticks por
   tema (`speed_patrol/invest/hunt`): castelo 6/4/3, masmorra 4/3/2, esgoto
   3/2/2 — e 1/1 NA AGUA do esgoto (`speed_now`). Com a coroa ela caça 1

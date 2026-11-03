@@ -24,13 +24,14 @@ const PAL_CASTLE = [
   '#ffb000', // 10 título
   '#bf1600', // 11 corpo do basilisco ~
   '#54421c', // 12 escombro %
-  '#201500', '#201500',
+  '#201500',
+  '#c4b080', // 14 fantasma alucinação 'o' (pálido, ambar lavado)
   '#0a0600', // 15 vazio
 ];
 const PAL_DUNGEON = [
   '#4d4304', '#7d6c10', '#38300a', '#9a8a1a', '#fff6a0', '#ffe08a', '#e8d25a',
   '#ff2e00', '#7a6a20', '#ff5000', '#a08a20', '#bf1600', '#3f3618',
-  '#201500', '#201500', '#050300',
+  '#201500', '#b0a890', '#050300', // 14 = fantasma
 ];
 const PAL_SEWER = [
   '#3e5228', // 0 piso (lodo)
@@ -47,11 +48,12 @@ const PAL_SEWER = [
   '#bf1600', // 11 corpo
   '#43502a', // 12 escombro
   '#4a6a3a', // 13 água '=' (waves próprias em colorFor)
-  '#101408', '#030500', // 15 vazio
+  '#8a9a7a', '#030500', // 14 = fantasma (lodo pálido) · 15 vazio
 ];
 const PAL_BY_THEME = [PAL_CASTLE, PAL_DUNGEON, PAL_SEWER];
 let PAL = PAL_CASTLE;
 const WATER_ATTR = 13;
+const GHOST_ATTR = 14; // 'o': as mentiras do RT (alucinações do medo)
 const PULSE_ATTRS = new Set([4, 5, 7]);
 const BLINK_ATTR = 9;
 const DIM_FLAG = 0x80;
@@ -69,7 +71,9 @@ const { instance } = await WebAssembly.instantiate(await res.arrayBuffer(), {});
 const w = instance.exports;
 w.pfb_init();
 
-const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 24);
+// STATS: 32 bytes — [18] medo (0..100), [19] nível (0..4). O WASM publica o
+// bloco; os [0..17] seguem idênticos ao contrato antigo (mudança aditiva).
+const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 32);
 const N_MAX = w.pfb_max_n();
 const grid = new Uint8Array(w.memory.buffer, w.pfb_grid_ptr(), N_MAX * 2);
 const uirow = new Uint8Array(w.memory.buffer, w.pfb_ui_ptr(), VW * 2);
@@ -392,6 +396,27 @@ function playEvent(ev, pan) {
       noiseBurst({ dur: 0.09, vol: 0.055, f: 480, q: 1.3 });
       noiseBurst({ dur: 0.08, vol: 0.04, f: 640, q: 1.5, delay: 0.13 });
       break;
+    case 18: { // EV_WHISPER: bafarra da mente — sussurro sem fonte, pan sorteado
+      const ph = (Math.random() - 0.5) * 1.4;
+      noiseBurst({ dur: 0.45, vol: 0.055, f: 760 + Math.random() * 240, q: 7, pan: ph });
+      blip({ type: 'triangle', f0: 590 + Math.random() * 130, f1: 170, dur: 0.35, vol: 0.035, pan: ph });
+      break;
+    }
+    case 19: { // EV_WHELP: soluço involuntário — o corpo trai o medo
+      noiseBurst({ dur: 0.12, vol: 0.05, f: 420, q: 2.2 });
+      blip({ type: 'sine', f0: 165, f1: 105, dur: 0.12, vol: 0.05 });
+      break;
+    }
+    case 20: // EV_VANISH: alucinação evaporou de perto — "exalação" invertida
+      blip({ type: 'sine', f0: 180, f1: 540, dur: 0.26, vol: 0.075 });
+      noiseBurst({ dur: 0.2, vol: 0.03, f: 1600, q: 3, delay: 0.04 });
+      break;
+    case 21: { // EV_VANISH_C: a coroa mentiu — sino de sobreposição dissonante
+      blip({ type: 'sine', f0: 1174, dur: 0.34, vol: 0.1 });
+      blip({ type: 'sine', f0: 1108, dur: 0.45, vol: 0.1, delay: 0.02 }); // batimento áspero
+      blip({ type: 'sine', f0: 87, f1: 62, dur: 0.4, vol: 0.12, delay: 0.05 });
+      break;
+    }
   }
 }
 
@@ -415,10 +440,14 @@ function heartbeat(nowMs) {
   if (crown) period = 320 + dist * 45;
   else period = 700 + dist * 130; // patrulha longe = lento
   period = Math.max(260, Math.min(1500, period));
+  // o MEDO também acelera o peito — e não pergunta se ela está perto:
+  // o pavor late sozinha (nível 3+: o coração dispara no vazio)
+  const fl = stats[19] || 0;
+  if (fl > 0) period = Math.max(175, period - fl * 65);
   if (nowMs - heartT0 < period) return;
   heartT0 = nowMs;
   const closeness = Math.max(0, Math.min(1, 1 - dist / 14));
-  const vol = 0.05 + closeness * 0.22;
+  const vol = (0.05 + closeness * 0.22) + fl * 0.02;
   const pan = Math.max(-1, Math.min(1, dx / 8));
   const pitch = 55 + closeness * 25; // quanto mais perto, mais grave e alto
   blip({ type: 'sine', f0: pitch * 2, f1: pitch, dur: 0.1, vol, pan });
@@ -437,11 +466,11 @@ const KEYMAP = {
   ArrowLeft: IN_LEFT, KeyA: IN_LEFT,
   ArrowRight: IN_RIGHT, KeyD: IN_RIGHT,
 };
-// correr = X ou K (K para jogadores de WASD): Ctrl+W fecharia o navegador.
+// correr = X ou K, SEMPRE — como WASD e setas coexistem: as duas respondem
+// em qualquer modo (Ctrl+W fecharia o navegador, por isso não existe W de corrida).
 // Shift é passada silenciosa; correr é "você e o eco contra a pedra".
-// O modo escolhido na tela de CONTROLES (stats[15]) decide qual delas responde:
-// 0 = WASD → K ; 1 = SETAS → X.
-const RUNKEYS = () => (stats[15] === 1 ? ['KeyX'] : ['KeyK']);
+const RUN_CODES = ['KeyX', 'KeyK'];
+const runHeld = new Set(); // por tecla: soltar uma não derruba a corrida da outra
 
 // bits de input das telas de menu (mesmos números do WASM):
 // 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 CONFIRMAR, 64 VOLTAR
@@ -456,6 +485,7 @@ const MENU_CODES = {
 
 function startGame() {
   held.clear();
+  runHeld.clear();
   w.pfb_new_game((Date.now() & 0x7fffffff) | 1); // deterministic xorshift32 seed
   heartT0 = 0;
 }
@@ -488,15 +518,14 @@ window.addEventListener('keydown', (e) => {
   if (bit !== undefined) { held.add(bit); lastDir = bit; e.preventDefault(); return; }
   if (e.code === 'Space') { held.add(IN_WAIT); e.preventDefault(); return; }
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { held.add(IN_SNEAK); return; }
-  if (RUNKEYS().includes(e.code)) { held.add(IN_RUN); return; }
+  if (RUN_CODES.includes(e.code)) { runHeld.add(e.code); e.preventDefault(); return; }
 });
 window.addEventListener('keyup', (e) => {
   const bit = KEYMAP[e.code];
   if (bit !== undefined) { held.delete(bit); return; }
   if (e.code === 'Space') held.delete(IN_WAIT);
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') held.delete(IN_SNEAK);
-  if (RUNKEYS().includes(e.code)) held.delete(IN_RUN);
-  if (e.code === 'KeyX' || e.code === 'KeyK') held.delete(IN_RUN); // trocou de modo
+  if (RUN_CODES.includes(e.code)) runHeld.delete(e.code);
 });
 
 function inputBits() {
@@ -507,7 +536,7 @@ function inputBits() {
   else if (held.has(IN_RIGHT)) b = IN_RIGHT;
   else if (held.has(IN_WAIT)) b = IN_WAIT;
   if (held.has(IN_SNEAK)) b |= IN_SNEAK;
-  if (held.has(IN_RUN)) b |= IN_RUN;
+  if (runHeld.size > 0) b |= IN_RUN; // X e/ou K: um solto, o outro segue correndo
   return b;
 }
 
@@ -518,7 +547,12 @@ function colorFor(ch, attr, nowMs) {
   const dim = (attr & DIM_FLAG) !== 0;
   const a = attr & 0x7f;
   let col = PAL[a] || PAL[0];
-  if (a === WATER_ATTR) {
+  if (a === GHOST_ATTR) {
+    // presença do lado de fora do tempo: o brilho quase DESLIGA — nunca
+    // fica sólido. Duas senoidas fora de fase: batimento irregular.
+    const p = 0.62 + 0.25 * Math.sin(nowMs * 0.0021) + 0.13 * Math.sin(nowMs * 0.011);
+    col = shade(col, Math.max(0.35, Math.min(1.0, p)));
+  } else if (a === WATER_ATTR) {
     // ondulação lenta de lodo: cada célula corrói o brilho no tempo
     const p = 0.78 + 0.22 * Math.sin(nowMs * 0.0028);
     col = shade(col, p);
@@ -679,8 +713,10 @@ function render(nowMs) {
     }
     const pCh = prevGrid[si * 2];
     const pAttr = prevGrid[si * 2 + 1];
-    const anim = (PULSE_ATTRS.has(attr & 0x7f)) || (attr & 0x7f) === BLINK_ATTR || (attr & 0x7f) === WATER_ATTR;
-    const prevAnim = (PULSE_ATTRS.has(pAttr & 0x7f)) || (pAttr & 0x7f) === BLINK_ATTR || (pAttr & 0x7f) === WATER_ATTR;
+    const anim = (PULSE_ATTRS.has(attr & 0x7f)) || (attr & 0x7f) === BLINK_ATTR
+      || (attr & 0x7f) === WATER_ATTR || (attr & 0x7f) === GHOST_ATTR;
+    const prevAnim = (PULSE_ATTRS.has(pAttr & 0x7f)) || (pAttr & 0x7f) === BLINK_ATTR
+      || (pAttr & 0x7f) === WATER_ATTR || (pAttr & 0x7f) === GHOST_ATTR;
     if (ch === pCh && attr === pAttr && !anim && !prevAnim) continue;
     const x = (si % VW) * CELL_W;
     const y = ((si / VW) | 0) * CELL_H;
@@ -742,18 +778,22 @@ function render(nowMs) {
   prevGlitchOn = gOn;
 }
 
-// HUD: medidor de som (o "quanto te ouviam agora") + fôlego
+// HUD: medidor de som (o "quanto te ouviam agora") + fôlego + MEDO (terceira
+// linha: sobe a cada vislumbre, DESCE devagar demais — e piso 4 não existe:
+// em 100 você morre antes de ver a barra cheia)
 function drawHUD() {
   if (stats[0] !== 1) return;
   const now = performance.now();
   const lvl = stats[10];
+  const fear = stats[18] || 0;
+  const fl = stats[19] || 0;
 
-  // ---- placa dupla: ruído + fôlego, sobre placa escura com moldura ----
+  // ---- placa tripla: ruído + fôlego + medo, sobre placa escura com moldura ----
   ctx.fillStyle = 'rgba(5,2,0,0.80)';
-  ctx.fillRect(2, 1, 46, 32);
+  ctx.fillRect(2, 1, 46, 47);
   ctx.strokeStyle = 'rgba(138,95,0,0.6)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(2.5, 1.5, 45, 31);
+  ctx.strokeRect(2.5, 1.5, 45, 46);
 
   // ---- medidor de ruído: 3 casas grossas, acende com o nível ----
   const bw = 10, bh = 14, gap = 3, bx = 7, by = 5;
@@ -783,6 +823,53 @@ function drawHUD() {
   ctx.fillRect(fx, fy, fw, 4);
   ctx.fillStyle = stats[11] < 25 ? '#ff5000' : '#8a5f00';
   ctx.fillRect(fx, fy, Math.max(2, Math.round(fw * stats[11] / 100)), 4);
+
+  // ---- medo: régua trêmula — quanto maior o nível, mais a barra VIBRA ----
+  const mfy = fy + 11;
+  ctx.fillStyle = 'rgba(107,68,0,0.35)';
+  ctx.fillRect(fx, mfy, fw, 5);
+  if (fear > 0) {
+    const FEAR_COL = ['#8a5f00', '#c98a00', '#ff7a00', '#ff2000', '#ff2000'][fl];
+    let mcol = FEAR_COL;
+    if (fl >= 3) {
+      // pânico/colapso: a barra tremula fora de tempo — e desloca ±1px
+      mcol = shade(FEAR_COL, 0.6 + 0.4 * Math.sin(now * (fl === 3 ? 0.017 : 0.035)));
+    }
+    const jx = fl >= 2 ? Math.round((Math.random() - 0.5) * (fl >= 3 ? 3 : 1.2)) : 0;
+    const jy = fl >= 3 ? Math.round((Math.random() - 0.5) * 1.4) : 0;
+    ctx.fillStyle = mcol;
+    ctx.fillRect(fx + jx, mfy + jy, Math.max(2, Math.round(fw * fear / 100)), 5);
+  }
+}
+
+// ============================================================
+// os efeitos do medo na PELE (fora do grid: CSS puro)
+// ============================================================
+// Não é informação do jogo (o RT nunca mente — alucinação nenhuma vaza lógica):
+// é o SEU corpo à beira de quebrar. O mundo treme (duas senoides desafinadas,
+// nada de tremor uniforme) e a vinheta vermelha fecha nos pulsos do coração.
+const wrapEl = document.getElementById('wrap');
+const fearv = document.getElementById('fearv');
+const wrapBaseTransform = ''; // sempre limpa: nenhum outro transform usa o wrap
+function fearScreen(nowMs) {
+  let lvl = 0;
+  if (stats[0] === 1) lvl = stats[19] || 0;
+  if (lvl < 2) { restoreWrapped(); return; }
+  const t = nowMs / 1000;
+  // duas frequências irreducíveis: o mundo "respira errado" sob o medo
+  const tx = Math.sin(t * 41.0) + Math.sin(t * 23.7) * 0.6;
+  const ty = Math.cos(t * 33.3) + Math.sin(t * 19.1) * 0.5;
+  const amp = lvl >= 3 ? 2.6 : 1.4;
+  wrapEl.style.transform = `translate(${(tx * amp).toFixed(1)}px, ${(ty * amp * 0.7).toFixed(1)}px)`;
+  // vinheta pulsando como o coração (batida mais rápida no pânico)
+  const beat = Math.sin(t * (lvl >= 3 ? 5.2 : 3.4));
+  const base = lvl >= 3 ? 0.30 : 0.12;
+  const wave = lvl >= 3 ? 0.10 : 0.06;
+  fearv.style.opacity = (base + wave * beat).toFixed(3);
+}
+function restoreWrapped() {
+  if (wrapEl.style.transform) wrapEl.style.transform = wrapBaseTransform;
+  if (fearv.style.opacity !== '0') fearv.style.opacity = '0';
 }
 
 // ============================================================
@@ -820,6 +907,7 @@ function frame(nowMs) {
   lastState = stats[0];
 
   safe(() => render(nowMs), 'render');
+  safe(() => fearScreen(nowMs), 'tremor do medo');
   safe(drawHUD, 'HUD');
   requestAnimationFrame(frame); // SEMPRE re-agenda: 1 erro não congela os controles
 }
@@ -847,7 +935,9 @@ function drainEvents() {
   const pan = Math.max(-1, Math.min(1, dx / 8));
   while ((e = w.pfb_pop_event()) !== 0) {
     if (e === 5 || (e >= 14 && e <= 16)) glitchUntil = performance.now() + 280; // vislumbre: o sinal "solta"
-    playEvent(e, (e === 12 || e === 13) ? pan : (e >= 10 && dist > 2 ? pan * 0.6 : 0));
+    // eventos 18+ acontecem DENTRO da sua cabeça: sem pan da posição real
+    const mental = e >= 18;
+    playEvent(e, mental ? 0 : ((e === 12 || e === 13) ? pan : (e >= 10 && dist > 2 ? pan * 0.6 : 0)));
   }
 }
 

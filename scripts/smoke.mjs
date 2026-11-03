@@ -18,7 +18,7 @@ function ensureViews() {
 }
 
 w.pfb_init();
-const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 24);
+const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 32);
 let grid = null;
 let wmap = null;
 ensureViews();
@@ -166,6 +166,140 @@ const trail = scenario('o corpo dela deixa rastro de escamas', () => {
   const fx = body[1], fy = body[2];
   const lx = body[1 + (len - 1) * 2], ly = body[2 + (len - 1) * 2];
   return fx !== lx || fy !== ly;
+});
+
+// ---------- 2e. medo: exposição sobe, AUSÊNCIA desce (devagar) ----------
+const fear = scenario('medo: sobe com exposição, desce LONGE dela (histerese)', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  // tile com LOS dela a 6..8: exposição média (ganho 3/tick)
+  const near = findCell((p) => {
+    const d = (p >> 2) & 63;
+    return (p & 1) && (p & 2) && d >= 6 && d <= 8;
+  });
+  if (!near) return false;
+  place(near.x, near.y);
+  let f0 = stats[18];
+  for (let k = 0; k < 3; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  const f1 = stats[18];
+  if (f1 <= f0) return false; // subiu (com LOS médio)
+  // foge para longe (d >= 14, sem relevância de LOS): começa a queda lenta
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
+  if (!far) return false;
+  place(far.x, far.y);
+  for (let k = 0; k < 60; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  const f2 = stats[18];
+  return f2 < f1; // caiu — e o ritmo LENTO é o ponto: não zera num tick só
+});
+
+// ---------- 2f. alucinações nascem conforme o nível ----------
+const haunt = scenario('alucinações: pânico gera fantasmas/falso B em tela', () => {
+  w.pfb_new_game(1234567);
+  const fptr = w.pfb_debug_fear_ptr();
+  const fdv = new DataView(w.memory.buffer, fptr, 20);
+  const nGhosts = () => fdv.getUint32(8, true);  // AI_DBG_FEAR[2]
+  const fakeBOn = () => fdv.getUint32(12, true); // AI_DBG_FEAR[3]
+  let sawGhost = false, sawFake = false;
+  for (let k = 0; k < 400 && !(sawGhost && sawFake); k++) {
+    // re-injeta: mantém o nível 3 (o trauma sozinho segura só até metade do pico)
+    if (k % 25 === 0) w.pfb_debug_fear(80);
+    w.pfb_step(0); pump();
+    if (stats[0] !== 1) return false;
+    w.pfb_debug_fear_ptr(); // atualiza o espelho do fantasma antes de ler
+    if (nGhosts() > 0) sawGhost = true;
+    if (fakeBOn() > 0) sawFake = true;
+  }
+  return sawGhost && sawFake;
+});
+
+// ---------- 2g. O TOPO NÃO MATA: medo em 100 é teatro, não morte ----------
+const collapse = scenario('o medo NUNCA mata: 100 sustenta o caos, sem morte (e decai)', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14)); // sem ela por perto
+  if (!far) return false;
+  place(far.x, far.y);
+  w.pfb_debug_fear(100); // o COLAPSO, forçado
+  for (let k = 0; k < 240; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  // 240 ticks parado longe: do teto (98+) sangrou só até a cicatriz (~33),
+  // vivo todo instante — o drama mora no travessia, não na lápide
+  return stats[18] <= 100 && stats[18] >= 30 && stats[18] < 100;
+});
+
+// ---------- 2g-bis. freio do limiar: a subida final cansa ----------
+// Sem o freio, 80 + (+3/tick) chega a 100 (colapso) em 7 ticks: o jogador
+// morre atravessando os efeitos em vez de vendo-os. O freio (72+: metade,
+// 86+: um quarto) estica a subida para uns 16+ ticks — tempo de o mundo
+// inteiro quebrar na tela antes de apagar.
+const brake = scenario('freio do limiar: perto do 100, a subida cansa', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const near = findCell((p) => {
+    const d = (p >> 2) & 63;
+    return (p & 1) && (p & 2) && d >= 6 && d <= 8; // LOS médio: +3/tick
+  });
+  if (!near) return false;
+  place(near.x, near.y);
+  w.pfb_debug_fear(80);
+  for (let k = 0; k < 10; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  return stats[18] < 95; // 10 ticks de exposição e ainda está vivo abaixo do 95
+});
+
+// ---------- 2h. trauma: um TERÇO do pico NUNCA decai ----------
+// O design diz "o susto fica preso no corpo": depois de um pico 60, o medo
+// desce até 20 e PARA — a cicatriz acompanha você até o fim da run (assombrado,
+// não condenado: escapar de uma caçada não é sentença de morte).
+const trauma = scenario('medo: o pico deixa cicatriz (nunca cai de um terço)', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
+  if (!far) return false;
+  place(far.x, far.y);
+  w.pfb_debug_fear(60); // um quase-morte: pico 60
+  for (let k = 0; k < 200; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  return stats[18] >= 20; // 200 ticks calmo depois: ainda em 20 — ficou preso
+});
+
+// ---------- 2h-bis. o topo só avança pelo que você VÊ ----------
+// Susto miúdo (creep: d<=3 sem LOS +2/tick) não empurra o topo: no 90+, nenhum
+// sinal sim preço sobe o medo — só a VISÃO dela move a descida final. Parado
+// longe, o medo até cai.
+const sightOnly = scenario('freio do limiar: susto miudo nao empurra o topo', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14)); // sem creep, sem visão
+  if (!far) return false;
+  place(far.x, far.y);
+  w.pfb_debug_fear(90);
+  for (let k = 0; k < 50; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  return stats[18] <= 90; // 50 ticks sem vê-la: não subiu um ponto — e decaindo
+});
+
+// ---------- 2i. pavor ambiente: o lugar sobe o medo sozinho ----------
+// Sem vê-la UMA vez, parado longe: o medo rasteja até o teto da profundidade.
+const ambient = scenario('pavor ambiente: longe dela, o medo rasteja sozinho', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
+  if (!far) return false;
+  place(far.x, far.y);
+  const f0 = stats[18];
+  for (let k = 0; k < 340; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  return stats[18] >= 6 && stats[18] > f0; // teto ambiente do térreo, sem exposição
+});
+
+// ---------- 2i-bis. tensão no CALMO: sussurro sem evidência nenhuma ----------
+// No nível 0 nada visual acontece — mas o sussurro raro chega: a paranoia
+// começa ANTES do medo ter corpo. (Determinístico: o tick cruza 1/240.)
+const calmWhisper = scenario('calmo: sussurro raro, medo nenhum (paranoia nasce antes)', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
+  if (!far) return false;
+  place(far.x, far.y);
+  const w0 = evSeen[18] || 0;
+  for (let k = 0; k < 300; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  return (evSeen[18] || 0) > w0 && stats[18] < 30; // nível calmo, mas o ouvido já mente
 });
 
 // ---------- 3. playthrough com bot v2 ----------
@@ -332,6 +466,105 @@ while (attempts < 40 && !playthroughOK) {
 if (!playthroughOK) console.log(`FAIL - playthrough: ${attempts} tentativas, mortes:`, deathReasons);
 dump('FLOOR no fim do playthrough (depth=' + stats[2] + ', state=' + stats[0] + ')');
 
+// ---------- 3a-bis. regressão: a tela de morte nos esgotos ----------
+// Bug real: a tela de morte compunha no stride do andar ATUAL (80 colunas no
+// esgoto), mas o JS fora de jogo lê o grid como viewport 56x32 — rasgava em
+// diagonal. Descer até os Canais e morrer lá tem que reportar dims 56x32.
+let deadUi = false;
+{
+  for (let attempt = 1; attempt <= 40 && !deadUi; attempt++) {
+    w.pfb_new_game(7000 + attempt * 7919);
+    let steps = 0, onSewer = false;
+    while (steps < 9000 && stats[0] === 1) {
+      ensureViews();
+      steps++;
+      dangerMemo = new Array(Wd * Hd).fill(); // memo de perigo expira por andar
+      let target;
+      if (stats[2] < 4) {
+        target = findTile(0x3E); // desce até o esgoto (floor 4)
+      } else {
+        onSewer = true;
+        target = stats[5] + stats[6] * Wd; // e vai DE ENCONTRO a ela: morrer lá
+      }
+      if (target < 0) break;
+      const pos = stats[3] + stats[4] * Wd;
+      let mvBit = 0;
+      if (target !== pos) {
+        const route = onSewer
+          ? bfsRoute(target, false)
+          : (bfsRoute(target, true) || bfsRoute(target, false));
+        if (!route || !route.length) break;
+        mvBit = dirTo(pos, route[0]);
+      }
+      w.pfb_step(mvBit); pump();
+      if (stats[0] !== 1) break;
+      if (onSewer && stats[2] !== 4) onSewer = false; // subiu de volta
+    }
+    if (onSewer && stats[0] === 2) {
+      const ok = stats[16] === 56 && stats[17] === 32;
+      console.log(`  morte no esgoto (tentativa ${attempt}, motivo ${stats[1]}): dims ${stats[16]}x${stats[17]} -> ${ok ? 'OK' : 'QUEBRADO'}`);
+      deadUi = ok;
+    }
+  }
+}
+console.log(deadUi
+  ? 'PASS - morte nos Canais: tela de morte compõe 56x32'
+  : 'FAIL - morte nos Canais: tela de morte');
+
+// ---------- 3c. coroa-fantasma: nasce longe, evapora ao chegar perto ----------
+// A mentira mais cruel (ideia da sessão de design): uma § a 8-14 tiles que
+// some a d<=2. Na bancada ela nunca nascia (0/40 jogos) — o teste trava o
+// regresso: nível 2 sustentado tem que produzi-la, e chegar perto a desmascara.
+let crownOK = false;
+{
+  w.pfb_new_game(1234567);
+  const fdv = new DataView(w.memory.buffer, w.pfb_debug_fear_ptr(), 20);
+  const crownOn = () => { w.pfb_debug_fear_ptr(); return fdv.getUint32(16, true) > 0; };
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
+  if (far) place(far.x, far.y);
+  // exploração prévia: o jogador REAL já viu o andar antes de enlouquecer.
+  // A coroa-fantasma só nasce em tile LEMBRADO (SEEN) — sem isso o cenário
+  // nunca a produz (mapa virgem). Teleportes apenas computam FOV, não tickam.
+  for (let y = 2; y < Hd - 2; y += 5) {
+    for (let x = 2; x < Wd - 2; x += 7) {
+      if (w.pfb_debug_probe(x, y) & 1) place(x, y);
+    }
+  }
+  if (far) place(far.x, far.y); // volta ao ponto de espera
+  const vanishC0 = evSeen[21] || 0;
+  // nível 2 sustentado (re-injeta; o trauma sozinho segura só até metade)
+  let born = false;
+  for (let k = 0; k < 900 && !born; k++) {
+    if (k % 25 === 0) w.pfb_debug_fear(60);
+    w.pfb_step(0); pump();
+    if (stats[0] !== 1) break;
+    born = crownOn();
+  }
+  if (born) {
+    // acha a § no GRID (andar 1 não tem coroa REAL: só pode ser a mentira)
+    ensureViews();
+    let pc = -1;
+    for (let i = 0; i < Wd * Hd; i++) if (grid[i * 2] === 0xA7) { pc = i; break; }
+    if (pc >= 0) {
+      // caminha até ela: a d<=2 a coroa-fantasma desmascara (EV_VANISH_C)
+      const pos = () => stats[3] + stats[4] * Wd;
+      for (let s = 0; s < 240 && stats[0] === 1 && (evSeen[21] || 0) === vanishC0; s++) {
+        if (pc === pos()) break;
+        dangerMemo = new Array(Wd * Hd);
+        const route = bfsRoute(pc, true) || bfsRoute(pc, false);
+        if (!route || !route.length) break;
+        w.pfb_step(dirTo(pos(), route[0])); pump();
+      }
+      for (let s = 0; s < 6 && crownOn(); s++) { w.pfb_step(0); pump(); } // fade termina
+      crownOK = (evSeen[21] || 0) > vanishC0 && !crownOn();
+    }
+  }
+  console.log(crownOK
+    ? 'PASS - coroa-fantasma: nasce longe, evapora ao chegar perto'
+    : 'FAIL - coroa-fantasma');
+}
+
 // ---------- 3b. vislumbre determinístico do corpo ----------
 // O corpo é efêmero em tela; se os cenários/playthrough não o revelaram,
 // procura uma célula com LOS a 3..6 da cabeça e coloca o jogador lá.
@@ -369,6 +602,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, bodyProof, traps === 0, menuOk].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);
