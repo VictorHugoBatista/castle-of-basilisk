@@ -247,7 +247,7 @@ terreo.
 
 | # | tema | mapa | geracao | a besta |
 |---|------|------|---------|---------|
-| 1 | TH_CASTLE (Portao) | 56x32 | saloes amplos + pilares | quase adormecida: patrol 6/invest 4/hunt 3, ouvido 60, sibilo 1/90, rastro 7/2 |
+| 1 | TH_CASTLE (Ruinas do castelo) | 56x32 | saloes amplos + pilares | quase adormecida: patrol 6/invest 4/hunt 3, ouvido 60, sibilo 1/90, rastro 7/2 |
 | 2-3 | TH_DUNGEON (Masmorras) | 56x32 | celas apertadas, mais portas/sombra/escombro | a cacadora de sempre: 4/3/2, ouvido 42, sibilo 1/47, rastro 14/5 |
 | 4-5 | TH_SEWER (Cloaca Maxima) | 80x44 | bacias/cisternas em rede maior, loops de fuga, canais de agua | CASA dela: 3/2/2, ouvido 30, sibilo 1/23, rastro 21/8, GAZE_R+1 |
 
@@ -263,7 +263,7 @@ terreo.
   fora do habitat (terreo) ela e quase decorativa, na casa dela (esgoto)
   mortifera.
 - **Nomes de andar** (`floor_name` + `ARRIV`): ao chegar num piso novo, o
-  nome ("PORTAO DO CASTELO", "CLOACA MAXIMA I"...) fala na barra de UI por
+  nome ("RUINAS DO CASTELO", "CLOACA MAXIMA I"...) fala na barra de UI por
   18 ticks; depois a dica contextual toma o lugar.
 
 Contrato de balanceamento: `node scripts/smoke.mjs` e o gate real — o bot

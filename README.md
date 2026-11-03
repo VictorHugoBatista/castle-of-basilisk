@@ -87,7 +87,7 @@ scripts/debug6.mjs         bancada do bot playthrough
 
 | # | lugar | mapa | temperamento dela |
 |---|---|---|---|
-| 1 | Portão do castelo (térreo) | 56×32 | quase adormecida (fora do habitat) |
+| 1 | Ruínas do castelo (térreo) | 56×32 | quase adormecida (fora do habitat) |
 | 2 | Masmorra I | 56×32 | a caça paciente de sempre |
 | 3 | Masmorra II | 56×32 | caça paciente + rastro forte |
 | 4 | Cloaca Maxima I | 80×44 | casa dela: veloz, olho a 5, ouvido fino |

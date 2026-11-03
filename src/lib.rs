@@ -23,7 +23,7 @@ fn theme(depth: u8) -> u8 {
 // o nome do piso, escrito na barra de UI ao chegar: o lugar fala
 fn floor_name(depth: u8) -> &'static str {
     match depth {
-        1 => "PORTAO DO CASTELO",
+        1 => "RUINAS DO CASTELO",
         2 => "MASMORRA I",
         3 => "MASMORRA II",
         4 => "CLOACA MAXIMA I",

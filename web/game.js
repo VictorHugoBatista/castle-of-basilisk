@@ -64,7 +64,7 @@ const ctx = canvas.getContext('2d');
 ctx.font = 'bold 15px monospace';
 ctx.textBaseline = 'middle';
 
-const res = await fetch('./wasm/castle_of_basilisk.wasm');
+const res = await fetch('./wasm/castle_of_basilisk.wasm', { cache: 'reload' }); // nunca serve wasm velho após rebuild
 const { instance } = await WebAssembly.instantiate(await res.arrayBuffer(), {});
 const w = instance.exports;
 w.pfb_init();
