@@ -168,7 +168,8 @@ ficando visível em tela em algum momento**, **o MEDO subindo com exposição e
 caindo LONGE dela, alucinações nascendo no pânico (fantasma + falso `B`) e a
 LOUCURA matando sozinha (motivo 3)**, **um playthrough completo por bot BFS**
 (desce os 5 andares na ordem, pega a coroa na Cloaca, escapa pelo portão —
-rotas que evitam a zona de gaze, esquiva geométrica, caminha na água do esgoto)
+rotas que evitam a zona de gaze, esquiva geométrica, caminha na água do esgoto),
+**a MORTE NA CLOACA — tela de morte compõe 56x32, não o stride 80 do esgoto**
 e fuzz de 6000 ticks sem estados impossíveis.
 
 ## status do conceito

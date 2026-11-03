@@ -258,6 +258,11 @@ terreo.
 
 - **Mapa maior no esgoto** (`floor_dims`): 80x44 vs 56x32; todos os buffers
   em `N_MAX`, dims reais publicadas em `STATS[16]/[17]`, camera no JS.
+  **REGRA DE UI**: as telas FORA de jogo (titulo/controles/morte/vitoria)
+  sao compostas SEMPRE no viewport padrao 56x32 — `render()` volta `DIMW/DIMH`
+  para `W0/H0` quando `STATE != ST_PLAY` (o JS fora de jogo le o grid como
+  56 colunas; morrer no esgoto com stride 80 rasgava a tela em diagonal).
+  `gen_once` restaura as dims do andar quando ele regenera.
 - **Agua** (`seed_water`, so esgoto; tile `'='` / attr 13): rachaduras de
   rio por passeio aleatorio que convertem APENAS piso de CORREDOR (fora de
   sala) — o grafo de BFS/portas nao muda, muda o chao: caminhar na agua

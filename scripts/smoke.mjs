@@ -391,6 +391,51 @@ while (attempts < 40 && !playthroughOK) {
 if (!playthroughOK) console.log(`FAIL - playthrough: ${attempts} tentativas, mortes:`, deathReasons);
 dump('FLOOR no fim do playthrough (depth=' + stats[2] + ', state=' + stats[0] + ')');
 
+// ---------- 3a-bis. regressão: a tela de morte nos esgotos ----------
+// Bug real: a tela de morte compunha no stride do andar ATUAL (80 colunas no
+// esgoto), mas o JS fora de jogo lê o grid como viewport 56x32 — rasgava em
+// diagonal. Descer até os Canais e morrer lá tem que reportar dims 56x32.
+let deadUi = false;
+{
+  for (let attempt = 1; attempt <= 40 && !deadUi; attempt++) {
+    w.pfb_new_game(7000 + attempt * 7919);
+    let steps = 0, onSewer = false;
+    while (steps < 9000 && stats[0] === 1) {
+      ensureViews();
+      steps++;
+      dangerMemo = new Array(Wd * Hd).fill(); // memo de perigo expira por andar
+      let target;
+      if (stats[2] < 4) {
+        target = findTile(0x3E); // desce até o esgoto (floor 4)
+      } else {
+        onSewer = true;
+        target = stats[5] + stats[6] * Wd; // e vai DE ENCONTRO a ela: morrer lá
+      }
+      if (target < 0) break;
+      const pos = stats[3] + stats[4] * Wd;
+      let mvBit = 0;
+      if (target !== pos) {
+        const route = onSewer
+          ? bfsRoute(target, false)
+          : (bfsRoute(target, true) || bfsRoute(target, false));
+        if (!route || !route.length) break;
+        mvBit = dirTo(pos, route[0]);
+      }
+      w.pfb_step(mvBit); pump();
+      if (stats[0] !== 1) break;
+      if (onSewer && stats[2] !== 4) onSewer = false; // subiu de volta
+    }
+    if (onSewer && stats[0] === 2) {
+      const ok = stats[16] === 56 && stats[17] === 32;
+      console.log(`  morte no esgoto (tentativa ${attempt}, motivo ${stats[1]}): dims ${stats[16]}x${stats[17]} -> ${ok ? 'OK' : 'QUEBRADO'}`);
+      deadUi = ok;
+    }
+  }
+}
+console.log(deadUi
+  ? 'PASS - morte nos Canais: tela de morte compõe 56x32'
+  : 'FAIL - morte nos Canais: tela de morte');
+
 // ---------- 3b. vislumbre determinístico do corpo ----------
 // O corpo é efêmero em tela; se os cenários/playthrough não o revelaram,
 // procura uma célula com LOS a 3..6 da cabeça e coloca o jogador lá.
@@ -428,6 +473,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, bodyProof, traps === 0, menuOk, fear, haunt, madness].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, madness].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

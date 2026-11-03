@@ -1955,6 +1955,13 @@ fn attr_of(t: u8) -> u8 {
 fn render() {
     unsafe {
         let st = STATE;
+        // Telas de UI (título/controles/morte/vitoria) sao compostas SEMPRE no
+        // viewport padrao 56x32 — senao morrer num andar largo (esgoto 80x44)
+        // rasgava a tela de morte: o JS fora de jogo le o grid como 56 colunas.
+        if st != ST_PLAY && (DIMW != W0 || DIMH != H0) {
+            DIMW = W0;
+            DIMH = H0;
+        }
         // fundo
         for y in 0..H() {
             for x in 0..W() {
