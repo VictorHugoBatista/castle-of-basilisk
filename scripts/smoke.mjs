@@ -433,7 +433,7 @@ const calmWhisper = scenario('calmo: sussurro raro, medo nenhum (paranoia nasce 
 // desvio do tile quando já está parado sobre o alvo.
 const pass = (i) => {
   const t = wmap[i];
-  return t === 0x2E || t === 0x2C || t === 0x3E || t === 0x3C || t === 0x2B || t === 0xA7 || t === 0x3D; // 0x3D = água '=' (esgoto)
+  return t === 0x2E || t === 0x2C || t === 0x3E || t === 0x3C || t === 0x2B || t === 0xA7 || t === 0x3D || t === 0xA5; // 0x3D = água '=' · 0xA5 = caveira '¥' (masmorras)
 };
 // portais (>, <, §) são INTERAÇÕES: só pisável se é o alvo do plano —
 // senão o bot atravessa um '<' sem querer e sobe de andar
@@ -518,6 +518,10 @@ function dodge(target) {
 wmap = new Uint8Array(w.memory.buffer, wmap.byteOffset, wmap.length); // re-sincroniza
 
 let playthroughOK = false, attempts = 0, deathReasons = {};
+// decoração da masmorra: contada a cada andar que o bot visita — grades
+// (barras '|') e caveiras '¥' nas celas, poças rasas '=' no andar fundo
+const dec = { bars: 0, skull: 0, shallow3: 0, sawD3: false };
+let lastDepth = -1;
 while (attempts < 40 && !playthroughOK) {
   attempts++;
   w.pfb_new_game(1000 + attempts * 7919);
@@ -526,6 +530,16 @@ while (attempts < 40 && !playthroughOK) {
   fleeAxisWasX = null;
   while (steps < 9000 && stats[0] === 1) {
     ensureViews(); // dims/views do andar atual (pode ter descido/subido no tick anterior)
+    if (stats[2] !== lastDepth) {
+      lastDepth = stats[2];
+      for (let i = 0; i < Wd * Hd; i++) {
+        const ch = wmap[i];
+        if (ch === 0x7C) dec.bars++;           // grade '|'
+        if (ch === 0xA5) dec.skull++;          // caveira '¥'
+        if (ch === 0x3D && stats[2] === 3) dec.shallow3++; // poça rasa no andar 3
+        if (stats[2] === 3) dec.sawD3 = true;
+      }
+    }
     steps++;
     let target;
     if (stats[8] === 1) target = findTile(0x3C);       // com coroa: sempre '<'
@@ -589,6 +603,16 @@ while (attempts < 40 && !playthroughOK) {
 }
 if (!playthroughOK) console.log(`FAIL - playthrough: ${attempts} tentativas, mortes:`, deathReasons);
 dump('FLOOR no fim do playthrough (depth=' + stats[2] + ', state=' + stats[0] + ')');
+
+// ---------- 3b. masmorra decorada: grades, caveiras e poças ----------
+// A planta toda passa pelas masmorras no playthrough: a decoração da cela
+// (grades '|', caveiras '¥' nas abertas) e as poças rasas do andar fundo
+// têm que existir EM TELA pelo menos uma vez na passagem.
+const dungeonDecor = playthroughOK && dec.bars > 0 && dec.skull > 0 && dec.sawD3 && dec.shallow3 > 0;
+console.log(dungeonDecor
+  ? `PASS - masmorra decorada (grades=${dec.bars}, caveiras=${dec.skull}, poças d3=${dec.shallow3})`
+  : `FAIL - masmorra decorada (grades=${dec.bars}, caveiras=${dec.skull}, poças d3=${dec.shallow3}, sawD3=${dec.sawD3})`);
+
 
 // ---------- 3a-bis. regressão: a tela de morte nos esgotos ----------
 // Bug real: a tela de morte compunha no stride do andar ATUAL (80 colunas no
@@ -726,6 +750,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

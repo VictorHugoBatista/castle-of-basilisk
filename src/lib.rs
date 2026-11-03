@@ -55,6 +55,10 @@ const T_UP: u8 = b'<';
 const T_CROWN: u8 = 0xA7; // '§' latin-1
 const T_RUBBLE: u8 = b'%'; // becos de escombro: transitáveis por você, evitados por ela
 const T_WATER: u8 = b'=';  // esgoto: canais imperiais — caminháveis, mas o lar dela
+const T_BARS: u8 = b'|';   // masmorra: grade de cela — bloqueia passagem, a LUZ atravessa
+const T_SKULL: u8 = 0xA5;  // masmorra: caveira '¥' restada nas celas abertas (transitável)
+const T_SHALLOW: u8 = b'='; // masmorra funda: poça rasa — MESMO glifo da água, mas rasa:
+                            // não é o habitat dela, e os pés dela não ganham maré
 
 // ---- atributos (índice da paleta em JS) ----
 const A_FLOOR: u8 = 0;
@@ -390,7 +394,8 @@ fn opaque(x: i32, y: i32) -> bool {
 fn walkable(x: i32, y: i32) -> bool {
     if x < 0 || y < 0 || x >= W() as i32 || y >= H() as i32 { return false; }
     let t = tile_at(x as usize, y as usize);
-    t != T_WALL && t != T_PILLAR
+    // grades de cela: como parede para os pés, como ar para a vista
+    t != T_WALL && t != T_PILLAR && t != T_BARS
 }
 
 // caminhável PARA ELA: escombros entram na rota só quando há prova fresca
@@ -877,6 +882,119 @@ fn gen_once(depth: u8, seed: u32) {
     // ---- esgoto: canais de água sobre os corredores (o habitat dela) ----
     if th == TH_SEWER {
         seed_water();
+    }
+
+    // ---- masmorra: GRADES nas celas (a luz atravessa, os pés não), celas
+    // abertas com os ossos de quem não saiu, e poças rasas no andar fundo ----
+    if th == TH_DUNGEON {
+        for r in 0..rn {
+            let (x0, y0, x1, y1) = (rget(r, 0), rget(r, 1), rget(r, 2), rget(r, 3));
+            // 1) grades na parede da cela cujo OUTRO LADO é chão (corredor ou
+            // boca de porta): chance de virar barra '|' — sola de olho nos
+            // gargalos de onde ela ronda
+            for y in y0..=y1 {
+                for sx in [x0 - 1, x1 + 1] {
+                    if sx <= 0 || sx >= W() as i32 - 1 { continue; }
+                    let bx = sx + if sx == x0 - 1 { -1 } else { 1 };
+                    let bt = tile_at(bx as usize, y as usize);
+                    if bt != T_FLOOR && bt != T_SHADOW && bt != T_DOOR { continue; }
+                    let i = idx(sx as usize, y as usize);
+                    if unsafe { MAP[i] == T_WALL } && rndn(4) < 2 {
+                        unsafe { MAP[i] = T_BARS; }
+                    }
+                }
+            }
+            for x in x0..=x1 {
+                for sy in [y0 - 1, y1 + 1] {
+                    if sy <= 0 || sy >= H() as i32 - 1 { continue; }
+                    let by = sy + if sy == y0 - 1 { -1 } else { 1 };
+                    let bt = tile_at(x as usize, by as usize);
+                    if bt != T_FLOOR && bt != T_SHADOW && bt != T_DOOR { continue; }
+                    let i = idx(x as usize, sy as usize);
+                    if unsafe { MAP[i] == T_WALL } && rndn(4) < 2 {
+                        unsafe { MAP[i] = T_BARS; }
+                    }
+                }
+            }
+            // 2) o DESTINO da cela: coleta as portas que servem este ambiento
+            // (um passo além do anel) e decide com sorte — trancada (a porta
+            // vira grade e ninguém entra mais), aberta (a porta vira chão e
+            // os ossos de um infeliz restam lá dentro) ou como está
+            let mut doors: [usize; 8] = [usize::MAX; 8];
+            let mut nd = 0usize;
+            for y in (y0 - 1)..=(y1 + 1) {
+                for x in (x0 - 1)..=(x1 + 1) {
+                    if !(x == x0 - 1 || x == x1 + 1 || y == y0 - 1 || y == y1 + 1) { continue; }
+                    if x <= 0 || x >= W() as i32 - 1 || y <= 0 || y >= H() as i32 - 1 { continue; }
+                    if unsafe { MAP[idx(x as usize, y as usize)] != T_FLOOR } { continue; } // anel é chão?
+                    let ox = x + if x == x0 - 1 { -1 } else if x == x1 + 1 { 1 } else { 0 };
+                    let oy = y + if y == y0 - 1 { -1 } else if y == y1 + 1 { 1 } else { 0 };
+                    if tile_at(ox as usize, oy as usize) == T_DOOR && nd < 8 {
+                        doors[nd] = idx(ox as usize, oy as usize);
+                        nd += 1;
+                    }
+                }
+            }
+            if nd > 0 {
+                let i = doors[rndn(nd)];
+                let d = rndn(7);
+                if d < 2 {
+                    // TRANCADA: a grade fecha para sempre — mas a luz passa
+                    unsafe { MAP[i] = T_BARS; }
+                } else if d >= 3 && d < 5 {
+                    // ABERTA: sem porta, sem grade — e uma caveira marca quem
+                    // ficou
+                    unsafe { MAP[i] = T_FLOOR; }
+                    let (ix, ox0) = unsafe { (i % W(), i / W()) };
+                    let (rw, rh) = (rget(r, 2) - rget(r, 0) + 1, rget(r, 3) - rget(r, 1) + 1);
+                    for _ in 0..24 {
+                        let px = rget(r, 0) + rndn(rw as usize) as i32;
+                        let py = rget(r, 1) + rndn(rh as usize) as i32;
+                        let pi = idx(px as usize, py as usize);
+                        if unsafe { MAP[pi] == T_FLOOR } {
+                            unsafe { MAP[pi] = T_SKULL; }
+                            if rndn(3) == 0 {
+                                for _ in 0..12 {
+                                    let qx = rget(r, 0) + rndn(rw as usize) as i32;
+                                    let qy = rget(r, 1) + rndn(rh as usize) as i32;
+                                    let qi = idx(qx as usize, qy as usize);
+                                    if unsafe { MAP[qi] == T_FLOOR } { unsafe { MAP[qi] = T_SKULL; } break; }
+                                }
+                            }
+                            break;
+                        }
+                        let _ = (ix, ox0);
+                    }
+                }
+            }
+        }
+        // 3) masmorra funda (andar 3): perto dos canais, POÇAS RASAS varrem o
+        // chão — glifo igual ao da água imperial, mas rasa: maré nenhuma
+        if depth == 3 {
+            for _ in 0..14 {
+                let mut cx = (1 + rndn(W() - 2)) as i32;
+                let mut cy = (1 + rndn(H() - 2)) as i32;
+                if room_of(cx, cy) < 0 { continue; } // poça nasce dentro de ambiente
+                let i0 = idx(cx as usize, cy as usize);
+                if unsafe { MAP[i0] != T_FLOOR } { continue; } // poça nasce em PISO, não paredes
+                let mut len = 1 + rndn(4) as i32; // 1-4 tiles: rasas, não rios
+                unsafe { MAP[i0] = T_SHALLOW; }
+                len -= 1;
+                while len > 0 {
+                    let i = idx(cx as usize, cy as usize);
+                    if unsafe { MAP[i] == T_FLOOR } {
+                        unsafe { MAP[i] = T_SHALLOW; }
+                        len -= 1;
+                    }
+                    let ndx: i32 = match rndn(4) { 0 => 1, 1 => -1, _ => 0 };
+                    let ndy = if ndx == 0 { if rndn(2) == 0 { 1 } else { -1 } } else { 0 };
+                    cx += ndx;
+                    cy += ndy;
+                    if cx < 1 || cy < 1 || cx >= W() as i32 - 1 || cy >= H() as i32 - 1 { break; }
+                    if room_of(cx, cy) < 0 { break; } // não vaza pro corredor
+                }
+            }
+        }
     }
 
     // ---- entrada '<' na sala 0 ----
@@ -2143,7 +2261,9 @@ fn attr_of(t: u8) -> u8 {
         T_CROWN => A_CROWN,
         T_PILLAR => A_WALL,
         T_RUBBLE => A_RUBBLE,
-        T_WATER => A_WATER,
+        T_WATER | T_SHALLOW => A_WATER,
+        T_BARS => A_WALL,
+        T_SKULL => A_RUBBLE,
         _ => A_FLOOR,
     }
 }

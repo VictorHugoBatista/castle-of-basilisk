@@ -60,6 +60,13 @@ ESC volta ao menu.
   Anda na sombra? 4 tiles. No claro? Ele te vê a 8.
 - **`=` = água do esgoto** (só andares 4-5). Caminhável por você — mas é o meio
   nativo dela: **na água ela apressa o passo**. Sob os pés, o passo respinga.
+- **`|` = grade de cela** (masmorras): bloqueia passagem, MAS a luz passa —
+  de através dela você vê o que vem (e ela vê você; o olhar segue valendo).
+  Nas masmorras, portas de cela viram grade: "celas trancadas" para sempre.
+- **`¥` = caveira**: ossos nas celas abertas — só resto dos que não saíram.
+  Caminhável, decorada.
+- Masmorra funda (andar 3): **poças rasas `=`** — mesmo glifo da água, MAS
+  rasas: raso não é habitat, e a maré não acelera ela lá.
 - Ele **ouve**: passos no claro (raio 5), na sombra (raio 3), portas abertas
   (raio 12 — cuidado ao se esconder atrás delas). Ouvidos por andar: no térreo
   ela demora a acordar; nos esgotos desperta na hora.
@@ -200,11 +207,12 @@ e fuzz de 6000 ticks sem estados impossíveis.
 
 Escopo *proof of concept*: 5 andares temáticos e procedurais — térreo do
 palácio: grandes salões com colunata interna cercados por corredores e
-cômodos pendurados nas paredes deles (portas nos gargalos), masmorras de celas
-apertadas com silêncio, esgoto imperial 80×44 com canais de água `=` — IA em 3
-estados (patrulha/invest/caça) com BFS real e temperamento por tema, FOV por
-raycast, um toque mata / Um olhar mata. Os outros andares mantêm a geração de
-sempre; cada um tem direito ao próprio caráter depois.
+cômodos pendurados nas paredes deles (portas nos gargalos), masmorras de
+celas com grades (a luz atravessa, o corpo não), caveiras nas celas abertas
+e poças rasas no andar fundo, esgoto imperial 80×44 com canais de água `=` —
+IA em 3 estados (patrulha/invest/caça) com BFS real e temperamento por tema,
+FOV por raycast, um toque mata / Um olhar mata. Cada tema tem o próprio
+caráter de geração.
 Para o jogo grande: itens de "ruído falso", basilisco aprendendo padrões de
 fuga, salas com rachaduras de teto, e um final que explique porque uma besta
 gigante protege um rei morto.
