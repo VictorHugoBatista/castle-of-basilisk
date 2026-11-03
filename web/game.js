@@ -223,6 +223,7 @@ function setAmbience(force) {
     };
 
     ambNodes.push(g, drift, body1, wh);
+    g.connect(ambGain); // o vento precisa chegar ao master: sem isso ele toca num nó cego e o térreo fica mudo
     gust();
     g.gain.setTargetAtTime(0.06, now, 3);
   } else if (th === 1) {
