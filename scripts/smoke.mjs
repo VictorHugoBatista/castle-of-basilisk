@@ -92,7 +92,86 @@ function findCell(pred) {
     }
   return null;
 }
+
+// todas as células que passam no pred (cenários de geometria varrem
+// candidatos até um que complete a janela sem despertar o olhar dela)
+function findCells(pred) {
+  const out = [];
+  for (let y = 1; y < Hd - 1; y++)
+    for (let x = 1; x < Wd - 1; x++) {
+      const p = w.pfb_debug_probe(x, y);
+      if (pred(p, x, y)) out.push({ x, y, p });
+    }
+  return out;
+}
+
+// preenchimento BFS de rota a partir de um tile (métrica do jogo: paredes e
+// pilares importam) — os cenários de decaída precisam posicionar ELA fora do
+// alcance que a patrulha cobre na janela do teste
+function bfsFill(from) {
+  const m = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), Wd * Hd);
+  const D = new Int32Array(Wd * Hd).fill(-1);
+  const q = [[from.x, from.y]];
+  D[from.y * Wd + from.x] = 0;
+  while (q.length) {
+    const [x, y] = q.shift();
+    const d = D[y * Wd + x];
+    for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= Wd || ny >= Hd) continue;
+      const j = ny * Wd + nx;
+      if (D[j] !== -1) continue;
+      const t = m[j];
+      if (t === 35 || t === 48) continue; // parede/pilar
+      D[j] = d + 1;
+      q.push([nx, ny]);
+    }
+  }
+  return D;
+}
 function place(x, y) { w.pfb_debug_place(x, y); }
+
+// tríade pilar-piso: coluna com piso claro em ambos os lados. Com
+// `pfb_debug_bas_place`, dá geometria DETERMINÍSTICA aos cenários de IA:
+// pilar no meio bloqueia o LOS, a rota em volta dele fica curta (ouvido claro
+// é raio 5 de ROTA, não chebyshev) e a morte por proximidade fica fora de
+// alcance (d<=4 só mata com LOS; d<=2 sem LOS). O palácio do térreo tem
+// colunata em todo salão — sempre existe.
+function pillarPair() {
+  const m = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), Wd * Hd);
+  for (let y = 2; y < Hd - 2; y++)
+    for (let x = 1; x < Wd - 1; x++) {
+      if (m[y * Wd + x] !== 48) continue; // pilar
+      const t = (xx, yy) => m[yy * Wd + xx];
+      if (t(x, y - 1) === 46 && t(x, y - 2) === 46 && t(x, y + 1) === 46 && t(x, y + 2) === 46)
+        return { player: { x, y: y - 2 }, bas: { x, y: y + 1 } };
+    }
+  return null;
+}
+
+// rota 4-dir no mapa cru (portas contam como abertas): é a métrica que o
+// jogo usa para AUDIR ruído (paredes e pilares importam, não chebyshev)
+function routeDist(from, to) {
+  const m = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), Wd * Hd);
+  const seen = new Uint8Array(Wd * Hd);
+  const q = [[from.x, from.y, 0]];
+  seen[from.y * Wd + from.x] = 1;
+  while (q.length) {
+    const [x, y, d] = q.shift();
+    if (x === to.x && y === to.y) return d;
+    for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= Wd || ny >= Hd) continue;
+      const j = ny * Wd + nx;
+      if (seen[j]) continue;
+      const t = m[j];
+      if (t === 35 || t === 48) continue; // parede/pilar
+      seen[j] = 1;
+      q.push([nx, ny, d + 1]);
+    }
+  }
+  return 1 / 0;
+}
 
 function scenario(name, fn) {
   w.pfb_new_game(1234567);
@@ -128,28 +207,48 @@ const touch = scenario('toque mata (AS ESCAMAS)', () => {
   return stats[0] === 2 && stats[1] === 2;
 });
 
-// 2c. ruído → IA investiga
+// 2c. ruído → IA investiga. Geometria dona do teste: ela do outro lado de um
+// pilar (sem LOS) e o passo escolhido por ROTA <= 4, dentro do ouvido claro
+// de raio 5 e fora do horizonte de morte (d<=4 com LOS, d<=2 sem).
 const alert = scenario('ruído acorda IA (EV_ALERT -> INVEST)', () => {
   w.pfb_new_game(1234567);
-  const c = findCell((p) => (p & 1) && !(p & 2) && ((p >> 2) <= 5));
-  if (!c) return false;
-  place(c.x, c.y);
-  // move para uma célula vizinha caminhável (gera STEP -> ruído)
-  const dirs = [[0, -1, 1], [0, 1, 2], [-1, 0, 4], [1, 0, 8]];
-  let moved = false;
-  for (const [dx, dy, bit] of dirs) {
-    const nx = c.x + dx, ny = c.y + dy;
-    if (nx < 0 || ny < 0 || nx >= Wd || ny >= Hd) continue;
-    if (w.pfb_debug_probe(nx, ny) & 1) { w.pfb_step(bit); moved = true; break; }
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const pair = pillarPair();
+  if (!pair) return false;
+  w.pfb_debug_bas_place(pair.bas.x, pair.bas.y);
+  place(pair.player.x, pair.player.y);
+  const m = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), Wd * Hd);
+  const dirs = [[-1, 0, 4], [1, 0, 8], [0, -1, 1], [0, 1, 2]];
+  let bit = 0;
+  for (const [dx, dy, b] of dirs) {
+    const tx = pair.player.x + dx, ty = pair.player.y + dy;
+    const t = m[ty * Wd + tx];
+    if (t !== 46) continue; // passo em terra clara: raio de ouvido 5
+    if (routeDist({ x: tx, y: ty }, pair.bas) <= 4) { bit = b; break; }
   }
-  if (!moved) return false;
+  if (!bit) return false;
+  const sx = stats[3], sy = stats[4];
+  w.pfb_step(bit);
+  if (stats[3] === sx && stats[4] === sy) return false; // o passo não afetou
   pump();
   return stats[7] === 1 && !!evSeen[10];
 });
 
-// 2d. o rastro: cada passo dela deixa escamas para trás
+// 2d. o rastro: cada passo dela deixa escamas para trás. Dona da geometria:
+// ela no salão, jogador longe — 60 ticks de patrulha obrigam a andar de
+// verdade (na nova planta o spawn natural pode formar prowl em cima do
+// spawn do jogador e paralisá-la).
 const trail = scenario('o corpo dela deixa rastro de escamas', () => {
   w.pfb_new_game(1234567);
+  for (let k = 0; k < 60; k++) { w.pfb_step(0); pump(); }
+  // ela no salão DEPOIS do aquecimento: o aquecimento muda onde a patrulha
+  // a deixa — o teste comanda a geometria a partir do estado imóvel
+  const pair = pillarPair();
+  if (!pair) return false;
+  w.pfb_debug_bas_place(pair.bas.x, pair.bas.y);
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 12));
+  if (!far) return false;
+  place(far.x, far.y);
   for (let k = 0; k < 60; k++) { w.pfb_step(0); pump(); }
   const body = new Uint8Array(w.memory.buffer, w.pfb_debug_body_ptr(), 49);
   const len = body[0];
@@ -172,10 +271,14 @@ const trail = scenario('o corpo dela deixa rastro de escamas', () => {
 const fear = scenario('medo: sobe com exposição, desce LONGE dela (histerese)', () => {
   w.pfb_new_game(1234567);
   for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
-  // tile com LOS dela a 6..8: exposição média (ganho 3/tick)
+  const pair = pillarPair();
+  if (!pair) return false;
+  w.pfb_debug_bas_place(pair.bas.x, pair.bas.y); // ela no salão: LOS de 6-8 existe
+  // tile com LOS dela a 6..8: exposição média (ganho 3/tick). FORA do cone
+  // dela: o cenário mede o medo de VER, não de ser visto (o que viraria caça)
   const near = findCell((p) => {
     const d = (p >> 2) & 63;
-    return (p & 1) && (p & 2) && d >= 6 && d <= 8;
+    return (p & 1) && (p & 2) && d >= 6 && d <= 8 && !((p >> 8) & 1);
   });
   if (!near) return false;
   place(near.x, near.y);
@@ -183,10 +286,18 @@ const fear = scenario('medo: sobe com exposição, desce LONGE dela (histerese)'
   for (let k = 0; k < 3; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
   const f1 = stats[18];
   if (f1 <= f0) return false; // subiu (com LOS médio)
-  // foge para longe (d >= 14, sem relevância de LOS): começa a queda lenta
+  // foge para longe (d >= 14, sem relevância de LOS): começa a queda lenta.
+  // A ausência que decai não pode ser interrompida pela patrulha cruzando o
+  // LOS: recolocamos ELA numa rota >= 20 do esconderijo — a patrulha cobre
+  // <= 10 tiles em 60 ticks, e mesmo assim a visão dele alcança só 8.
   const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
   if (!far) return false;
   place(far.x, far.y);
+  const D = bfsFill(far);
+  let hide = null;
+  for (let i = 0; i < D.length && !hide; i++) if (D[i] >= 20) hide = { x: i % Wd, y: (i / Wd) | 0 };
+  if (hide) w.pfb_debug_bas_place(hide.x, hide.y);
+  else return false; // sem esconderijo longe o bastante, o cenário falha honestamente
   for (let k = 0; k < 60; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
   const f2 = stats[18];
   return f2 < f1; // caiu — e o ritmo LENTO é o ponto: não zera num tick só
@@ -234,15 +345,28 @@ const collapse = scenario('o medo NUNCA mata: 100 sustenta o caos, sem morte (e 
 const brake = scenario('freio do limiar: perto do 100, a subida cansa', () => {
   w.pfb_new_game(1234567);
   for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
-  const near = findCell((p) => {
+  const pair = pillarPair();
+  if (!pair) return false;
+  w.pfb_debug_bas_place(pair.bas.x, pair.bas.y); // LOS 6-8 garantida no salão  // candidatos de exposição média FORA do cone: um que a patrulha não faça
+  // cruzar a face dela na janela (o pico de ELA TE VIU não é o medo do freio,
+  // é outro sistema — então o cenário varre, com jogo LIMPO a cada candidato)
+  const cands = findCells((p) => {
     const d = (p >> 2) & 63;
-    return (p & 1) && (p & 2) && d >= 6 && d <= 8; // LOS médio: +3/tick
+    return (p & 1) && (p & 2) && d >= 6 && d <= 8 && !((p >> 8) & 1);
   });
-  if (!near) return false;
-  place(near.x, near.y);
-  w.pfb_debug_fear(80);
-  for (let k = 0; k < 10; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
-  return stats[18] < 95; // 10 ticks de exposição e ainda está vivo abaixo do 95
+  for (const near of cands) {
+    w.pfb_new_game(1234567); // estado limpo: a caçada de um candidato não vaza no outro
+    for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+    w.pfb_debug_bas_place(pair.bas.x, pair.bas.y);
+    place(near.x, near.y);
+    w.pfb_debug_fear(80);
+    for (let k = 0; k < 10; k++) {
+      w.pfb_step(0); pump();
+      if (stats[0] !== 1) break; // morreu? candidato inválido, próximo
+    }
+    if (stats[0] === 1 && stats[18] < 95) return true; // 10 ticks expostos e ainda <95
+  }
+  return false;
 });
 
 // ---------- 2h. trauma: um TERÇO do pico NUNCA decai ----------

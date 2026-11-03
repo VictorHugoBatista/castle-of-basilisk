@@ -641,32 +641,124 @@ fn gen_once(depth: u8, seed: u32) {
     // · sewer: bacias/cisternas grandes numa rede muito maior
     let (w_span, w_base, h_span, h_base, max_rooms, room_gap, door_pct, shadow_n,
          rub_quota, pil_min_w, pil_min_h, extra_loops, attempt_n) = match th {
-        TH_CASTLE  => (6, 5, 4, 4, 10, 1, 4, 55, 1, 6, 4, 2, 240),
+        TH_CASTLE  => (6, 5, 4, 4, 13, 1, 4, 55, 1, 6, 4, 2, 240),
         TH_DUNGEON => (4, 3, 3, 2, 16, 2, 5, 75, 3, 7, 5, 2, 420),
         _          => (5, 6, 3, 4, 14, 2, 1, 60, 2, 6, 4, 4, 420),
     };
-    for _ in 0..attempt_n {
-        if unsafe { RN } >= max_rooms { break; }
-        let w = (rndn(w_span) + w_base) as i32;
-        let h = (rndn(h_span) + h_base) as i32;
-        let x0 = (rndn(W() - w as usize - 2) + 1) as i32;
-        let y0 = (rndn(H() - h as usize - 2) + 1) as i32;
-        let x1 = x0 + w - 1;
-        let y1 = y0 + h - 1;
-        let mut ok = true;
-        let n = unsafe { RN };
-        for r in 0..n {
-            if x0 <= rget(r, 2) + room_gap && x1 + room_gap >= rget(r, 0) &&
-               y0 <= rget(r, 3) + room_gap && y1 + room_gap >= rget(r, 1) { ok = false; break; }
-        }
-        if !ok { continue; }
-        for y in y0..=y1 {
-            for x in x0..=x1 {
-                unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; }
+    // ---- posicionamento das salas: o palácio tem fase própria, o resto
+    // mantém o sorteio de sempre ----
+    if th == TH_CASTLE {
+        // PALÁCIO: primeiro os GRANDES SALÕES (11-15 × 7-9, separados por um
+        // fio de parede >= 2) — é neles que a colunata interna vai morar.
+        // Depois, os CÔMODOS (3-6 × 3-4) nascem colados na parede de um salão,
+        // com exatamente 1 tile de parede entre cômodo e salão: aí os gargalos
+        // viram portas. Tudo o que vem depois (corredores de conexão, loops,
+        // portas) é genérico — são eles que cercam os salões.
+        let mut halls = 0usize;
+        for _ in 0..400 {
+            if halls >= 3 { break; }
+            let w = (rndn(5) + 11) as i32;
+            let h = (rndn(3) + 7) as i32;
+            let x0 = (rndn(W() - w as usize - 2) + 1) as i32;
+            let y0 = (rndn(H() - h as usize - 2) + 1) as i32;
+            let x1 = x0 + w - 1;
+            let y1 = y0 + h - 1;
+            let mut ok = true;
+            let n = unsafe { RN };
+            for r in 0..n {
+                if x0 <= rget(r, 2) + 2 && x1 + 2 >= rget(r, 0) &&
+                   y0 <= rget(r, 3) + 2 && y1 + 2 >= rget(r, 1) { ok = false; break; }
             }
+            if !ok { continue; }
+            for y in y0..=y1 {
+                for x in x0..=x1 {
+                    unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; }
+                }
+            }
+            set_room(n, x0, y0, x1, y1);
+            unsafe { RN += 1; }
+            halls += 1;
         }
-        set_room(n, x0, y0, x1, y1);
-        unsafe { RN += 1; }
+        // cômodos: pai sorteado SÓ ENTRE OS SALÕES (as primeiras `halls`
+        // salas) — cômodo pendurado em cômodo viraria vecindário, não palácio
+        for _ in 0..600 {
+            let n = unsafe { RN };
+            if n == 0 || n >= max_rooms { break; }
+            let hr = rndn(halls); // pai = um dos salões
+            let hw = (rget(hr, 2) - rget(hr, 0) + 1) as usize;
+            let hh = (rget(hr, 3) - rget(hr, 1) + 1) as usize;
+            let cw = rndn(4) + 3; // 3-6 de vão
+            let ch = rndn(2) + 3; // 3-4 de fundura
+            let mut ok = true;
+            let mut x0 = 0i32;
+            let mut y0 = 0i32;
+            if hw >= cw && hh >= ch {
+                match rndn(4) {
+                    0 => { // à direita do salão
+                        x0 = rget(hr, 2) + 2;
+                        y0 = rget(hr, 1) + rndn(hh - ch + 1) as i32;
+                        if x0 + cw as i32 - 1 > W() as i32 - 2 { ok = false; }
+                    }
+                    1 => { // à esquerda
+                        x0 = rget(hr, 0) - 1 - cw as i32;
+                        y0 = rget(hr, 1) + rndn(hh - ch + 1) as i32;
+                        if x0 < 1 { ok = false; }
+                    }
+                    2 => { // abaixo
+                        y0 = rget(hr, 3) + 2;
+                        x0 = rget(hr, 0) + rndn(hw - cw + 1) as i32;
+                        if y0 + ch as i32 - 1 > H() as i32 - 2 { ok = false; }
+                    }
+                    _ => { // acima
+                        y0 = rget(hr, 1) - 1 - ch as i32;
+                        x0 = rget(hr, 0) + rndn(hw - cw + 1) as i32;
+                        if y0 < 1 { ok = false; }
+                    }
+                }
+            } else { ok = false; }
+            let x1 = x0 + cw as i32 - 1;
+            let y1 = y0 + ch as i32 - 1;
+            if ok {
+                // qualquer sala já posta exige 1 parede de distância no mínimo;
+                // o salão pai fica a exatamente 2 (1 tile de parede entre eles)
+                for r in 0..n {
+                    if x0 <= rget(r, 2) + 1 && x1 + 1 >= rget(r, 0) &&
+                       y0 <= rget(r, 3) + 1 && y1 + 1 >= rget(r, 1) { ok = false; break; }
+                }
+            }
+            if !ok { continue; }
+            for y in y0..=y1 {
+                for x in x0..=x1 {
+                    unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; }
+                }
+            }
+            set_room(n, x0, y0, x1, y1);
+            unsafe { RN += 1; }
+        }
+    } else {
+        for _ in 0..attempt_n {
+            if unsafe { RN } >= max_rooms { break; }
+            let w = (rndn(w_span) + w_base) as i32;
+            let h = (rndn(h_span) + h_base) as i32;
+            let x0 = (rndn(W() - w as usize - 2) + 1) as i32;
+            let y0 = (rndn(H() - h as usize - 2) + 1) as i32;
+            let x1 = x0 + w - 1;
+            let y1 = y0 + h - 1;
+            let mut ok = true;
+            let n = unsafe { RN };
+            for r in 0..n {
+                if x0 <= rget(r, 2) + room_gap && x1 + room_gap >= rget(r, 0) &&
+                   y0 <= rget(r, 3) + room_gap && y1 + room_gap >= rget(r, 1) { ok = false; break; }
+            }
+            if !ok { continue; }
+            for y in y0..=y1 {
+                for x in x0..=x1 {
+                    unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; }
+                }
+            }
+            set_room(n, x0, y0, x1, y1);
+            unsafe { RN += 1; }
+        }
     }
 
     let mut rn = unsafe { RN };
@@ -751,6 +843,22 @@ fn gen_once(depth: u8, seed: u32) {
                 unsafe {
                     let i = idx(p.0 as usize, p.1 as usize);
                     if MAP[i] == T_FLOOR { MAP[i] = T_PILLAR; }
+                }
+            }
+            // palácio: nos salões, colunata interna — colunas a cada 3 tiles,
+            // vãos de 2 para a vista atravessar e o medo rondar entre elas
+            if th == TH_CASTLE {
+                let mut px = x0 + 3;
+                while px <= x1 - 3 {
+                    let mut py = y0 + 3;
+                    while py <= y1 - 3 {
+                        unsafe {
+                            let i = idx(px as usize, py as usize);
+                            if MAP[i] == T_FLOOR { MAP[i] = T_PILLAR; }
+                        }
+                        py += 3;
+                    }
+                    px += 3;
                 }
             }
         }
@@ -2473,6 +2581,23 @@ pub extern "C" fn pfb_debug_place(px: u32, py: u32) {
             PY = py as usize;
             MOVED = false;
             compute_fov();
+            render();
+            sync_stats();
+        }
+    }
+}
+
+/// [DEBUG] reposiciona a besta: os cenários do smoke precisam ser donos da
+/// geometria (o palácio do térreo mudou o mapa da seed do gate e testes de
+/// IA/medo dependem de onde ELA está, não de onde o sorteio nasceu).
+#[no_mangle]
+pub extern "C" fn pfb_debug_bas_place(px: u32, py: u32) {
+    unsafe {
+        if (px as usize) < W() && (py as usize) < H() {
+            BX = px as usize;
+            BY = py as usize;
+            body_pass(); // rastro recomeça encostado na cabeça nova
+            compute_fov(); // a névoa que atualiza é a sua visão sobre ELA
             render();
             sync_stats();
         }

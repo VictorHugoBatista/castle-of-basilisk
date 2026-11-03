@@ -160,7 +160,7 @@ Nada de wasm-bindgen: o módulo expõe funções `#[no_mangle] extern "C"`:
 - `pfb_ui_ptr()` — barra de UI fabricada (dica contextual / nome do andar)
 - `pfb_pop_event()` — fila de eventos de áudio
 - `pfb_state()` — 0 título, 1 jogando, 2 morto, 3 vitória, 4 controles
-- `pfb_debug_*` — ferramentas dos testes (place/map/probe/give_crown)
+- `pfb_debug_*` — ferramentas dos testes (place/bas_place/map/probe/give_crown)
 
 O WASM nunca aloca: as views JS são criadas uma vez e ficam válidas.
 
@@ -198,10 +198,13 @@ e fuzz de 6000 ticks sem estados impossíveis.
 
 ## status do conceito
 
-Escopo *proof of concept*: 5 andares temáticos e procedurais — térreo de salões
-amplos com vento, masmorras de celas apertadas com silêncio, esgoto imperial
-80×44 com canais de água `=` — IA em 3 estados (patrulha/invest/caça) com BFS
-real e temperamento por tema, FOV por raycast, um toque mata / Um olhar mata.
+Escopo *proof of concept*: 5 andares temáticos e procedurais — térreo do
+palácio: grandes salões com colunata interna cercados por corredores e
+cômodos pendurados nas paredes deles (portas nos gargalos), masmorras de celas
+apertadas com silêncio, esgoto imperial 80×44 com canais de água `=` — IA em 3
+estados (patrulha/invest/caça) com BFS real e temperamento por tema, FOV por
+raycast, um toque mata / Um olhar mata. Os outros andares mantêm a geração de
+sempre; cada um tem direito ao próprio caráter depois.
 Para o jogo grande: itens de "ruído falso", basilisco aprendendo padrões de
 fuga, salas com rachaduras de teto, e um final que explique porque uma besta
 gigante protege um rei morto.
