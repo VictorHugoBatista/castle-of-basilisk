@@ -156,10 +156,10 @@ const TRAIL_W_OLD: i32 = 5;     // peso de sala visitada a 140..260 ticks (masmo
 // Exposição (visão mútua) sobe rápido; longe dela desce DEVAGAR — e quanto
 // mais alto o nível, mais lenta a queda: o susto fica preso no corpo.
 // Dois freios contra o "medo que nunca aparece" (bancada fear_bench: 94% dos
-// ticks no nível 0, coroa-fantasma 0/40 jogos): o TRAUMA (metade do pico
-// histórico nunca decai — quase-morte deixa cicatriz) e o PAVOR AMBIENTE (o
-// castelo respira: sem exposição nenhuma, o medo rasteja até um teto por
-// profundidade — no habitat dela você nunca fica são por muito tempo).
+// ticks no nível 0, coroa-fantasma 0/40 jogos): o TRAUMA (um terço do pico
+// histórico nunca decai — quase-morte deixa cicatriz, não sentença) e o PAVOR
+// AMBIENTE (o castelo respira: sem exposição nenhuma, o medo rasteja até um
+// teto por profundidade — no habitat dela você nunca fica são por muito tempo).
 const FEAR_MAX: i32 = 100;
 const FEAR_CALM_NEED: i32 = 8;     // ticks sem vê-la para começar a se acalmar
 // o freio do limiar: o topo da escalada é a DESCIDA dramática — lá em cima o
@@ -990,12 +990,18 @@ fn fear_level() -> u8 {
 }
 
 // o freio do limiar: lá em cima TODO susto rende menos (72+: metade, 86+: um
-// quarto) — e nunca zera: susto nenhum é grátis. É o que dá tempo de VER a
-// descida em vez de atravessá-la morto, e de quebrar a LOS a tempo de escapar
+// quarto) — e susto MIUDO (creep de trás da parede, escamas do rastro: < 3)
+// não empurra o topo de jeito nenhum. A loucura só avança por aquilo que você
+// VÊ: é o que dá margem de fuga de verdade — escapar de perto é escapar, e a
+// descida final você assiste em vez de atravessá-la
 #[inline]
 fn fear_absorb(gain: i32) -> i32 {
     unsafe {
         let damp = if FEAR >= FEAR_WORRY_HI { 4 } else if FEAR >= FEAR_WORRY_LO { 2 } else { 1 };
+        if gain < 3 {
+            if damp == 1 { return gain; } // em baixo, todo susto conta
+            return 0;                     // no topo, só a visão move a descida
+        }
         ((gain + damp / 2) / damp).max(1)
     }
 }
@@ -1248,11 +1254,11 @@ fn fear_update() {
                 }
             }
         }
-        if FEAR < 0 { FEAR = 0; }
-        // o chão do medo: metade do pico (o trauma) ou o pavor ambiente — o
+        // o chão do medo: um TERÇO do pico (o trauma) ou o pavor ambiente — o
         // que for maior. O medidor NUNCA desce abaixo dele: quase morreu de
-        // medo uma vez, carrega isso até o fim da run
-        let floor = (FEAR_PK / 2).max(AMBF);
+        // medo uma vez, termina a run assombrado — cicatriz, não sentença
+        if FEAR < 0 { FEAR = 0; }
+        let floor = (FEAR_PK / 3).max(AMBF);
         if FEAR < floor { FEAR = floor; }
         if FEAR >= FEAR_MAX {
             // LOUCURA: o medo matou sozinho — motivo de morte 3

@@ -247,10 +247,11 @@ const brake = scenario('freio do limiar: perto do 100, a subida cansa', () => {
   return stats[18] < 95; // 10 ticks de exposição e ainda está vivo abaixo do 95
 });
 
-// ---------- 2h. trauma: metade do pico NUNCA decai ----------
+// ---------- 2h. trauma: um TERÇO do pico NUNCA decai ----------
 // O design diz "o susto fica preso no corpo": depois de um pico 60, o medo
-// desce até 30 e PARA — a cicatriz acompanha você até o fim da run.
-const trauma = scenario('medo: o pico deixa cicatriz (nunca cai de metade)', () => {
+// desce até 20 e PARA — a cicatriz acompanha você até o fim da run (assombrado,
+// não condenado: escapar de uma caçada não é sentença de morte).
+const trauma = scenario('medo: o pico deixa cicatriz (nunca cai de um terço)', () => {
   w.pfb_new_game(1234567);
   for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
   const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
@@ -258,7 +259,22 @@ const trauma = scenario('medo: o pico deixa cicatriz (nunca cai de metade)', () 
   place(far.x, far.y);
   w.pfb_debug_fear(60); // um quase-morte: pico 60
   for (let k = 0; k < 200; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
-  return stats[18] >= 30; // 200 ticks calmo depois: ainda em 30 — ficou preso
+  return stats[18] >= 20; // 200 ticks calmo depois: ainda em 20 — ficou preso
+});
+
+// ---------- 2h-bis. a loucura só avança pelo que você VÊ ----------
+// Susto miúdo (creep: d<=3 sem LOS +2/tick) não empurra o topo: no 90+, nenhum
+// sinal sim preço sobe o medo — só a VISÃO dela move a descida final. Parado
+// longe, o medo até cai.
+const sightOnly = scenario('freio do limiar: susto miudo nao empurra o topo', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14)); // sem creep, sem visão
+  if (!far) return false;
+  place(far.x, far.y);
+  w.pfb_debug_fear(90);
+  for (let k = 0; k < 50; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  return stats[18] <= 90; // 50 ticks sem vê-la: não subiu um ponto — e decaindo
 });
 
 // ---------- 2i. pavor ambiente: o lugar sobe o medo sozinho ----------
@@ -574,6 +590,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, madness, brake, trauma, ambient, crownOK].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, madness, brake, trauma, sightOnly, ambient, crownOK].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

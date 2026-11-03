@@ -306,18 +306,21 @@ Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
   -1/2 · nivel 2: -1/3 · nivel 3: -1/5 — desce sempre mais lento do que sobe;
   e para no chão (trauma ou pavor ambiente, o que for maior).
 - **Trauma (`FEAR_PK`)**: todo ganho marca o pico; a queda NUNCA leva o medo
-  abaixo de metade dele. Uma caçada até 60 deixa o jogador assombrado (30+)
-  pelo resto da run — a espiral de terror acumula entre andares.
+  abaixo de um TERÇO dele. Uma caçada até 60 deixa o jogador assombrado (20)
+  para sempre — cicatriz, não sentença — e a espiral de terror acumula entre
+  andares.
 - **Pavor ambiente (`AMBF`/`AMBT`)**: sem exposição, o medo rasteja +1 a cada
   `FEAR_AMB_N` ticks até o teto `FEAR_AMB_CAP` da profundidade (terreo 6 ·
   masmorras 12/18 · esgoto 24/30). Monótono na run: voltar ao térreo não
   desaprende o que o esgoto ensinou. No habitat dela o teto é 30 = nivel 1
   sozinho: o LUGAR assombra.
 - **Freio do limiar (`fear_absorb`)**: lá em cima TODO susto rende menos —
-  72+: metade, 86+: um quarto (e nunca zera: `max(1)`). Matar de loucura exige
-  exposição LONGA: de ~8 ticks no rosto dela para ~20. Sem isso o jogador
-  morre atravessando os efeitos dos níveis 2-3 em vez de vê-los. Aplicado nos
-  dois caminhos de ganho (exposição e spike do EV_STINGER).
+  72+: metade, 86+: um quarto; e susto MIUDO (creep sem LOS d<=3, escamas do
+  rastro: gain < 3) NÃO empurra o topo de jeito nenhum. A loucura só avança
+  por aquilo que o jogador VÊ — chegar a 100 exige vê-la de novo e de novo
+  ao longo da run (de ~7 ticks no rosto dela para uns 16+, intercalados por
+  andares). Aplicado nos dois caminhos de ganho (exposição e spike do
+  EV_STINGER).
 - **Niveis** (0..4): 30 assombrado · 55 paranoico · 75 panico · 100 LOUCURA
   (morte). Panico encolhe o FOV para raio 6, soluco involuntario (ruido r=2)
   e glitch-fantasma (EV_BODY sem corpo em tela).
@@ -344,12 +347,13 @@ Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
   (1/30). PH_CD=10 espaça nascimentos; cores no attr 14 da paleta por tema (JS).
 - **Bancada de balance** (`scripts/fear_bench.mjs`): 40 jogos do bot surdo do
   debug6 com telemetria do medo (ticks por nivel, pico, alucinacoes nascidas).
-  Referência do ajuste "efeito invisível": antes 94% dos ticks no nivel 0,
-  3/40 jogos com alucinação e coroa 0/40; com trauma/pavor/cadencia ~88% no
-  nivel 0 e 19/40 com alucinação; com o freio do limiar 86.8% no nivel 0 e
-  23/40 (80 fantasmas nascidos, falso B 106 ticks, coroa 60). Vitorias 16/40
-  em TODAS as rodadas — o balance da run é intocável; mortes: loucura 10 → 9 →
-  8 (as mortes extras passam a ser gaze dela: as caçadas duram mais).
+  Evolução do ajuste, 40 jogos SEMPRE com 16/40 vitorias: baseline 94% dos
+  ticks no nv0, 3/40 com alucinação, coroa 0/40, loucura 10 → trauma+pavor
+  (19/40 alucinando, loucura 9) → cadencias+freio do limiar (23/40, loucura 8)
+  → terço do pico + "loucura so avanca pela visão": loucura 5, 102 fantasmas,
+  nv2+ 7.8% dos ticks. As mortes extras do bot passam a ser gaze/toque dela —
+  para o bot (que de senhor do risco), morrer de medo virou evento raro de run
+  inteira, o exatamente desejado.
 
 ## 4. Armazenamento
 
