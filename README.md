@@ -72,6 +72,36 @@ ESC volta ao menu.
   ela está de caça perto. A paleta da tela veste a cor do andar (âmbar de
   castelo / âmbar seco / verde-lodo).
 
+## o medo (e a loucura)
+
+Ver a besta deixa marca. O medo **sobe rápido com a exposição** (vê-la de perto
+sobe muito; ela TE VIU dispara um pico) e **desce devagar longe dela** — quanto
+mais alto o nível, mais lenta a queda: o susto fica preso no corpo.
+
+| nível | medo | o que acontece |
+|---|---|---|
+| 0 calmo | 0–29 | nada |
+| 1 assombrado | 30–54 | sussurros; fantasmas `o` raros, fora do seu campo |
+| 2 paranoico | 55–74 | fantasmas frequentes; **falso `B`** entra; soluço involuntário |
+| 3 pânico | 75–99 | visão encolhe (raio 6); coração dispara no vazio; glitch sem corpo |
+| 4 loucura | 100 | **A LOUCURA TE TOMOU** — morte por medo (motivo 3) |
+
+As **alucinações** só existem no render — a lógica do jogo jamais as vê:
+
+- **`o` fantasma** (pálido, pulsante): atravessa paredes (a real jamais
+  atravessa nada); evapora quando você chega a 2 tiles; fora da visão, escurece
+  como todo tile lembrado.
+- **Falso `B`**: attr 7 IDÊNTICO ao real. Mentiras dele: o coração não responde,
+  jamais gera glitch de escamas, jamais abre porta. Só nasce com a real a mais
+  de 15 tiles (nunca funciona como radar).
+- **Coroa-fantasma `§`**: attr 5 do real, estática, a 8–14 tiles — longe o
+  bastante para você ACEITAR IR. Correr até ela custa fôlego e ruído r=15:
+  a ilusão te entrega a ela. Evapora a 2 tiles, antes de qualquer certeza.
+
+Correr atrás de coroa falsa → ruído alto → ela te encontra → medo sobe: a
+espiral fecha sozinha. No HUD, a placa do canto (`ruído / fôlego / medo`) tem
+a barra de medo tremendo em nível alto, e o coração dispara sozinho no pânico.
+
 ## arquitetura
 
 ```
@@ -119,9 +149,12 @@ O WASM nunca aloca: as views JS são criadas uma vez e ficam válidas.
 `1` passo · `2` porta · `3/4` escadas · `5` stinger (ELE TE VIU) · `6` coroa ·
 `7` morte · `8` vitória · `10` alerta (ele ouviu algo) · `11` alívio (perdeu
 seu rastro) · `12` sibilo distante · `13` A BESTA abriu uma porta ·
-`14/15/16` escamas do corpo visíveis (centro/esquerda/direita) —
-mais o **batimento cardíaco** contínuo (intervalo/volume/pan pela distância)
-e o drone ambiente do castelo (engorda enquanto o corpo dela está visível).
+`14/15/16` escamas do corpo visíveis (centro/esquerda/direita) ·
+`18` sussurro da mente (nasceu alucinação) · `19` soluço involuntário do medo ·
+`20` alucinação evaporou de perto · `21` a coroa mentiu (falsa § evaporou) —
+mais o **batimento cardíaco** contínuo (intervalo/volume/pan pela distância, e
+dispara sozinho no pânico) e o drone ambiente do castelo (engorda enquanto o
+corpo dela está visível).
 
 ## smoke test (headless)
 
@@ -131,8 +164,10 @@ node scripts/smoke.mjs
 
 Valida: morte por olhar (com CONE de visão dela), morte por toque, IA investigando
 ruído, **o rastro de escamas existindo** (via `pfb_debug_body_ptr`) e **o corpo
-ficando visível em tela em algum momento**, **um playthrough completo por bot
-BFS** (desce os 5 andares na ordem, pega a coroa na Cloaca, escapa pelo portão —
+ficando visível em tela em algum momento**, **o MEDO subindo com exposição e
+caindo LONGE dela, alucinações nascendo no pânico (fantasma + falso `B`) e a
+LOUCURA matando sozinha (motivo 3)**, **um playthrough completo por bot BFS**
+(desce os 5 andares na ordem, pega a coroa na Cloaca, escapa pelo portão —
 rotas que evitam a zona de gaze, esquiva geométrica, caminha na água do esgoto)
 e fuzz de 6000 ticks sem estados impossíveis.
 

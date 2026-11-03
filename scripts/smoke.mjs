@@ -18,7 +18,7 @@ function ensureViews() {
 }
 
 w.pfb_init();
-const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 24);
+const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 32);
 let grid = null;
 let wmap = null;
 ensureViews();
@@ -166,6 +166,65 @@ const trail = scenario('o corpo dela deixa rastro de escamas', () => {
   const fx = body[1], fy = body[2];
   const lx = body[1 + (len - 1) * 2], ly = body[2 + (len - 1) * 2];
   return fx !== lx || fy !== ly;
+});
+
+// ---------- 2e. medo: exposição sobe, AUSÊNCIA desce (devagar) ----------
+const fear = scenario('medo: sobe com exposição, desce LONGE dela (histerese)', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  // tile com LOS dela a 6..8: exposição média (ganho 3/tick)
+  const near = findCell((p) => {
+    const d = (p >> 2) & 63;
+    return (p & 1) && (p & 2) && d >= 6 && d <= 8;
+  });
+  if (!near) return false;
+  place(near.x, near.y);
+  let f0 = stats[18];
+  for (let k = 0; k < 3; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  const f1 = stats[18];
+  if (f1 <= f0) return false; // subiu (com LOS médio)
+  // foge para longe (d >= 14, sem relevância de LOS): começa a queda lenta
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
+  if (!far) return false;
+  place(far.x, far.y);
+  for (let k = 0; k < 60; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  const f2 = stats[18];
+  return f2 < f1; // caiu — e o ritmo LENTO é o ponto: não zera num tick só
+});
+
+// ---------- 2f. alucinações nascem conforme o nível ----------
+const haunt = scenario('alucinações: pânico gera fantasmas/falso B em tela', () => {
+  w.pfb_new_game(1234567);
+  const fptr = w.pfb_debug_fear_ptr();
+  const fdv = new DataView(w.memory.buffer, fptr, 20);
+  const nGhosts = () => fdv.getUint32(8, true);  // AI_DBG_FEAR[2]
+  const fakeBOn = () => fdv.getUint32(12, true); // AI_DBG_FEAR[3]
+  w.pfb_debug_fear(80); // nível 3: ghost 1/25, fake B 1/50, coroa-fantasma 1/120
+  let sawGhost = false, sawFake = false;
+  for (let k = 0; k < 400 && !(sawGhost && sawFake); k++) {
+    w.pfb_step(0); pump();
+    if (stats[0] !== 1) return false;
+    w.pfb_debug_fear_ptr(); // atualiza o espelho do fantasma antes de ler
+    if (nGhosts() > 0) sawGhost = true;
+    if (fakeBOn() > 0) sawFake = true;
+  }
+  return sawGhost && sawFake;
+});
+
+// ---------- 2g. LOUCURA: medo em 100 mata por conta própria (motivo 3) ----------
+const madness = scenario('loucura mata sozinha (motivo 3, sem ela tocar)', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const near = findCell((p) => {
+    const d = (p >> 2) & 63;
+    return (p & 1) && (p & 2) && d >= 6 && d <= 8; // LOS mas FORA do gaze (d>4)
+  });
+  if (!near) return false;
+  place(near.x, near.y);
+  w.pfb_debug_fear(97); // +3 de exposição no próximo tick → 100 → loucura
+  w.pfb_step(0); pump();
+  if (stats[0] !== 2) return false; // morreu
+  return stats[1] === 3;            // e o motivo é a LOUCURA, não ela
 });
 
 // ---------- 3. playthrough com bot v2 ----------
@@ -369,6 +428,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, bodyProof, traps === 0, menuOk].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, bodyProof, traps === 0, menuOk, fear, haunt, madness].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

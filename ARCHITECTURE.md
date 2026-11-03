@@ -82,7 +82,7 @@ Exports (contrato publico — nao quebrar):
 | `pfb_ui_ptr`    | `() u32`                     | barra de UI fabricada (W0 celulas x [char,attr]): dica contextual / nome do andar |
 | `pfb_stats_ptr` | `() u32`                     | ponteiro do bloco de stats |
 | `pfb_pop_event` | `() u32`                     | consome fila de audio (0 = vazia) |
-| `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown | somente para testes headless |
+| `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown/fear/fear_ptr | somente para testes headless |
 
 Layout de memoria:
 - **Grid**: buffer maximo `W_MAX x H_MAX` (80x44) celulas x `[char: u8, attr: u8]`,
@@ -91,7 +91,8 @@ Layout de memoria:
   ASCII; coroa = byte `0xA7` ('§' latin-1), agua = `'='` (0x3D). Attr = indice da
   paleta (0..15) OU `0x80 | indice` quando o tile e "lembrado" (fog of war) e
   escurece no render.
-- **Stats** (u8[24]): `[0] estado`, `[1] motivo de morte (1 olhar, 2 toque)`,
+- **Stats** (u8[32]): `[0] estado`, `[1] motivo de morte (1 olhar, 2 toque,
+  3 loucura)`,
   `[2] profundidade`, `[3] px`, `[4] py`, `[5] bx`, `[6] by`,
   `[7] estado da IA (0 patrol, 1 invest, 2 hunt)`, `[8] coroa`,
   `[9] segmentos do corpo visíveis` (o JS usa para "engordar" o drone),
@@ -99,13 +100,17 @@ Layout de memoria:
   `[12] jogador esta em escombro (0/1)`, `[13] pedido de iniciar (menu -> JS
   semeia pfb_new_game e limpa)`, `[14] cursor do menu (0 INICIAR, 1 CONTROLES)`,
   `[15] modo de teclas (0 WASD, 1 SETAS — o J S usa para filtrar a tecla de
-  corrida X/K)`, `[16] largura do andar atual`, `[17] altura do andar atual`.
+  corrida X/K)`, `[16] largura do andar atual`, `[17] altura do andar atual`,
+  `[18] medo (0..100)`, `[19] nivel do medo (0..4; 4 = LOUCURA, morte)`.
   **REGRA DE OURO**: qualquer funcao que mude estado (morte/vitoria/eventos)
   DEVE chamar `sync_stats()`. (Dois bugs ja nasceram de stats obsoletos —
   o terceiro: `return` cedo apos descer de andar deixava o bot do smoke
   replanejando com posicao velha sob mapa novo; sincronizar OU seguir o fluxo
   normal do tick.)
 - **Eventos**: ring buffer `u32[16]`, produtor (Rust) / consumidor (JS).
+  `18` EV_WHISPER (sussurro: nasceu alucinacao) · `19` EV_WHELP (soluco
+  involuntario do medo) · `20` EV_VANISH (alucinacao evaporou de perto) ·
+  `21` EV_VANISH_C (a coroa-fantasma evaporou).
 
 RNG: xorshift32 com seed POR ANDAR (`SEEDS[FLOORS]`, FLOORS=5), definida em
 `pfb_new_game`. Subir e descer NAO regenera o mapa: o mesmo seed reproduz o
@@ -270,6 +275,38 @@ Contrato de balanceamento: `node scripts/smoke.mjs` e o gate real — o bot
 joga com a MESMA IA que o humano enfrenta; qualquer tunagem de constante
 re-precisa passar no gate.
 
+### 3.6. Medo e loucura
+
+Nome: subsistema de `src/lib.rs` (`fear_update`, `fear_haunt`, `phantoms_tick`,
+`render_phantoms`) + HUD/áudio em `web/game.js`.
+
+Descricao: exposição à besta sobe o medo; ausência desce — MAS devagar, e
+quanto mais alto o nível, MAIS lenta a queda (histerese do susto). Em 100 de
+medo, a loucura mata sozinha (motivo 3, `DEATH_R`).
+
+Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
+
+- **Exposição**: visao mutua sobe por faixa (d<=3: +7, d<=8: +3, d<=12: +1;
+  sem LOS mas d<=3 "halito de costas": +2; escamas visiveis +2; EV_STINGER
+  pico +15). No esgoto (habitat) ganho x1.5.
+- **Queda**: 8 ticks calado comecam a acalmar; nivel 0: -2/2 ticks · nivel 1:
+  -1/2 · nivel 2: -1/3 · nivel 3: -1/5 — desce sempre mais lento do que sobe.
+- **Niveis** (0..4): 30 assombrado · 55 paranoico · 75 panico · 100 LOUCURA
+  (morte). Panico encolhe o FOV para raio 6, soluco involuntario (ruido r=2)
+  e glitch-fantasma (EV_BODY sem corpo em tela).
+- **Alucinacoes — rendem no GRID de render, NUNCA em MAP/SEEN** (a logica,
+  BFS/IA/gaze, jamais as ve; os fantasmas nao bloqueiam nem entregam nada):
+  fantasma 'o' (attr 14, A_GHOST: trespassa paredes, evapora a d<=2,
+  fora do VIS escurece como tile lembrado), falso 'B' (attr 7 do real: o
+  coracao dele nao responde, nao gera glitch de corpo, nasce so com a real
+  a >15 tiles), coroa-fantasma (T_CROWN com attr 5 real, estatica, a 8..14
+  tiles, evapora a d<=2 — a ilusao de vitoria custa folego e ruido r=15 se
+  voce correr atras, fechando a espiral com a IA dela).
+- **Cadencia de spawn** (tabelas PH_*): fantasma 1/200 · 1/60 · 1/25 por
+  nivel (max 1/2/4 em tela); falso B 1/90 · 1/50 · 1/40 (NV 2+); coroa
+  1/400 · 1/120 · 1/90 (NV 2+, nunca com a coroa na mao). PH_CD=10 espaça
+  nascimentos; cores no attr 14 da paleta por tema (JS).
+
 ## 4. Armazenamento
 
 Nao existe: o jogo nao persiste nada (nem localStorage) — PoC sem save.
@@ -356,6 +393,12 @@ Ultima atualizacao: 2026-11-03
 - **Sombra** (`,`) — tile que esconde: imovel = visao dela 2 tiles; andando = 4;
   no claro = 8. Com a coroa: andar em sombra = farol; imovel em sombra = o
   basilisco persegue sua ultima posicao conhecida, nao voce.
+- **Falso `B` / coroa-fantasma / fantasma** (`o`): alucinações do medo (seção
+  3.6) — rendem apenas no GRID de render; `pfb_debug_fear(f)` injeta medo e
+  `pfb_debug_fear_ptr()` publica o espelho `[FEAR, nivel, n fantasmas, fake B,
+  coroa falsa]` para o smoke.
+- **EV_18..21**: eventos mentais (sussurro / soluço / evaporou / coroa mentiu).
+  O JS não os panlama pela posição real da besta: acontecem dentro da cabeça.
 - **tick**: ciclo de jogo de 140 ms. O basilisco move a cada N ticks por
   tema (`speed_patrol/invest/hunt`): castelo 6/4/3, masmorra 4/3/2, esgoto
   3/2/2 — e 1/1 NA AGUA do esgoto (`speed_now`). Com a coroa ela caça 1

@@ -72,6 +72,7 @@ const A_TITLE: u8 = 10;
 const A_VOID: u8 = 15;
 const A_RUBBLE: u8 = 12; // escombro '%' — cor da paleta 12 em JS
 const A_WATER: u8 = 13;  // água '=' — cor da paleta 13 em JS (lodo)
+const A_GHOST: u8 = 14;  // fantasma alucinação 'o' — pálido e pulsante em JS
 const DIM: u8 = 0x80; // lembrado (não visível agora): escurece em JS
 
 // ---- eventos de áudio ----
@@ -92,6 +93,12 @@ pub const EV_PANT: u32 = 17; // fôlego curto: o ofego de quem correrou demais
 pub const EV_BODY: u32 = 14; // escamas visíveis (à frente/centro)
 pub const EV_BODY_L: u32 = 15; // escamas visíveis à esquerda
 pub const EV_BODY_R: u32 = 16; // escamas visíveis à direita
+
+// ---- medo: os eventos que só existem dentro da sua cabeça ----
+pub const EV_WHISPER: u32 = 18;  // bafarra da mente: nasceu uma alucinação
+pub const EV_WHELP: u32 = 19;    // soluço involuntário: o corpo trai o medo
+pub const EV_VANISH: u32 = 20;   // uma alucinação evaporou de perto
+pub const EV_VANISH_C: u32 = 21; // a coroa mentiu: a § falsa evaporou
 
 // estados do jogo
 pub const ST_TITLE: u8 = 0;
@@ -145,6 +152,27 @@ const TRAIL_SCENT: i32 = 260; // por quanto tempo uma sala visitada ainda "cheir
 const TRAIL_W_RECENT: i32 = 14; // peso de sala visitada a 20..140 ticks (masmorra)
 const TRAIL_W_OLD: i32 = 5;     // peso de sala visitada a 140..260 ticks (masmorra)
 
+// ---- medo e loucura: a besta vive no RT; o medo vive no SEU peito ----
+// Exposição (visão mútua) sobe rápido; longe dela desce DEVAGAR — e quanto
+// mais alto o nível, mais lenta a queda: o susto fica preso no corpo.
+const FEAR_MAX: i32 = 100;
+const FEAR_CALM_NEED: i32 = 8;     // ticks sem vê-la para começar a se acalmar
+const FEAR_GAIN_HUG: i32 = 7;      // d<=3: o hálito dela no seu rosto
+const FEAR_GAIN_CLOSE: i32 = 3;    // d<=8: no campo aberto
+const FEAR_GAIN_FAR: i32 = 1;      // vislumbre distante (d<=12)
+const FEAR_GAIN_CREEP: i32 = 2;    // sem LOS, d<=3: você logo SABE que ela está ali
+const FEAR_GAIN_BODY: i32 = 2;     // escamas do rastro visíveis
+const FEAR_GAIN_SPOTTED: i32 = 15; // EV_STINGER: ela TE VIU — pico de pânico
+const FEAR_WHELP_AT: [i32; 5] = [0, 0, 18, 9, 9]; // soluço involuntário por nível (cadência)
+// alucinações: chance 1/N ticks por nível de fantasma 'o', e máx em tela
+const PH_GHOST_N: [usize; 5] = [1, 200, 60, 25, 15];
+const PH_GHOST_MAX: [usize; 5] = [0, 1, 2, 4, 4];
+const PH_FAKE_N: [usize; 5] = [1, 1, 90, 50, 40];    // falso `B` (attr 7 — indistinguível)
+const PH_CROWN_N: [usize; 5] = [1, 1, 400, 120, 90]; // coroa-fantasma: § onde não existe coroa
+const PH_FADE_T: i32 = 2;      // ticks de evaporação
+const FAKE_B_MIN: i32 = 15;    // o falso B só nasce com a real LONGE (senão é radar grátis)
+const PH_CD_MAX: i32 = 10;     // cooldown entre spawns: não enxameia num tick só
+
 // ---- temperamento por tema: fora do habitat ela é quase adormecida; na
 // masmorra, a besta de sempre; nos esgotos (CASA dela), mortífera ----
 #[inline]
@@ -177,13 +205,15 @@ fn speed_now(base: i32) -> i32 {
 // ================= estado global =================
 
 static mut GRID: [u8; N_MAX * 2] = [0; N_MAX * 2];
-static mut STATS: [u8; 24] = [0; 24];
+// STATS: 32 bytes — [18] medo (0..100), [19] nível do medo (0..4). Mudança
+// ADITIVA: os índices [0..17] seguem idênticos; o JS só re-dimensiona a view.
+static mut STATS: [u8; 32] = [0; 32];
 static mut AUD: [u32; 16] = [0; 16];
 static mut AUD_H: usize = 0;
 static mut AUD_T: usize = 0;
 
 static mut STATE: u8 = ST_TITLE;
-static mut DEATH_R: u8 = 0; // 1 = olhar, 2 = toque
+static mut DEATH_R: u8 = 0; // 1 = olhar, 2 = toque, 3 = loucura (medo em FEAR_MAX)
 static mut DEPTH: u8 = 1;
 static mut CROWN: bool = false;
 static mut TICK: i32 = 0;
@@ -238,6 +268,32 @@ static mut PH_HEAD: usize = 0;
 static mut BODYBUF: [u8; BODY_MAX * 2 + 1] = [0; BODY_MAX * 2 + 1];
 static mut EV_CD: i32 = 0; // cooldown do evento "corpo visível"
 
+// ---- medo e loucura ----
+static mut FEAR: i32 = 0;     // 0..FEAR_MAX
+static mut CALM: i32 = 0;     // ticks consecutivos sem exposição
+static mut DECAYT: i32 = 0;   // acumulador da queda lenta
+
+// ---- alucinações (mentiras do RT: só existem no GRID de render) ----
+static mut PH_ON: [bool; 4] = [false; 4]; // fantasmas 'o' — nunca no MAP/SEEN
+static mut PH_X: [u8; 4] = [0; 4];
+static mut PH_Y: [u8; 4] = [0; 4];
+static mut PH_TTL: [i32; 4] = [0; 4];
+static mut PH_O: [i32; 4] = [0; 4];       // cadência do passeio (anda 1 tile a cada 3-4)
+static mut PH_FADE: [i32; 4] = [0; 4];    // >0: evaporando por N ticks
+static mut FB_ON: bool = false;           // falso basilisco — breca paredes, pace de caça
+static mut FB_X: usize = 0;
+static mut FB_Y: usize = 0;
+static mut FB_TTL: i32 = 0;
+static mut FB_O: i32 = 0;
+static mut FB_FADE: i32 = 0;
+static mut PC_ON: bool = false;           // coroa-fantasma: estática, some ao se aproximar
+static mut PC_X: usize = 0;
+static mut PC_Y: usize = 0;
+static mut PC_TTL: i32 = 0;
+static mut PC_FADE: i32 = 0;
+static mut PH_CD: i32 = 0;                // cooldown entre spawns de alucinação
+static mut PANIC_CD: i32 = 0;             // cadência do vislumbre-fantasma no pânico
+
 static mut DMAP: [u16; N_MAX] = [0; N_MAX];
 static mut QUEUE: [u16; N_MAX] = [0; N_MAX];
 
@@ -248,6 +304,7 @@ static mut R32: u32 = 1;
 
 // [DEBUG] espelho do estado da IA, atualizado a cada tick (leitura pelo smoke)
 static mut AI_DBG: [usize; 8] = [0; 8];
+static mut AI_DBG_FEAR: [usize; 5] = [0; 5]; // [FEAR, nível, n fantasmas, fake B, coroa falsa]
 
 static mut ROOMS: [i32; 64] = [0; 64]; // x0,y0,x1,y1 × 16
 static mut RN: usize = 0;
@@ -903,6 +960,264 @@ fn cheb(ax: usize, ay: usize, bx: usize, by: usize) -> i32 {
     if dx > dy { dx } else { dy }
 }
 
+// ================= medo e loucura =================
+
+// 0 calmo · 1 assombrado · 2 paranoico · 3 pânico · 4 LOUCURA (mata)
+#[inline]
+fn fear_level() -> u8 {
+    let f = unsafe { FEAR };
+    if f >= FEAR_MAX { 4 } else if f >= 75 { 3 } else if f >= 55 { 2 } else if f >= 30 { 1 } else { 0 }
+}
+
+// troca de andar zera o imaginado: mentiras novas nascem do lugar novo
+fn clear_phantoms() {
+    unsafe {
+        PH_ON = [false; 4];
+        PH_FADE = [0; 4];
+        FB_ON = false;
+        FB_FADE = 0;
+        PC_ON = false;
+        PC_FADE = 0;
+        PH_CD = 0;
+        PANIC_CD = 0;
+    }
+}
+
+// um tick de vida das alucinações: drenagem de TTL, passeio através das
+// paredes e EVAPORAÇÃO por proximidade (a mentira não suporta o olhar de perto)
+fn phantoms_tick() {
+    unsafe {
+        // ---- fantasmas 'o': atravessam tudo, pálidos, 1 tile a cada 3-4 ticks ----
+        for k in 0..4 {
+            if !PH_ON[k] { continue; }
+            if PH_FADE[k] > 0 {
+                PH_FADE[k] -= 1;
+                if PH_FADE[k] == 0 { PH_ON[k] = false; }
+                continue;
+            }
+            PH_TTL[k] -= 1;
+            if PH_TTL[k] <= 0 { PH_ON[k] = false; continue; }
+            PH_O[k] -= 1;
+            if PH_O[k] <= 0 {
+                PH_O[k] = 3 + rndn(2) as i32;
+                let nx = (PH_X[k] as i32 + (rndn(3) as i32 - 1)).clamp(0, W() as i32 - 1);
+                let ny = (PH_Y[k] as i32 + (rndn(3) as i32 - 1)).clamp(0, H() as i32 - 1);
+                PH_X[k] = nx as u8;
+                PH_Y[k] = ny as u8;
+            }
+            if cheb(PH_X[k] as usize, PH_Y[k] as usize, PX, PY) <= 2 {
+                PH_FADE[k] = PH_FADE_T;
+                push_event(EV_VANISH);
+            }
+        }
+        // ---- falso B: pace de caça do tema (o TIMING dele mente como o real) ----
+        if FB_ON {
+            if FB_FADE > 0 {
+                FB_FADE -= 1;
+                if FB_FADE == 0 { FB_ON = false; }
+            } else {
+                FB_TTL -= 1;
+                if FB_TTL <= 0 {
+                    FB_ON = false;
+                } else {
+                    FB_O -= 1;
+                    if FB_O <= 0 {
+                        FB_O = speed_hunt();
+                        let nx = (FB_X as i32 + (rndn(3) as i32 - 1)).clamp(0, W() as i32 - 1);
+                        let ny = (FB_Y as i32 + (rndn(3) as i32 - 1)).clamp(0, H() as i32 - 1);
+                        FB_X = nx as usize;
+                        FB_Y = ny as usize;
+                    }
+                    if cheb(FB_X, FB_Y, PX, PY) <= 2 {
+                        FB_FADE = PH_FADE_T;
+                        push_event(EV_VANISH);
+                    }
+                }
+            }
+        }
+        // ---- coroa-fantasma: estática, CWAIT — aproximar é desmascará-la ----
+        if PC_ON {
+            if PC_FADE > 0 {
+                PC_FADE -= 1;
+                if PC_FADE == 0 { PC_ON = false; }
+            } else {
+                PC_TTL -= 1;
+                if PC_TTL <= 0 { PC_ON = false; }
+                else if cheb(PC_X, PC_Y, PX, PY) <= 2 {
+                    PC_FADE = PH_FADE_T;
+                    push_event(EV_VANISH_C);
+                }
+            }
+        }
+    }
+}
+
+
+fn spawn_ghost(lvl: u8) {
+    unsafe {
+        let max_g = PH_GHOST_MAX[lvl as usize];
+        let mut alive = 0usize;
+        for k in 0..4 { if PH_ON[k] { alive += 1; } }
+        if alive >= max_g { return; }
+        // nível 1-2: nasce ESCONDIDO (sua memória o vê, não o olho); nível 3+
+        // pode nascer no seu campo: você já não distingue o vivo do imaginado
+        let (min, max): (i32, i32) = if lvl >= 3 { (3, 8) } else { (5, 10) };
+        for _ in 0..24 {
+            let x = rndn(W());
+            let y = rndn(H());
+            let d = cheb(x, y, PX, PY);
+            if d < min || d > max { continue; }
+            if !walkable(x as i32, y as i32) { continue; }
+            if !in_player_sight_ok(x, y, lvl) { continue; }
+            for k in 0..4 {
+                if PH_ON[k] { continue; }
+                PH_ON[k] = true;
+                PH_X[k] = x as u8;
+                PH_Y[k] = y as u8;
+                PH_TTL[k] = 6 + rndn(9) as i32;
+                PH_O[k] = 3 + rndn(2) as i32;
+                PH_FADE[k] = 0;
+                push_event(EV_WHISPER);
+                PH_CD = PH_CD_MAX;
+                return;
+            }
+        }
+    }
+}
+
+// nível 1-2: nasce FORA do seu campo (a memória o vê, não o olho); nível 3+
+// pode nascer em tela: você já não distingue o vivo do imaginado
+#[inline]
+fn in_player_sight_ok(x: usize, y: usize, lvl: u8) -> bool {
+    unsafe { lvl >= 3 || VIS[idx(x, y)] != 1 }
+}
+
+fn spawn_fake_b() {
+    unsafe {
+        // a REAL tem que estar longe: falso B perto seria um radar de graça
+        if cheb(BX, BY, PX, PY) < FAKE_B_MIN { return; }
+        if FB_ON { return; }
+        for _ in 0..30 {
+            let x = rndn(W());
+            let y = rndn(H());
+            let d = cheb(x, y, PX, PY);
+            if d < 9 || d > 15 { continue; }
+            if !walkable(x as i32, y as i32) { continue; }
+            FB_ON = true;
+            FB_X = x;
+            FB_Y = y;
+            FB_TTL = 25 + rndn(16) as i32;
+            FB_O = speed_hunt();
+            FB_FADE = 0;
+            return;
+        }
+    }
+}
+
+fn spawn_phantom_crown() {
+    unsafe {
+        if PC_ON || CROWN { return; } // com a coroa na mão, outra não faz sentido
+        for _ in 0..30 {
+            let x = rndn(W());
+            let y = rndn(H());
+            let d = cheb(x, y, PX, PY);
+            if d < 8 || d > 14 { continue; } // longe o bastante para VOCÊ ACEITAR IR
+            if !walkable(x as i32, y as i32) { continue; }
+            if !in_player_sight_ok(x, y, 1) { continue; } // nasce na memória, não no olho
+            PC_ON = true;
+            PC_X = x;
+            PC_Y = y;
+            PC_TTL = 40 + rndn(31) as i32;
+            PC_FADE = 0;
+            return;
+        }
+    }
+}
+
+// sorteio de novas mentiras por tick: fantasmas (nv 1+), falso B e
+// coroa-fantasma (nv 2+). PH_CD espaça os nascimentos (não enxameia).
+fn fear_haunt(lvl: u8) {
+    unsafe {
+        if lvl == 0 { return; }
+        if PH_CD == 0 && rndn(PH_GHOST_N[lvl as usize]) == 0 { spawn_ghost(lvl); }
+        if lvl >= 2 {
+            if PH_CD == 0 && rndn(PH_FAKE_N[lvl as usize]) == 0 { spawn_fake_b(); }
+            if PH_CD == 0 && rndn(PH_CROWN_N[lvl as usize]) == 0 { spawn_phantom_crown(); }
+        }
+        if PH_CD > 0 { PH_CD -= 1; }
+    }
+}
+
+// o coração do sistema: EXPOSIÇÃO sobe, AUSÊNCIA desce (devagar... muito devagar)
+fn fear_update() {
+    unsafe {
+        if STATE != ST_PLAY { return; }
+        phantoms_tick();
+        let mut lvl = fear_level();
+
+        // ---- exposição: a visão mútua, o hálito de costas, o corpo ----
+        let d = cheb(BX, BY, PX, PY);
+        let seen = los(BX, BY, PX, PY);
+        let mut gain = 0;
+        if seen {
+            if d <= 3 { gain = FEAR_GAIN_HUG; }
+            else if d <= 8 { gain = FEAR_GAIN_CLOSE; }
+            else if d <= 12 { gain = FEAR_GAIN_FAR; }
+        } else if d <= 3 {
+            gain = FEAR_GAIN_CREEP; // o hálito mesmo de costas
+        }
+        gain += (STATS[9] > 0) as i32 * FEAR_GAIN_BODY; // pressenti as escamas
+        // no habitat dela, o medo contamina o dobro: o lugar te ensina a obedecer
+        if theme(DEPTH) == TH_SEWER && gain > 0 { gain += gain / 2; }
+
+        if gain > 0 {
+            FEAR += gain;
+            CALM = 0;
+            DECAYT = 0;
+        } else {
+            CALM += 1;
+            if CALM >= FEAR_CALM_NEED {
+                // queda: LENTA nos níveis altos — histerese do susto
+                let (period, dec): (i32, i32) = match lvl {
+                    3 => (5, 1),
+                    2 => (3, 1),
+                    1 => (2, 1),
+                    _ => (2, 2),
+                };
+                DECAYT += 1;
+                if DECAYT >= period {
+                    DECAYT = 0;
+                    FEAR -= dec;
+                }
+            }
+        }
+        if FEAR < 0 { FEAR = 0; }
+        if FEAR >= FEAR_MAX {
+            // LOUCURA: o medo matou sozinho — motivo de morte 3
+            if STATE == ST_PLAY { death(3); }
+            return;
+        }
+        lvl = fear_level();
+
+        // ---- soluço involuntário: o corpo trai o medo (r=2: quase inaudível) ----
+        let whip = FEAR_WHELP_AT[lvl as usize];
+        if whip > 0 && TICK % whip == 0 {
+            push_event(EV_WHELP);
+            noise(PX, PY, 2, false);
+            NOISEL = 1;
+        }
+        // ---- pânico: vislumbre que não corresponde a nada (glitch + arrasto) ----
+        if lvl == 3 {
+            if PANIC_CD > 0 { PANIC_CD -= 1; }
+            if PANIC_CD == 0 && rndn(60) == 0 {
+                push_event(EV_BODY); // o sinal "solta" sem corpo nenhum em tela
+                PANIC_CD = 20;
+            }
+        }
+        fear_haunt(lvl);
+    }
+}
+
 fn sight_range() -> i32 {
     // o jogador está em sombra ou escombro? então quase invisível
     unsafe {
@@ -1053,7 +1368,12 @@ fn basilisk_turn() {
                 // te viu ENTRAR / ESTAR nos escombros: prova fresca de beco
                 RH = RUB_EVIDENCE;
             }
-            if BST != B_HUNT { push_event(EV_STINGER); }
+            if BST != B_HUNT {
+                push_event(EV_STINGER);
+                // ELA TE VIU: pico de pânico imediato — o susto de lock visual
+                FEAR = (FEAR + FEAR_GAIN_SPOTTED).min(FEAR_MAX);
+                CALM = 0;
+            }
             BST = B_HUNT;
             LX = PX;
             LY = PY;
@@ -1457,7 +1777,8 @@ fn game_step(input: u32) {
 
         compute_fov();
         body_pass();
-        render();
+        fear_update(); // medo/alucinações/loucura — PODE matar (motivo 3)
+        if STATE == ST_PLAY { render(); }
         sync_stats();
     }
 }
@@ -1504,16 +1825,18 @@ fn put_ui_str(x: usize, s: &str, a: u8) {
 fn compute_fov() {
     unsafe {
         VIS = [0; N_MAX];
-        let y0 = PY.saturating_sub(8);
-        let y1 = (PY + 8).min(H() - 1);
-        let x0 = PX.saturating_sub(8);
-        let x1 = (PX + 8).min(W() - 1);
+        // pânico (nível 3): o mundo ENCOLHE — raio de visão 6 em vez de 8
+        let rr: i32 = if fear_level() >= 3 { 6 } else { 8 };
+        let y0 = PY.saturating_sub(rr as usize);
+        let y1 = (PY + rr as usize).min(H() - 1);
+        let x0 = PX.saturating_sub(rr as usize);
+        let x1 = (PX + rr as usize).min(W() - 1);
         for y in y0..=y1 {
             for x in x0..=x1 {
                 let ddx = x as i32 - PX as i32;
                 let ddy = y as i32 - PY as i32;
                 let d2 = ddx * ddx + ddy * ddy;
-                let r2: i32 = if tile_at(x, y) == T_SHADOW { 16 } else { 49 };
+                let r2: i32 = if tile_at(x, y) == T_SHADOW { 16 } else { rr * rr };
                 if d2 > r2 { continue; }
                 if los(PX, PY, x, y) {
                     let i = idx(x, y);
@@ -1670,6 +1993,9 @@ fn render() {
             }
             put(PX, PY, b'@', A_PLAYER);
 
+            // ---- medo: as mentiras do RT (nunca no MAP/SEEN: só no render) ----
+            render_phantoms();
+
             // dica contextual
             let msg: &str = if CROWN {
                 "VOCE TEM A COROA. ELA TEM FOME. FUJA PELO '<' NO TERREO"
@@ -1699,6 +2025,35 @@ fn render() {
             render_dead();
         } else {
             render_win();
+        }
+    }
+}
+
+// as alucinações desenham por ÚLTIMO (sobre a memória do mapa). Fantasmas
+// vivem no "lembrado": fora do VIS, escurecem como qualquer tile 0x80.
+// Falso B desenha só quando VISÍVEL — exatamente como o real se esconde.
+fn render_phantoms() {
+    unsafe {
+        for k in 0..4 {
+            if !PH_ON[k] { continue; }
+            let (x, y) = (PH_X[k] as usize, PH_Y[k] as usize);
+            if tile_at(x, y) == T_WALL || tile_at(x, y) == T_PILLAR { continue; } // parede sólida engole
+            let i = idx(x, y);
+            let mut a = A_GHOST;
+            if VIS[i] != 1 { a |= DIM; }          // na memória: dim
+            if PH_FADE[k] > 0 { a |= DIM; }        // evaporando: dim duplo do JS (shade)
+            put(x, y, b'o', a);
+        }
+        if FB_ON && VIS[idx(FB_X, FB_Y)] == 1 {
+            let a = if FB_FADE > 0 { A_BAS | DIM } else { A_BAS };
+            put(FB_X, FB_Y, b'B', a);
+        }
+        if PC_ON && SEEN[(DEPTH as usize - 1) * N_MAX + idx(PC_X, PC_Y)] == 1 {
+            let i = idx(PC_X, PC_Y);
+            let mut a = A_CROWN;
+            if VIS[i] != 1 { a |= DIM; }
+            if PC_FADE > 0 { a |= DIM; }
+            put(PC_X, PC_Y, T_CROWN, a);
         }
     }
 }
@@ -1843,10 +2198,19 @@ fn render_dead() {
         ];
         write_block_center(4, &skull, A_BAS);
 
-        let msg = if DEATH_R == 1 { "O OLHAR TE ENCONTROU." } else { "AS ESCAMAS TE TOCARAM." };
+        let msg = match DEATH_R {
+            1 => "O OLHAR TE ENCONTROU.",
+            2 => "AS ESCAMAS TE TOCARAM.",
+            _ => "A LOUCURA TE TOMOU.",
+        };
         write_center(14, msg, A_ALERT);
-        write_center(16, "seus ossos guardam o castelo agora.", A_UI);
-        write_center(17, "o basilisco volta a rondar, paciente.", A_UI);
+        if DEATH_R == 3 {
+            write_center(16, "voce correu atras de uma coroa que nunca existiu.", A_UI);
+            write_center(17, "o basilisco nem precisou te achar.", A_UI);
+        } else {
+            write_center(16, "seus ossos guardam o castelo agora.", A_UI);
+            write_center(17, "o basilisco volta a rondar, paciente.", A_UI);
+        }
         write_center(29, "ENTER - TENTAR DE NOVO", A_ALERT);
     }
 }
@@ -1878,6 +2242,8 @@ fn sync_stats() {
         STATS[15] = SCHEME;                      // menu: modo de teclas (0 WASD, 1 SETAS)
         STATS[16] = W().min(255) as u8;            // largura do mapa atual
         STATS[17] = H().min(255) as u8;            // altura do mapa atual
+        STATS[18] = FEAR.clamp(0, 100) as u8;      // HUD: medo (0..100)
+        STATS[19] = fear_level();                  // HUD: nível do medo (0..4)
         AI_DBG[0] = ROOMT;
         AI_DBG[1] = RTX;
         AI_DBG[2] = RTY;
@@ -1937,6 +2303,10 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         RH = 0;
         PLOITER = 0;
         LOITER = 0;
+        FEAR = 0;
+        CALM = 0;
+        DECAYT = 0;
+        clear_phantoms();
         let s = rnd();
         SEEDS[0] = s | 1;
         gen_floor(1, SEEDS[0]);
@@ -2055,6 +2425,36 @@ pub extern "C" fn pfb_debug_give_crown() {
         CROWN = true;
         push_event(EV_CROWN);
         sync_stats();
+    }
+}
+
+/// [DEBUG] injeta medo (0..100) direto no medidor — os cenários do smoke usam
+/// para testar níveis/alucinações/loucura sem esperar exposição orgânica.
+#[no_mangle]
+pub extern "C" fn pfb_debug_fear(f: u32) {
+    unsafe {
+        FEAR = (f as i32).min(FEAR_MAX);
+        CALM = 0;
+        DECAYT = 0;
+        if STATE == ST_PLAY {
+            compute_fov();
+            render();
+        }
+        sync_stats();
+    }
+}
+
+/// [DEBUG] ponteiro do estado do FANTASMA: [0]=FEAR, [1]=nível, [2]=fantasmas
+/// ativos, [3]=fake B on, [4]=coroa-fantasma on — inspeção do smoke.
+#[no_mangle]
+pub extern "C" fn pfb_debug_fear_ptr() -> u32 {
+    unsafe {
+        AI_DBG_FEAR[0] = FEAR.clamp(0, 100) as usize;
+        AI_DBG_FEAR[1] = fear_level() as usize;
+        AI_DBG_FEAR[2] = PH_ON.iter().filter(|x| **x).count();
+        AI_DBG_FEAR[3] = FB_ON as usize;
+        AI_DBG_FEAR[4] = PC_ON as usize;
+        AI_DBG_FEAR.as_ptr() as u32
     }
 }
 
