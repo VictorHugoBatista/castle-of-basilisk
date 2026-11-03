@@ -745,19 +745,43 @@ function render(nowMs) {
 // HUD: medidor de som (o "quanto te ouviam agora") + fôlego
 function drawHUD() {
   if (stats[0] !== 1) return;
-  const x0 = 4, y0 = 3;
-  const lvl = stats[10];
+  const now = performance.now();
+
+  // ---- placa dupla: ruído + fôlego, sobre placa escura com moldura ----
+  ctx.fillStyle = 'rgba(5,2,0,0.80)';
+  ctx.fillRect(2, 1, 46, 32);
+  ctx.strokeStyle = 'rgba(138,95,0,0.6)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(2.5, 1.5, 45, 31);
+
+  // ---- medidor de ruído: 3 casas grossas, acende com o nível ----
+  const bw = 10, bh = 14, gap = 3, bx = 7, by = 5;
   for (let k = 0; k < 3; k++) {
-    ctx.fillStyle = k < lvl
-      ? (lvl === 3 ? '#ff5000' : '#c98a00')
-      : 'rgba(107,68,0,0.30)';
-    ctx.fillRect(x0 + k * 9, y0, 6, 9);
+    const x = bx + k * (bw + gap);
+    // moldura da casa (sempre visível: lê-se o envelope mesmo apagado)
+    ctx.strokeStyle = 'rgba(138,95,0,0.70)';
+    ctx.strokeRect(x + 0.5, by + 0.5, bw - 1, bh - 1);
+    if (k < lvl) {
+      // cheia: cor por nível — calar (discreto), andar (âmbar), correr (perigo)
+      let col = k === 0 ? '#c98a00' : k === 1 ? '#ffb000' : '#ff5000';
+      if (lvl === 3) {
+        // fúria: piscada rápida — o nível máximo não passa despercebido
+        col = shade(col, 0.55 + 0.45 * Math.sin(now * 0.02));
+      }
+      ctx.fillStyle = col;
+      ctx.fillRect(x + 2, by + 2, bw - 4, bh - 4);
+    } else {
+      ctx.fillStyle = 'rgba(107,68,0,0.18)';
+      ctx.fillRect(x + 2, by + 2, bw - 4, bh - 4);
+    }
   }
-  const stam = stats[11] / 100;
-  ctx.fillStyle = 'rgba(60,38,0,0.55)';
-  ctx.fillRect(x0, y0 + 13, 30, 4);
+
+  // ---- fôlego: régua fina sob as casas, mesma largura do medidor ----
+  const fx = bx, fy = by + bh + 5, fw = bw * 3 + gap * 2;
+  ctx.fillStyle = 'rgba(107,68,0,0.35)';
+  ctx.fillRect(fx, fy, fw, 4);
   ctx.fillStyle = stats[11] < 25 ? '#ff5000' : '#8a5f00';
-  ctx.fillRect(x0, y0 + 13, Math.max(2, Math.round(30 * stam)), 4);
+  ctx.fillRect(fx, fy, Math.max(2, Math.round(fw * stats[11] / 100)), 4);
 }
 
 // ============================================================

@@ -224,8 +224,10 @@ Pilares (constantes tunaveis no topo de `src/lib.rs`):
   X/K = correr (dash de 2 tiles, ruido r=15, custo RUN_COST=6 por passo) com
   STAM (max 100) regenerando 2/tick; abaixo de PANT_AT=25: sem correr e
   ofego involuntario (evento 17 EV_PANT, ruido r=8 a cada 5 ticks).
-- **HUD**: medidor de som (3 barras, stats[10]) e barra de folego
-  (stats[11]) desenhados no canvas (fundo do jogo, `drawHUD`).
+- **HUD**: medidor de SOM (3 casas grossas em placa escura com moldura,
+  stats[10] — calar discreto/andar ambar/correr laranja PISCANDO no nivel
+  maximo) e barra de folego (stats[11]) desenhados no canvas (fundo do jogo,
+  `drawHUD`).
 - **Echo do castelo** (JS): bus `echoIn` (GainNode) -> DelayNode de 170 ms
   com feedback 0.33 e wet 0.55 manda os passos corridos de volta ao master:
   voce OUVE seus proprios passos repetidos nos corredores vazios. O som do
