@@ -313,9 +313,19 @@ Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
   masmorras 12/18 · esgoto 24/30). Monótono na run: voltar ao térreo não
   desaprende o que o esgoto ensinou. No habitat dela o teto é 30 = nivel 1
   sozinho: o LUGAR assombra.
+- **Freio do limiar (`fear_absorb`)**: lá em cima TODO susto rende menos —
+  72+: metade, 86+: um quarto (e nunca zera: `max(1)`). Matar de loucura exige
+  exposição LONGA: de ~8 ticks no rosto dela para ~20. Sem isso o jogador
+  morre atravessando os efeitos dos níveis 2-3 em vez de vê-los. Aplicado nos
+  dois caminhos de ganho (exposição e spike do EV_STINGER).
 - **Niveis** (0..4): 30 assombrado · 55 paranoico · 75 panico · 100 LOUCURA
   (morte). Panico encolhe o FOV para raio 6, soluco involuntario (ruido r=2)
   e glitch-fantasma (EV_BODY sem corpo em tela).
+- **Pele (CSS, `fearScreen` em game.js)**: o #wrap inteiro treme (duas
+  senoides desafinadas; amp 1.4px nv2, 2.6px nv3) e a vinheta #fearv(vermelho
+  radial) fecha pulsando com o batimento (nv2 0.12+-0.06, nv3 0.30+-0.10).
+  Fora do grid de propósito: complexidade nenhuma no WASM, efeitos nenhuma na
+  logica — e sobrevive ao render incremental (overlay, nao celulas).
 - **Alucinacoes — rendem no GRID de render, NUNCA em MAP/SEEN** (a logica,
   BFS/IA/gaze, jamais as ve; os fantasmas nao bloqueiam nem entregam nada):
   fantasma 'o' (attr 14, A_GHOST: trespassa paredes, evapora a d<=2, fora do
@@ -327,16 +337,19 @@ Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
   o render a desenharia num buraco nunca visto; evapora a d<=2 — a ilusao de
   vitoria custa folego e ruido r=15 se voce correr atras, fechando a espiral
   com a IA dela).
-- **Cadencia de spawn** (tabelas PH_*): fantasma 1/70 · 1/35 · 1/20 · 1/12 por
-  nivel (max 2/3/4 em tela); falso B 1/55 · 1/35 · 1/25 (NV 2+); coroa
-  1/100 · 1/45 · 1/35 (NV 2+, nunca com a coroa na mao); bafarra solta
-  (EV_WHISPER sem fantasma) 1/110 · 1/60 · 1/40 · 1/25. PH_CD=10 espaça
-  nascimentos; cores no attr 14 da paleta por tema (JS).
+- **Cadencia de spawn** (tabelas PH_*): fantasma 1/45 · 1/25 · 1/15 · 1/9 por
+  nivel (max 2/3/4 em tela); falso B 1/35 · 1/20 · 1/15 (NV 2+); coroa
+  1/60 · 1/30 · 1/22 (NV 2+, nunca com a coroa na mao); bafarra solta
+  (EV_WHISPER sem fantasma) 1/55 · 1/30 · 1/20 · 1/14; soluço tambem no nv1
+  (1/30). PH_CD=10 espaça nascimentos; cores no attr 14 da paleta por tema (JS).
 - **Bancada de balance** (`scripts/fear_bench.mjs`): 40 jogos do bot surdo do
   debug6 com telemetria do medo (ticks por nivel, pico, alucinacoes nascidas).
   Referência do ajuste "efeito invisível": antes 94% dos ticks no nivel 0,
-  3/40 jogos com alucinação e coroa 0/40; depois ~88% no nivel 0, ~20/40 com
-  alucinação e 16/40 vitorias INALTERADAS (loucura 10→9).
+  3/40 jogos com alucinação e coroa 0/40; com trauma/pavor/cadencia ~88% no
+  nivel 0 e 19/40 com alucinação; com o freio do limiar 86.8% no nivel 0 e
+  23/40 (80 fantasmas nascidos, falso B 106 ticks, coroa 60). Vitorias 16/40
+  em TODAS as rodadas — o balance da run é intocável; mortes: loucura 10 → 9 →
+  8 (as mortes extras passam a ser gaze dela: as caçadas duram mais).
 
 ## 4. Armazenamento
 

@@ -162,23 +162,29 @@ const TRAIL_W_OLD: i32 = 5;     // peso de sala visitada a 140..260 ticks (masmo
 // profundidade — no habitat dela você nunca fica são por muito tempo).
 const FEAR_MAX: i32 = 100;
 const FEAR_CALM_NEED: i32 = 8;     // ticks sem vê-la para começar a se acalmar
+// o freio do limiar: o topo da escalada é a DESCIDA dramática — lá em cima o
+// corpo para de absorver susto fácil (cada ponto rende menos), então morrer de
+// loucura exige exposição LONGA: é o tempo em que o mundo inteiro quebra na
+// tela antes de apagar. No 45→100 do rosto dela: de ~8 ticks para ~20.
+const FEAR_WORRY_LO: i32 = 72;
+const FEAR_WORRY_HI: i32 = 86;
 const FEAR_GAIN_HUG: i32 = 7;      // d<=3: o hálito dela no seu rosto
 const FEAR_GAIN_CLOSE: i32 = 3;    // d<=8: no campo aberto
 const FEAR_GAIN_FAR: i32 = 1;      // vislumbre distante (d<=12)
 const FEAR_GAIN_CREEP: i32 = 2;    // sem LOS, d<=3: você logo SABE que ela está ali
 const FEAR_GAIN_BODY: i32 = 2;     // escamas do rastro visíveis
 const FEAR_GAIN_SPOTTED: i32 = 15; // EV_STINGER: ela TE VIU — pico de pânico
-const FEAR_WHELP_AT: [i32; 5] = [0, 0, 18, 9, 9]; // soluço involuntário por nível (cadência)
+const FEAR_WHELP_AT: [i32; 5] = [0, 30, 18, 9, 9]; // soluço involuntário por nível (cadência)
 // pavor ambiente por PROFUNDIDADE (1..5; [0] é pad): teto do medo que o lugar
 // impõe e ticks entre cada +1 — monótono na run: subir de volta não desaprende
 const FEAR_AMB_CAP: [i32; 6] = [0, 6, 12, 18, 24, 30];
 const FEAR_AMB_N: [i32; 6] = [0, 44, 38, 32, 26, 22];
 // alucinações: chance 1/N ticks por NÍVEL (0..4) de fantasma 'o', e máx em tela
-const PH_GHOST_N: [usize; 5] = [1, 70, 35, 20, 12];
+const PH_GHOST_N: [usize; 5] = [1, 45, 25, 15, 9];
 const PH_GHOST_MAX: [usize; 5] = [0, 2, 3, 4, 4];
-const PH_FAKE_N: [usize; 5] = [1, 1, 55, 35, 25];    // falso `B` (attr 7 — indistinguível)
-const PH_CROWN_N: [usize; 5] = [1, 1, 100, 45, 35];  // coroa-fantasma: § onde não existe coroa
-const PH_WHISP_N: [i32; 5] = [0, 110, 60, 40, 25];   // bafarra solta: sussurro SEM fantasma nenhum
+const PH_FAKE_N: [usize; 5] = [1, 1, 35, 20, 15];    // falso `B` (attr 7 — indistinguível)
+const PH_CROWN_N: [usize; 5] = [1, 1, 60, 30, 22];   // coroa-fantasma: § onde não existe coroa
+const PH_WHISP_N: [i32; 5] = [0, 55, 30, 20, 14];    // bafarra solta: sussurro SEM fantasma nenhum
 const PH_FADE_T: i32 = 2;      // ticks de evaporação
 const FAKE_B_MIN: i32 = 12;    // o falso B nasce com a real fora do raio de morte — mais perto
                                // que isso e ele denuncia a real por contraste (radar grátis)
@@ -983,6 +989,17 @@ fn fear_level() -> u8 {
     if f >= FEAR_MAX { 4 } else if f >= 75 { 3 } else if f >= 55 { 2 } else if f >= 30 { 1 } else { 0 }
 }
 
+// o freio do limiar: lá em cima TODO susto rende menos (72+: metade, 86+: um
+// quarto) — e nunca zera: susto nenhum é grátis. É o que dá tempo de VER a
+// descida em vez de atravessá-la morto, e de quebrar a LOS a tempo de escapar
+#[inline]
+fn fear_absorb(gain: i32) -> i32 {
+    unsafe {
+        let damp = if FEAR >= FEAR_WORRY_HI { 4 } else if FEAR >= FEAR_WORRY_LO { 2 } else { 1 };
+        ((gain + damp / 2) / damp).max(1)
+    }
+}
+
 // troca de andar zera o imaginado: mentiras novas nascem do lugar novo
 fn clear_phantoms() {
     unsafe {
@@ -1200,7 +1217,7 @@ fn fear_update() {
         if theme(DEPTH) == TH_SEWER && gain > 0 { gain += gain / 2; }
 
         if gain > 0 {
-            FEAR += gain;
+            FEAR += fear_absorb(gain);
             if FEAR > FEAR_PK { FEAR_PK = FEAR; } // o pico marca o trauma
             CALM = 0;
             DECAYT = 0;
@@ -1416,7 +1433,9 @@ fn basilisk_turn() {
             if BST != B_HUNT {
                 push_event(EV_STINGER);
                 // ELA TE VIU: pico de pânico imediato — o susto de lock visual
-                FEAR = (FEAR + FEAR_GAIN_SPOTTED).min(FEAR_MAX);
+                // (com o freio: a 86+ o spike rende +4 — o terror do lock não
+                // é atalho instantâneo para a loucura)
+                FEAR += fear_absorb(FEAR_GAIN_SPOTTED);
                 if FEAR > FEAR_PK { FEAR_PK = FEAR; } // o pico marca o trauma
                 CALM = 0;
             }

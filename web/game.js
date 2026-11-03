@@ -843,6 +843,36 @@ function drawHUD() {
 }
 
 // ============================================================
+// os efeitos do medo na PELE (fora do grid: CSS puro)
+// ============================================================
+// Não é informação do jogo (o RT nunca mente — alucinação nenhuma vaza lógica):
+// é o SEU corpo à beira de quebrar. O mundo treme (duas senoides desafinadas,
+// nada de tremor uniforme) e a vinheta vermelha fecha nos pulsos do coração.
+const wrapEl = document.getElementById('wrap');
+const fearv = document.getElementById('fearv');
+const wrapBaseTransform = ''; // sempre limpa: nenhum outro transform usa o wrap
+function fearScreen(nowMs) {
+  let lvl = 0;
+  if (stats[0] === 1) lvl = stats[19] || 0;
+  if (lvl < 2) { restoreWrapped(); return; }
+  const t = nowMs / 1000;
+  // duas frequências irreducíveis: o mundo "respira errado" sob o medo
+  const tx = Math.sin(t * 41.0) + Math.sin(t * 23.7) * 0.6;
+  const ty = Math.cos(t * 33.3) + Math.sin(t * 19.1) * 0.5;
+  const amp = lvl >= 3 ? 2.6 : 1.4;
+  wrapEl.style.transform = `translate(${(tx * amp).toFixed(1)}px, ${(ty * amp * 0.7).toFixed(1)}px)`;
+  // vinheta pulsando como o coração (batida mais rápida no pânico)
+  const beat = Math.sin(t * (lvl >= 3 ? 5.2 : 3.4));
+  const base = lvl >= 3 ? 0.30 : 0.12;
+  const wave = lvl >= 3 ? 0.10 : 0.06;
+  fearv.style.opacity = (base + wave * beat).toFixed(3);
+}
+function restoreWrapped() {
+  if (wrapEl.style.transform) wrapEl.style.transform = wrapBaseTransform;
+  if (fearv.style.opacity !== '0') fearv.style.opacity = '0';
+}
+
+// ============================================================
 // loop principal
 // ============================================================
 let acc = 0;
@@ -877,6 +907,7 @@ function frame(nowMs) {
   lastState = stats[0];
 
   safe(() => render(nowMs), 'render');
+  safe(() => fearScreen(nowMs), 'tremor do medo');
   safe(drawHUD, 'HUD');
   requestAnimationFrame(frame); // SEMPRE re-agenda: 1 erro não congela os controles
 }

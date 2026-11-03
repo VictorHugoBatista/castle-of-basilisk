@@ -222,10 +222,29 @@ const madness = scenario('loucura mata sozinha (motivo 3, sem ela tocar)', () =>
   });
   if (!near) return false;
   place(near.x, near.y);
-  w.pfb_debug_fear(97); // +3 de exposição no próximo tick → 100 → loucura
+  w.pfb_debug_fear(99); // +1 de exposição no próximo tick → 100 → loucura
   w.pfb_step(0); pump();
   if (stats[0] !== 2) return false; // morreu
   return stats[1] === 3;            // e o motivo é a LOUCURA, não ela
+});
+
+// ---------- 2g-bis. freio do limiar: a subida final cansa ----------
+// Sem o freio, 80 + (+3/tick) chega a 100 (loucura) em 7 ticks: o jogador
+// morre atravessando os efeitos em vez de vendo-os. O freio (72+: metade,
+// 86+: um quarto) estica a subida para uns 16+ ticks — tempo de o mundo
+// inteiro quebrar na tela antes de apagar.
+const brake = scenario('freio do limiar: perto do 100, a subida cansa', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const near = findCell((p) => {
+    const d = (p >> 2) & 63;
+    return (p & 1) && (p & 2) && d >= 6 && d <= 8; // LOS médio: +3/tick
+  });
+  if (!near) return false;
+  place(near.x, near.y);
+  w.pfb_debug_fear(80);
+  for (let k = 0; k < 10; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  return stats[18] < 95; // 10 ticks de exposição e ainda está vivo abaixo do 95
 });
 
 // ---------- 2h. trauma: metade do pico NUNCA decai ----------
@@ -555,6 +574,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, madness, trauma, ambient, crownOK].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, madness, brake, trauma, ambient, crownOK].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

@@ -76,14 +76,18 @@ ESC volta ao menu.
 
 Ver a besta deixa marca. O medo **sobe rápido com a exposição** (vê-la de perto
 sobe muito; ela TE VIU dispara um pico) e **desce devagar longe dela** — quanto
-mais alto o nível, mais lenta a queda. E ele **nunca desce até o zero**:
+mais alto o nível, mais lenta a queda. E as duas regras que seguram o pior:
 
 - **o trauma fica**: metade do pico de medo da run **não decai** — depois de uma
   caçada que te levou a 60, você nunca volta abaixo de 30. Quase morreu de
   medo uma vez, carrega isso até o fim;
 - **o lugar respira**: mesmo sem vê-la, o medo rasteja sozinho até um teto por
   andar — no esgoto, o habitat dela, o teto é 30: você não fica são por muito
-  tempo por lá.
+  tempo por lá;
+- **perto do topo, cansa**: acima de 72 cada susto rende metade, acima de 86
+  um quarto — a loucura exige exposição LONGA. É a descida dramática: o
+  mundo inteiro quebra na tela antes de apagar, e quem quebra a LOS ainda
+  escapa. Morrer de medo é ver, não ser atropelado.
 
 | nível | medo | o que acontece |
 |---|---|---|
@@ -110,6 +114,9 @@ As **alucinações** só existem no render — a lógica do jogo jamais as vê:
 Correr atrás de coroa falsa → ruído alto → ela te encontra → medo sobe: a
 espiral fecha sozinha. No HUD, a placa do canto (`ruído / fôlego / medo`) tem
 a barra de medo tremendo em nível alto, e o coração dispara sozinho no pânico.
+A partir do **paranoico**, o próprio mundo treme (duas ondas desafinadas —
+nada uniforme, é o corpo respirando errado) e uma **vinheta vermelha** fecha
+nos pulsos do coração — fora do grid, na pele: informação nenhuma, só espanto.
 
 ## arquitetura
 
@@ -175,8 +182,9 @@ Valida: morte por olhar (com CONE de visão dela), morte por toque, IA investiga
 ruído, **o rastro de escamas existindo** (via `pfb_debug_body_ptr`) e **o corpo
 ficando visível em tela em algum momento**, **o MEDO subindo com exposição e
 caindo LONGE dela, a CICATRIZ do pico (nunca cai de metade), o PAVOR AMBIENTE
-rastejando sozinho, alucinações nascendo no pânico (fantasma + falso `B`), a
-COROA-FANTASMA nascendo longe e evaporando ao chegar perto, e a LOUCURA matando
+rastejando sozinho, o FREIO DO LIMIAR (perto do 100 a subida cansa),
+alucinações nascendo no pânico (fantasma + falso `B`), a COROA-FANTASMA
+nascendo longe e evaporando ao chegar perto, e a LOUCURA matando
 sozinha (motivo 3)**, **um playthrough completo por bot BFS**
 (desce os 5 andares na ordem, pega a coroa na Cloaca, escapa pelo portão —
 rotas que evitam a zona de gaze, esquiva geométrica, caminha na água do esgoto),
