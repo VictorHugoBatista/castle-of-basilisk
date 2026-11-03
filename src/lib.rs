@@ -2237,16 +2237,18 @@ fn render_controls() {
         cmd_row(19, "portais < e >", "andar sobre eles");
         if wasd_on {
             write_str(31, 15, "WASD", A_TITLE);
+            write_str(31, 18, "X", A_TITLE);
             write_str(45, 18, "K", A_TITLE);
         } else {
             write_str(40, 15, "SETAS", A_TITLE);
             write_str(31, 18, "X", A_TITLE);
+            write_str(45, 18, "K", A_TITLE);
         }
     }
 
-    write_center(22, "os dois esquemas funcionam o tempo", A_UI);
-    write_center(23, "todo: o modo so escolhe o atalho", A_UI);
-    write_center(24, "de corrida que cabe na sua mao.", A_UI);
+    write_center(22, "os dois esquemas de mover e as duas", A_UI);
+    write_center(23, "teclas de correr funcionam sempre;", A_UI);
+    write_center(24, "o modo so registra sua preferencia.", A_UI);
 
     // piscar: JS faz attr 9 tremer
     write_center(28, "ENTER ou ESC - VOLTAR", A_ALERT);

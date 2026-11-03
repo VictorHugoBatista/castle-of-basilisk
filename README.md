@@ -36,13 +36,14 @@ aceitar (Chrome bloqueia `file://`; use o servidor HTTP).
 | WASD ou setas | mover |
 | ESPAÇO | esperar (ficar imóvel) |
 | SHIFT | passada silenciosa (calar-se) |
-| K (modo WASD) ou X (modo setas) | correr — o eco denuncia você |
+| X ou K (as duas, sempre) | correr — o eco denuncia você |
 | ENTER | confirmar no menu / começar |
 
 Na tela de título: **W/S ou setas** escolhem entre **INICIAR** e **CONTROLES**,
 **ENTER** confirma. A tela de CONTROLES lista os comandos e permite escolher
 jogar com **WASD** ou com **as setas** (A/D ou ←/→ alternam) — ambos os
-esquemas funcionam sempre; o modo define o atalho de corrida.
+esquemas de mover e as duas teclas de correr funcionam sempre: o modo é só
+sua preferência guardada.
 ESC volta ao menu.
 
 ## como jogar (e sobreviver)

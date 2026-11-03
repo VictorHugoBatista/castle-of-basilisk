@@ -466,11 +466,11 @@ const KEYMAP = {
   ArrowLeft: IN_LEFT, KeyA: IN_LEFT,
   ArrowRight: IN_RIGHT, KeyD: IN_RIGHT,
 };
-// correr = X ou K (K para jogadores de WASD): Ctrl+W fecharia o navegador.
+// correr = X ou K, SEMPRE — como WASD e setas coexistem: as duas respondem
+// em qualquer modo (Ctrl+W fecharia o navegador, por isso não existe W de corrida).
 // Shift é passada silenciosa; correr é "você e o eco contra a pedra".
-// O modo escolhido na tela de CONTROLES (stats[15]) decide qual delas responde:
-// 0 = WASD → K ; 1 = SETAS → X.
-const RUNKEYS = () => (stats[15] === 1 ? ['KeyX'] : ['KeyK']);
+const RUN_CODES = ['KeyX', 'KeyK'];
+const runHeld = new Set(); // por tecla: soltar uma não derruba a corrida da outra
 
 // bits de input das telas de menu (mesmos números do WASM):
 // 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 CONFIRMAR, 64 VOLTAR
@@ -485,6 +485,7 @@ const MENU_CODES = {
 
 function startGame() {
   held.clear();
+  runHeld.clear();
   w.pfb_new_game((Date.now() & 0x7fffffff) | 1); // deterministic xorshift32 seed
   heartT0 = 0;
 }
@@ -517,15 +518,14 @@ window.addEventListener('keydown', (e) => {
   if (bit !== undefined) { held.add(bit); lastDir = bit; e.preventDefault(); return; }
   if (e.code === 'Space') { held.add(IN_WAIT); e.preventDefault(); return; }
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { held.add(IN_SNEAK); return; }
-  if (RUNKEYS().includes(e.code)) { held.add(IN_RUN); return; }
+  if (RUN_CODES.includes(e.code)) { runHeld.add(e.code); e.preventDefault(); return; }
 });
 window.addEventListener('keyup', (e) => {
   const bit = KEYMAP[e.code];
   if (bit !== undefined) { held.delete(bit); return; }
   if (e.code === 'Space') held.delete(IN_WAIT);
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') held.delete(IN_SNEAK);
-  if (RUNKEYS().includes(e.code)) held.delete(IN_RUN);
-  if (e.code === 'KeyX' || e.code === 'KeyK') held.delete(IN_RUN); // trocou de modo
+  if (RUN_CODES.includes(e.code)) runHeld.delete(e.code);
 });
 
 function inputBits() {
@@ -536,7 +536,7 @@ function inputBits() {
   else if (held.has(IN_RIGHT)) b = IN_RIGHT;
   else if (held.has(IN_WAIT)) b = IN_WAIT;
   if (held.has(IN_SNEAK)) b |= IN_SNEAK;
-  if (held.has(IN_RUN)) b |= IN_RUN;
+  if (runHeld.size > 0) b |= IN_RUN; // X e/ou K: um solto, o outro segue correndo
   return b;
 }
 
