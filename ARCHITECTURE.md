@@ -249,7 +249,7 @@ terreo.
 |---|------|------|---------|---------|
 | 1 | TH_CASTLE (Ruinas do castelo) | 56x32 | saloes amplos + pilares | quase adormecida: patrol 6/invest 4/hunt 3, ouvido 60, sibilo 1/90, rastro 7/2 |
 | 2-3 | TH_DUNGEON (Masmorras) | 56x32 | celas apertadas, mais portas/sombra/escombro | a cacadora de sempre: 4/3/2, ouvido 42, sibilo 1/47, rastro 14/5 |
-| 4-5 | TH_SEWER (Cloaca Maxima) | 80x44 | bacias/cisternas em rede maior, loops de fuga, canais de agua | CASA dela: 3/2/2, ouvido 30, sibilo 1/23, rastro 21/8, GAZE_R+1 |
+| 4-5 | TH_SEWER (Canais Envenenados) | 80x44 | bacias/cisternas em rede maior, loops de fuga, canais de agua | CASA dela: 3/2/2, ouvido 30, sibilo 1/23, rastro 21/8, GAZE_R+1 |
 
 - **Mapa maior no esgoto** (`floor_dims`): 80x44 vs 56x32; todos os buffers
   em `N_MAX`, dims reais publicadas em `STATS[16]/[17]`, camera no JS.
@@ -263,7 +263,7 @@ terreo.
   fora do habitat (terreo) ela e quase decorativa, na casa dela (esgoto)
   mortifera.
 - **Nomes de andar** (`floor_name` + `ARRIV`): ao chegar num piso novo, o
-  nome ("RUINAS DO CASTELO", "CLOACA MAXIMA I"...) fala na barra de UI por
+  nome ("RUINAS DO CASTELO", "CANAIS ENVENENADOS"...) fala na barra de UI por
   18 ticks; depois a dica contextual toma o lugar.
 
 Contrato de balanceamento: `node scripts/smoke.mjs` e o gate real — o bot
@@ -369,4 +369,4 @@ Ultima atualizacao: 2026-11-03
   `pfb_ui_ptr`): dica contextual e nome do andar, fixa na ULTIMA LINHA DA
   TELA (seguem a camera, nao o mapa).
 - **ARRIV**: tick da chegada no andar; os primeiros 18 ticks exibem
-  `floor_name` ("MASMORRA I", "CLOACA MAXIMA II") na barra de UI.
+  `floor_name` ("MASMORRA ASSOMBRADA", "CANAIS ENVENENADOS") na barra de UI.

@@ -6,7 +6,8 @@ um olhar mata**. A única defesa é **se esconder**.
 
 Você é um ladrão. O rei morreu há cem anos e o castelo apodrece, mas o guardião
 continua rondando: um **basilisco** cego, gigante, paciente. Cinco andares separam
-você do saque: o **térreo do castelo**, as **duas masmorras** e a **Cloaca Maxima** —
+você do saque: o **térreo do castelo**, a **Masmorra Assombrada** e os
+**Canais Envenenados** —
 a rede de esgoto imperial, o lar dela. Lá embaixo a besta se move a cada passo,
 o escuro é úmido e a água `=` canta em ecos. Roube **a coroa do rei morto**
 (andar 5, fundo da cloaca) e **fuja pelo portão** do térreo trinta metros acima —
@@ -88,10 +89,10 @@ scripts/debug6.mjs         bancada do bot playthrough
 | # | lugar | mapa | temperamento dela |
 |---|---|---|---|
 | 1 | Ruínas do castelo (térreo) | 56×32 | quase adormecida (fora do habitat) |
-| 2 | Masmorra I | 56×32 | a caça paciente de sempre |
-| 3 | Masmorra II | 56×32 | caça paciente + rastro forte |
-| 4 | Cloaca Maxima I | 80×44 | casa dela: veloz, olho a 5, ouvido fino |
-| 5 | Cloaca Maxima II (coroa) | 80×44 | idem, com canais de água a escoar |
+| 2 | Masmorra Assombrada | 56×32 | a caça paciente de sempre |
+| 3 | Masmorra Assombrada | 56×32 | caça paciente + rastro forte |
+| 4 | Canais Envenenados | 80×44 | casa dela: veloz, olho a 5, ouvido fino |
+| 5 | Canais Envenenados (coroa) | 80×44 | idem, com canais de água a escoar |
 
 ### WASM ABI
 

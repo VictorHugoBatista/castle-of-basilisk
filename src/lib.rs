@@ -24,10 +24,10 @@ fn theme(depth: u8) -> u8 {
 fn floor_name(depth: u8) -> &'static str {
     match depth {
         1 => "RUINAS DO CASTELO",
-        2 => "MASMORRA I",
-        3 => "MASMORRA II",
-        4 => "CLOACA MAXIMA I",
-        _ => "CLOACA MAXIMA II",
+        2 => "MASMORRA ASSOMBRADA",
+        3 => "MASMORRA ASSOMBRADA",
+        4 => "CANAIS ENVENENADOS",
+        _ => "CANAIS ENVENENADOS",
     }
 }
 
