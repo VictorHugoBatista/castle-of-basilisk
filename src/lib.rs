@@ -179,12 +179,14 @@ const FEAR_WHELP_AT: [i32; 5] = [0, 30, 18, 9, 9]; // soluço involuntário por 
 // impõe e ticks entre cada +1 — monótono na run: subir de volta não desaprende
 const FEAR_AMB_CAP: [i32; 6] = [0, 6, 12, 18, 24, 30];
 const FEAR_AMB_N: [i32; 6] = [0, 44, 38, 32, 26, 22];
-// alucinações: chance 1/N ticks por NÍVEL (0..4) de fantasma 'o', e máx em tela
-const PH_GHOST_N: [usize; 5] = [1, 45, 25, 15, 9];
+// alucinações: chance 1/N ticks por NÍVEL (0..4); cadências sobem do calmo
+// para a paranoia LENTA mas presente — graça = menos morte, mais pavor
+const PH_GHOST_N: [usize; 5] = [1, 30, 18, 12, 9];
 const PH_GHOST_MAX: [usize; 5] = [0, 2, 3, 4, 4];
-const PH_FAKE_N: [usize; 5] = [1, 1, 35, 20, 15];    // falso `B` (attr 7 — indistinguível)
-const PH_CROWN_N: [usize; 5] = [1, 1, 60, 30, 22];   // coroa-fantasma: § onde não existe coroa
-const PH_WHISP_N: [i32; 5] = [0, 55, 30, 20, 14];    // bafarra solta: sussurro SEM fantasma nenhum
+const PH_FAKE_N: [usize; 5] = [1, 120, 25, 18, 13];   // falso `B` (attr 7 — indistinguível)
+const PH_CROWN_N: [usize; 5] = [1, 1, 45, 30, 22];    // coroa-fantasma: § onde não existe coroa
+const PH_WHISP_N: [i32; 5] = [240, 25, 20, 14, 10];   // bafarra: no CALMO é "foi impressão minha?"
+const PH_BODY_N: [i32; 5] = [0, 240, 150, 60, 40];    // passos que não existem: o coração salta
 const PH_FADE_T: i32 = 2;      // ticks de evaporação
 const FAKE_B_MIN: i32 = 12;    // o falso B nasce com a real fora do raio de morte — mais perto
                                // que isso e ele denuncia a real por contraste (radar grátis)
@@ -1105,15 +1107,18 @@ fn spawn_ghost(lvl: u8) {
         for k in 0..4 { if PH_ON[k] { alive += 1; } }
         if alive >= max_g { return; }
         // nível 1-2: nasce ESCONDIDO (sua memória o vê, não o olho); nível 3+
-        // pode nascer no seu campo: você já não distingue o vivo do imaginado
+        // pode nascer no seu campo. E 1 em 4 nascimentos é o VISLUMBRE mesmo
+        // no baixo grau: entra no seu campo de relance e evapora a d<=2 —
+        // você quase tem certeza de que viu. Quase.
         let (min, max): (i32, i32) = if lvl >= 3 { (3, 8) } else { (5, 12) };
+        let glimpse = lvl >= 3 || rndn(4) == 0;
         for _ in 0..24 {
             let x = rndn(W());
             let y = rndn(H());
             let d = cheb(x, y, PX, PY);
             if d < min || d > max { continue; }
             if !walkable(x as i32, y as i32) { continue; }
-            if !in_player_sight_ok(x, y, lvl) { continue; }
+            if !glimpse && !in_player_sight_ok(x, y, lvl) { continue; }
             for k in 0..4 {
                 if PH_ON[k] { continue; }
                 PH_ON[k] = true;
@@ -1184,18 +1189,24 @@ fn spawn_phantom_crown() {
 
 // sorteio de novas mentiras por tick: fantasmas (nv 1+), falso B e
 // coroa-fantasma (nv 2+). PH_CD espaça os nascimentos (não enxameia).
+// No CALMO (nv 0) nada visual — mas o sussurro raro e o corpo falso seguem:
+// tensão sem evidência é paranoia nascendo.
 fn fear_haunt(lvl: u8) {
     unsafe {
-        if lvl == 0 { return; }
-        if PH_CD == 0 && rndn(PH_GHOST_N[lvl as usize]) == 0 { spawn_ghost(lvl); }
-        if lvl >= 2 {
-            if PH_CD == 0 && rndn(PH_FAKE_N[lvl as usize]) == 0 { spawn_fake_b(); }
-            if PH_CD == 0 && rndn(PH_CROWN_N[lvl as usize]) == 0 { spawn_phantom_crown(); }
+        if lvl >= 1 {
+            if PH_CD == 0 && rndn(PH_GHOST_N[lvl as usize]) == 0 { spawn_ghost(lvl); }
+            if lvl >= 2 {
+                if PH_CD == 0 && rndn(PH_FAKE_N[lvl as usize]) == 0 { spawn_fake_b(); }
+                if PH_CD == 0 && rndn(PH_CROWN_N[lvl as usize]) == 0 { spawn_phantom_crown(); }
+            }
         }
-        // bafarra solta: o sussurro chega SEM fantasma nenhum atrás — o áudio
-        // mente sozinho (e você nunca sabe qual dos dois está mentindo)
+        // bafarra solta: no nv0 é "foi impressão minha?" — no resto, rumor constante
         let wnp = PH_WHISP_N[lvl as usize];
         if wnp > 0 && TICK % wnp == 0 { push_event(EV_WHISPER); }
+        // passos que não existem: arrasto de escamas SEM corpo em tela — o
+        // coração salta antes do cérebro (center-pan no JS: lugar nenhum)
+        let bnp = PH_BODY_N[lvl as usize];
+        if bnp > 0 && TICK % bnp == 0 && rndn(2) == 0 { push_event(EV_BODY); }
         if PH_CD > 0 { PH_CD -= 1; }
     }
 }

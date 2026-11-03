@@ -93,9 +93,9 @@ mais alto o nível, mais lenta a queda. E as duas regras que seguram o pior:
 
 | nível | medo | o que acontece |
 |---|---|---|
-| 0 calmo | 0–29 | nada (além do pavor ambiente subindo devagar) |
-| 1 assombrado | 30–54 | sussurros (com e sem fonte); fantasmas `o` vêm até você |
-| 2 paranoico | 55–74 | fantasmas frequentes; **falso `B`** entra; soluço involuntário |
+| 0 calmo | 0–29 | nada na tela — mas o sussurro raro chega ("fui eu?") e o corpo às vezes PARECE ter passado por cima de você: não há ninguém |
+| 1 assombrado | 30–54 | sussurros; fantasmas `o` (**1 em 4 nasce à luz**: vislumbre no seu campo); **corpo falso** (passos que não existem); falso `B` rarefeito |
+| 2 paranoico | 55–74 | tudo de cima **frequentemente**; coroa-fantasma entra; soluço involuntário |
 | 3 pânico | 75–99 | visão encolhe (raio 6); coração dispara no vazio; glitch sem corpo |
 | 4 loucura | 100 | **A LOUCURA TE TOMOU** — morte por medo (motivo 3) |
 

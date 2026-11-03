@@ -340,20 +340,27 @@ Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
   o render a desenharia num buraco nunca visto; evapora a d<=2 — a ilusao de
   vitoria custa folego e ruido r=15 se voce correr atras, fechando a espiral
   com a IA dela).
-- **Cadencia de spawn** (tabelas PH_*): fantasma 1/45 · 1/25 · 1/15 · 1/9 por
-  nivel (max 2/3/4 em tela); falso B 1/35 · 1/20 · 1/15 (NV 2+); coroa
-  1/60 · 1/30 · 1/22 (NV 2+, nunca com a coroa na mao); bafarra solta
-  (EV_WHISPER sem fantasma) 1/55 · 1/30 · 1/20 · 1/14; soluço tambem no nv1
-  (1/30). PH_CD=10 espaça nascimentos; cores no attr 14 da paleta por tema (JS).
+- **Cadencia de spawn** (tabelas PH_*): fantasma 1/30 · 1/18 · 1/12 · 1/9 por
+  nivel — paranoia Lenta e presente desde o grau baixo (max 2/3/4 em tela;
+  NV1-2: 1 em 4 nascimentos entra A LUZ, o vislumbre no seu campo); falso B
+  entra ja no nv1 rarefeito e sobe: 1/120 · 1/25 · 1/18 · 1/13; coroa
+  1/45 · 1/30 · 1/22 (NV 2+); bafarra (EV_WHISPER sem fantasma) 1/240 ·
+  1/25 · 1/20 · 1/14 · 1/10 — no CALMO ela e o "foi impressao minha?"; corpo
+  falso (EV_BODY center-pan: arrasto separado de lugar nenhum) 1/240 ·
+  1/150 · 1/60 · 1/40, metade sorteada: passos que nao existem. Tudo isso e
+  APRESENTACAO: nenhuma restrutura na IA — o bot segue vencendo igual.
+  PH_CD=10 espaça os nascimentos; cores no attr 14 da paleta por tema (JS).
 - **Bancada de balance** (`scripts/fear_bench.mjs`): 40 jogos do bot surdo do
   debug6 com telemetria do medo (ticks por nivel, pico, alucinacoes nascidas).
   Evolução do ajuste, 40 jogos SEMPRE com 16/40 vitorias: baseline 94% dos
   ticks no nv0, 3/40 com alucinação, coroa 0/40, loucura 10 → trauma+pavor
   (19/40 alucinando, loucura 9) → cadencias+freio do limiar (23/40, loucura 8)
-  → terço do pico + "loucura so avanca pela visão": loucura 5, 102 fantasmas,
-  nv2+ 7.8% dos ticks. As mortes extras do bot passam a ser gaze/toque dela —
-  para o bot (que de senhor do risco), morrer de medo virou evento raro de run
-  inteira, o exatamente desejado.
+  → terço do pico + "loucura so avanca pela visão" (23/40, loucura 5, 102
+  fantasmas) → paranoia do grau baixo (nv0 sussurro/corpo falso, vislumbre,
+  falso B nv1): 32/40 alucinando, 231 fantasmas, falso B 345 e coroa 367
+  ticks, nv2+ 12.3% do tempo, loucura segue 5. As mortes extras do bot passam
+  a ser gaze/toque dela: morrer de medo virou evento raro de run inteira —
+  o exatamente desejado (o medo brinca, não mata).
 
 ## 4. Armazenamento
 

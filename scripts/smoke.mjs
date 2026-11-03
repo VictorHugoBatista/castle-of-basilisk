@@ -290,6 +290,20 @@ const ambient = scenario('pavor ambiente: longe dela, o medo rasteja sozinho', (
   return stats[18] >= 6 && stats[18] > f0; // teto ambiente do térreo, sem exposição
 });
 
+// ---------- 2i-bis. tensão no CALMO: sussurro sem evidência nenhuma ----------
+// No nível 0 nada visual acontece — mas o sussurro raro chega: a paranoia
+// começa ANTES do medo ter corpo. (Determinístico: o tick cruza 1/240.)
+const calmWhisper = scenario('calmo: sussurro raro, medo nenhum (paranoia nasce antes)', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
+  if (!far) return false;
+  place(far.x, far.y);
+  const w0 = evSeen[18] || 0;
+  for (let k = 0; k < 300; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  return (evSeen[18] || 0) > w0 && stats[18] < 30; // nível calmo, mas o ouvido já mente
+});
+
 // ---------- 3. playthrough com bot v2 ----------
 // Bot "surdo" (pior caso: humano tem o coração/áudio como aviso prévio).
 // Estratégia: rota BFS que evita a zona de perigo (LOS ≤9 ou dist ≤3),
@@ -590,6 +604,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, madness, brake, trauma, sightOnly, ambient, crownOK].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, madness, brake, trauma, sightOnly, ambient, calmWhisper, crownOK].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);
