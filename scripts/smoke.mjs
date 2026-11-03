@@ -212,24 +212,22 @@ const haunt = scenario('alucinações: pânico gera fantasmas/falso B em tela', 
   return sawGhost && sawFake;
 });
 
-// ---------- 2g. LOUCURA: medo em 100 mata por conta própria (motivo 3) ----------
-const madness = scenario('loucura mata sozinha (motivo 3, sem ela tocar)', () => {
+// ---------- 2g. O TOPO NÃO MATA: medo em 100 é teatro, não morte ----------
+const collapse = scenario('o medo NUNCA mata: 100 sustenta o caos, sem morte (e decai)', () => {
   w.pfb_new_game(1234567);
   for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
-  const near = findCell((p) => {
-    const d = (p >> 2) & 63;
-    return (p & 1) && (p & 2) && d >= 6 && d <= 8; // LOS mas FORA do gaze (d>4)
-  });
-  if (!near) return false;
-  place(near.x, near.y);
-  w.pfb_debug_fear(99); // +1 de exposição no próximo tick → 100 → loucura
-  w.pfb_step(0); pump();
-  if (stats[0] !== 2) return false; // morreu
-  return stats[1] === 3;            // e o motivo é a LOUCURA, não ela
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14)); // sem ela por perto
+  if (!far) return false;
+  place(far.x, far.y);
+  w.pfb_debug_fear(100); // o COLAPSO, forçado
+  for (let k = 0; k < 240; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  // 240 ticks parado longe: do teto (98+) sangrou só até a cicatriz (~33),
+  // vivo todo instante — o drama mora no travessia, não na lápide
+  return stats[18] <= 100 && stats[18] >= 30 && stats[18] < 100;
 });
 
 // ---------- 2g-bis. freio do limiar: a subida final cansa ----------
-// Sem o freio, 80 + (+3/tick) chega a 100 (loucura) em 7 ticks: o jogador
+// Sem o freio, 80 + (+3/tick) chega a 100 (colapso) em 7 ticks: o jogador
 // morre atravessando os efeitos em vez de vendo-os. O freio (72+: metade,
 // 86+: um quarto) estica a subida para uns 16+ ticks — tempo de o mundo
 // inteiro quebrar na tela antes de apagar.
@@ -262,7 +260,7 @@ const trauma = scenario('medo: o pico deixa cicatriz (nunca cai de um terço)', 
   return stats[18] >= 20; // 200 ticks calmo depois: ainda em 20 — ficou preso
 });
 
-// ---------- 2h-bis. a loucura só avança pelo que você VÊ ----------
+// ---------- 2h-bis. o topo só avança pelo que você VÊ ----------
 // Susto miúdo (creep: d<=3 sem LOS +2/tick) não empurra o topo: no 90+, nenhum
 // sinal sim preço sobe o medo — só a VISÃO dela move a descida final. Parado
 // longe, o medo até cai.
@@ -604,6 +602,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, madness, brake, trauma, sightOnly, ambient, calmWhisper, crownOK].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

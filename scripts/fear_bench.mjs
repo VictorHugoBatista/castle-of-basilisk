@@ -96,7 +96,7 @@ function fearMirror() {
   };
 }
 
-let wins = 0, deaths = 0, deathsBy = {};
+let wins = 0, deaths = 0, deathsBy = {}, stalls = 0;
 const agg = { lvlTicks: [0, 0, 0, 0, 0], spawns: 0, vanishes: 0, vanishesC: 0, whelps: 0, fakeTicks: 0, crownTicks: 0 };
 let gamesWithHalluc = 0, gamesLvl1 = 0, gamesLvl2 = 0;
 const perGame = [];
@@ -172,17 +172,22 @@ for (let g = 0; g < N; g++) {
   lvl.forEach((t, i) => agg.lvlTicks[i] += t);
   if (stats[0] === 3) wins++;
   else if (stats[0] === 2) { deaths++; deathsBy[stats[1]] = (deathsBy[stats[1]] || 0) + 1; }
+  else stalls++; // tempo esgotado: o bot surdo pode travar no dodge infinito (não é morte)
   if (lvl[1] + lvl[2] + lvl[3] + lvl[4] > 0) gamesLvl1++;
   if (lvl[2] + lvl[3] + lvl[4] > 0) gamesLvl2++;
   if (spawned + fakeT + crownT > 0) gamesWithHalluc++;
-  perGame.push({ seed, win: stats[0] === 3, reason: stats[1], steps, peak, lvl, spawned, fakeT, crownT, maxDepth });
+  perGame.push({ seed, win: stats[0] === 3, dead: stats[0] === 2, reason: stats[1], steps, peak, lvl, spawned, fakeT, crownT, maxDepth });
 }
 
 const med = (a) => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
 const tot = agg.lvlTicks.reduce((a, b) => a + b, 0) || 1;
 console.log(`\n=== bancada do medo: ${N} jogos (bot surdo do debug6) ===`);
-console.log(`vitórias: ${wins}/${N}  mortes: ${deaths} (motivos: ${JSON.stringify(deathsBy)})`);
-console.log(`ticks por nível: ${agg.lvlTicks.map((t) => (100 * t / tot).toFixed(1) + '%').join(' ')}`);
+console.log(`vitórias: ${wins}/${N}  mortes: ${deaths} (motivos: ${JSON.stringify(deathsBy)})  travados: ${stalls} (bot no dodge infinito — a morte dele continua sendo só dela)`);
+console.log(`ticks por nível (bruto, TRAVADOS incluídos): ${agg.lvlTicks.map((t) => (100 * t / tot).toFixed(1) + '%').join(' ')}`);
+const resolved = perGame.filter((g) => g.win || g.dead);
+const rlv = [0, 1, 2, 3, 4].map((i) => resolved.reduce((a, g) => a + g.lvl[i], 0));
+const rtot = rlv.reduce((a, b) => a + b, 0) || 1;
+console.log(`jogos RESOLVIDOS (${resolved.length}): ticks por nível: ${rlv.map((t) => (100 * t / rtot).toFixed(1) + '%').join(' ')}`);
 console.log(`jogos que alcançaram nv1+ : ${gamesLvl1}/${N}   nv2+ : ${gamesLvl2}/${N}`);
 console.log(`jogos com ALUCINAÇÃO vista (fantasma/falso B/coroa): ${gamesWithHalluc}/${N}`);
 console.log(`pico de medo: mediana ${med(perGame.map((g) => g.peak))}, máx ${Math.max(...perGame.map((g) => g.peak))}`);
@@ -192,5 +197,4 @@ console.log('\npor jogo (seed, resultado, steps, pico, ticks nv1+/nv2+/nv3+, alu
 for (const g of perGame) {
   const up = g.lvl[1] + g.lvl[2] + g.lvl[3] + g.lvl[4];
   const hi = g.lvl[2] + g.lvl[3] + g.lvl[4];
-  console.log(`  ${g.seed} ${g.win ? 'WIN ' : 'D' + g.reason} steps=${String(g.steps).padStart(5)} pico=${String(g.peak).padStart(3)} nv1+=${String(up).padStart(5)} nv2+=${String(hi).padStart(5)} nv3+=${String(g.lvl[3]).padStart(4)} aluc=${g.spawned + g.fakeT + g.crownT}`);
-}
+  console.log(`  ${g.seed} ${g.win ? 'WIN ' : g.dead ? 'D' + g.reason : 'TRAV'} steps=${String(g.steps).padStart(5)} pico=${String(g.peak).padStart(3)} nv1+=${String(up).padStart(5)} nv2+=${String(hi).padStart(5)} nv3+=${String(g.lvl[3]).padStart(4)} aluc=${g.spawned + g.fakeT + g.crownT}`);}

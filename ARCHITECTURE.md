@@ -92,8 +92,8 @@ Layout de memoria:
   ASCII; coroa = byte `0xA7` ('§' latin-1), agua = `'='` (0x3D). Attr = indice da
   paleta (0..15) OU `0x80 | indice` quando o tile e "lembrado" (fog of war) e
   escurece no render.
-- **Stats** (u8[32]): `[0] estado`, `[1] motivo de morte (1 olhar, 2 toque,
-  3 loucura)`,
+- **Stats** (u8[32]): `[0] estado`, `[1] motivo de morte (1 olhar, 2 toque —
+  o medo nunca mata)`,
   `[2] profundidade`, `[3] px`, `[4] py`, `[5] bx`, `[6] by`,
   `[7] estado da IA (0 patrol, 1 invest, 2 hunt)`, `[8] coroa`,
   `[9] segmentos do corpo visíveis` (o JS usa para "engordar" o drone),
@@ -102,7 +102,8 @@ Layout de memoria:
   semeia pfb_new_game e limpa)`, `[14] cursor do menu (0 INICIAR, 1 CONTROLES)`,
   `[15] modo de teclas (0 WASD, 1 SETAS — o J S usa para filtrar a tecla de
   corrida X/K)`, `[16] largura do andar atual`, `[17] altura do andar atual`,
-  `[18] medo (0..100)`, `[19] nivel do medo (0..4; 4 = LOUCURA, morte)`.
+  `[18] medo (0..100)`, `[19] nivel do medo (0..4; 4 = COLAPSO, efeitos
+  máximos — e o medo nunca mata)`.
   **REGRA DE OURO**: qualquer funcao que mude estado (morte/vitoria/eventos)
   DEVE chamar `sync_stats()`. (Dois bugs ja nasceram de stats obsoletos —
   o terceiro: `return` cedo apos descer de andar deixava o bot do smoke
@@ -293,9 +294,10 @@ Nome: subsistema de `src/lib.rs` (`fear_update`, `fear_haunt`, `phantoms_tick`,
 Descricao: exposição à besta sobe o medo; ausência desce — MAS devagar, e
 quanto mais alto o nível, MAIS lenta a queda (histerese do susto). O medo tem
 dois CHÕES que ele jamais desce abaixo (regra "o susto fica preso no corpo"):
-o TRAUMA (metade do pico histórico da run, `FEAR_PK/2`) e o PAVOR AMBIENTE
-(`AMBF`, teto por profundidade). Em 100 de medo, a loucura mata sozinha
-(motivo 3, `DEATH_R`).
+o TRAUMA (um terço do pico histórico da run, `FEAR_PK/3`) e o PAVOR AMBIENTE
+(`AMBF`, teto por profundidade). E o **TOPO NÃO MATA**: em 100 de medo nada
+acontece além do proprio teatro do pavor no máximo (`COLAPSO` — decisão de
+design: o medo atrapalha e fascina; a morte é trabalho dela, `DEATH_R` 1/2).
 
 Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
 
@@ -303,8 +305,9 @@ Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
   sem LOS mas d<=3 "halito de costas": +2; escamas visiveis +2; EV_STINGER
   pico +15). No esgoto (habitat) ganho x1.5.
 - **Queda**: 8 ticks calado comecam a acalmar; nivel 0: -2/2 ticks · nivel 1:
-  -1/2 · nivel 2: -1/3 · nivel 3: -1/5 — desce sempre mais lento do que sobe;
-  e para no chão (trauma ou pavor ambiente, o que for maior).
+  -1/2 · nivel 2: -1/3 · nivel 3: -1/5 · nivel 4 (COLAPSO): -1/6, a mais lenta
+  de todas — desce sempre mais lento do que sobe; e para no chão (trauma
+  ou pavor ambiente, o que for maior).
 - **Trauma (`FEAR_PK`)**: todo ganho marca o pico; a queda NUNCA leva o medo
   abaixo de um TERÇO dele. Uma caçada até 60 deixa o jogador assombrado (20)
   para sempre — cicatriz, não sentença — e a espiral de terror acumula entre
@@ -316,14 +319,15 @@ Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
   sozinho: o LUGAR assombra.
 - **Freio do limiar (`fear_absorb`)**: lá em cima TODO susto rende menos —
   72+: metade, 86+: um quarto; e susto MIUDO (creep sem LOS d<=3, escamas do
-  rastro: gain < 3) NÃO empurra o topo de jeito nenhum. A loucura só avança
+  rastro: gain < 3) NÃO empurra o topo de jeito nenhum. O COLAPSO só avança
   por aquilo que o jogador VÊ — chegar a 100 exige vê-la de novo e de novo
   ao longo da run (de ~7 ticks no rosto dela para uns 16+, intercalados por
   andares). Aplicado nos dois caminhos de ganho (exposição e spike do
   EV_STINGER).
-- **Niveis** (0..4): 30 assombrado · 55 paranoico · 75 panico · 100 LOUCURA
-  (morte). Panico encolhe o FOV para raio 6, soluco involuntario (ruido r=2)
-  e glitch-fantasma (EV_BODY sem corpo em tela).
+- **Niveis** (0..4): 30 assombrado · 55 paranoico · 75 panico · 100 COLAPSO
+  (NAO mata — teatro máximo: FOV raio 6, soluco sem parar (ruido r=2),
+  glitch-fantasma (EV_BODY sem corpo em tela), tudo tremendo). A decisão
+  central: o medo é a DECORAÇÃO do horror; a morte é trabalho dela.
 - **Pele (CSS, `fearScreen` em game.js)**: o #wrap inteiro treme (duas
   senoides desafinadas; amp 1.4px nv2, 2.6px nv3) e a vinheta #fearv(vermelho
   radial) fecha pulsando com o batimento (nv2 0.12+-0.06, nv3 0.30+-0.10).
@@ -353,14 +357,15 @@ Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
 - **Bancada de balance** (`scripts/fear_bench.mjs`): 40 jogos do bot surdo do
   debug6 com telemetria do medo (ticks por nivel, pico, alucinacoes nascidas).
   Evolução do ajuste, 40 jogos SEMPRE com 16/40 vitorias: baseline 94% dos
-  ticks no nv0, 3/40 com alucinação, coroa 0/40, loucura 10 → trauma+pavor
-  (19/40 alucinando, loucura 9) → cadencias+freio do limiar (23/40, loucura 8)
-  → terço do pico + "loucura so avanca pela visão" (23/40, loucura 5, 102
-  fantasmas) → paranoia do grau baixo (nv0 sussurro/corpo falso, vislumbre,
-  falso B nv1): 32/40 alucinando, 231 fantasmas, falso B 345 e coroa 367
-  ticks, nv2+ 12.3% do tempo, loucura segue 5. As mortes extras do bot passam
-  a ser gaze/toque dela: morrer de medo virou evento raro de run inteira —
-  o exatamente desejado (o medo brinca, não mata).
+  ticks no nv0, 3/40 com alucinação, coroa 0/40 → trauma+pavor (19/40
+  alucinando) → cadencias+freio do limiar (23/40) → terço do pico + "só a
+  visão empurra o topo" (23/40, 102 fantasmas) → paranoia do grau baixo + "o
+  TOPO NAO MATA": 33/40 jogos alucinando; nos jogos RESOLVIDOS (36), o medo
+  mora em 81% no nivel 0 e teatraliza ~19% do tempo (nv1-4), o COLAPSO
+  propriamente dito e 1.0% — decoracao dramática, nunca carcere. As mortes do
+  bot sao exclusivamente dela (gaze/toque; o motivo 3 foi removido: o medo
+  nunca mata). 4 jogos ficam TRAVADOS no dodge infinito do bot surdo (bancada
+  apenas: o contador `travados` os segrega — o jogador humano não os vê).
 
 ## 4. Armazenamento
 

@@ -441,7 +441,7 @@ function heartbeat(nowMs) {
   else period = 700 + dist * 130; // patrulha longe = lento
   period = Math.max(260, Math.min(1500, period));
   // o MEDO também acelera o peito — e não pergunta se ela está perto:
-  // a loucura late sozinha (nível 3: o coração dispara no vazio)
+  // o pavor late sozinha (nível 3+: o coração dispara no vazio)
   const fl = stats[19] || 0;
   if (fl > 0) period = Math.max(175, period - fl * 65);
   if (nowMs - heartT0 < period) return;
@@ -832,7 +832,7 @@ function drawHUD() {
     const FEAR_COL = ['#8a5f00', '#c98a00', '#ff7a00', '#ff2000', '#ff2000'][fl];
     let mcol = FEAR_COL;
     if (fl >= 3) {
-      // pânico/loucura: a barra tremula fora de tempo — e desloca ±1px
+      // pânico/colapso: a barra tremula fora de tempo — e desloca ±1px
       mcol = shade(FEAR_COL, 0.6 + 0.4 * Math.sin(now * (fl === 3 ? 0.017 : 0.035)));
     }
     const jx = fl >= 2 ? Math.round((Math.random() - 0.5) * (fl >= 3 ? 3 : 1.2)) : 0;

@@ -163,9 +163,10 @@ const TRAIL_W_OLD: i32 = 5;     // peso de sala visitada a 140..260 ticks (masmo
 const FEAR_MAX: i32 = 100;
 const FEAR_CALM_NEED: i32 = 8;     // ticks sem vê-la para começar a se acalmar
 // o freio do limiar: o topo da escalada é a DESCIDA dramática — lá em cima o
-// corpo para de absorver susto fácil (cada ponto rende menos), então morrer de
-// loucura exige exposição LONGA: é o tempo em que o mundo inteiro quebra na
-// tela antes de apagar. No 45→100 do rosto dela: de ~8 ticks para ~20.
+// corpo para de absorver susto fácil (cada ponto rende menos), então o COLAPSO
+// exige exposição LONGA: é o tempo em que o mundo inteiro quebra na tela, com
+// você ainda respirando (o pavor atrapalha, jamais mata). No 45→100 do rosto
+// dela: de ~8 ticks para ~20.
 const FEAR_WORRY_LO: i32 = 72;
 const FEAR_WORRY_HI: i32 = 86;
 const FEAR_GAIN_HUG: i32 = 7;      // d<=3: o hálito dela no seu rosto
@@ -181,12 +182,12 @@ const FEAR_AMB_CAP: [i32; 6] = [0, 6, 12, 18, 24, 30];
 const FEAR_AMB_N: [i32; 6] = [0, 44, 38, 32, 26, 22];
 // alucinações: chance 1/N ticks por NÍVEL (0..4); cadências sobem do calmo
 // para a paranoia LENTA mas presente — graça = menos morte, mais pavor
-const PH_GHOST_N: [usize; 5] = [1, 30, 18, 12, 9];
+const PH_GHOST_N: [usize; 5] = [1, 30, 18, 12, 14];
 const PH_GHOST_MAX: [usize; 5] = [0, 2, 3, 4, 4];
 const PH_FAKE_N: [usize; 5] = [1, 120, 25, 18, 13];   // falso `B` (attr 7 — indistinguível)
 const PH_CROWN_N: [usize; 5] = [1, 1, 45, 30, 22];    // coroa-fantasma: § onde não existe coroa
-const PH_WHISP_N: [i32; 5] = [240, 25, 20, 14, 10];   // bafarra: no CALMO é "foi impressão minha?"
-const PH_BODY_N: [i32; 5] = [0, 240, 150, 60, 40];    // passos que não existem: o coração salta
+const PH_WHISP_N: [i32; 5] = [240, 25, 20, 14, 16];   // bafarra: no CALMO é "foi impressão minha?"
+const PH_BODY_N: [i32; 5] = [0, 240, 150, 60, 55];    // passos que não existem: o coração salta
 const PH_FADE_T: i32 = 2;      // ticks de evaporação
 const FAKE_B_MIN: i32 = 12;    // o falso B nasce com a real fora do raio de morte — mais perto
                                // que isso e ele denuncia a real por contraste (radar grátis)
@@ -232,7 +233,8 @@ static mut AUD_H: usize = 0;
 static mut AUD_T: usize = 0;
 
 static mut STATE: u8 = ST_TITLE;
-static mut DEATH_R: u8 = 0; // 1 = olhar, 2 = toque, 3 = loucura (medo em FEAR_MAX)
+static mut DEATH_R: u8 = 0; // motivos de morte REAL: 1 = olhar, 2 = toque
+                            // (o medo nunca mata — veja fear_update)
 static mut DEPTH: u8 = 1;
 static mut CROWN: bool = false;
 static mut TICK: i32 = 0;
@@ -984,7 +986,8 @@ fn cheb(ax: usize, ay: usize, bx: usize, by: usize) -> i32 {
 
 // ================= medo e loucura =================
 
-// 0 calmo · 1 assombrado · 2 paranoico · 3 pânico · 4 LOUCURA (mata)
+// 0 calmo · 1 assombrado · 2 paranoico · 3 pânico · 4 COLAPSO (não mata:
+// é o teatro máximo — todo efeito de uma vez, com você ALI)
 #[inline]
 fn fear_level() -> u8 {
     let f = unsafe { FEAR };
@@ -993,7 +996,7 @@ fn fear_level() -> u8 {
 
 // o freio do limiar: lá em cima TODO susto rende menos (72+: metade, 86+: um
 // quarto) — e susto MIUDO (creep de trás da parede, escamas do rastro: < 3)
-// não empurra o topo de jeito nenhum. A loucura só avança por aquilo que você
+// não empurra o topo de jeito nenhum. O COLAPSO só avança por aquilo que você
 // VÊ: é o que dá margem de fuga de verdade — escapar de perto é escapar, e a
 // descida final você assiste em vez de atravessá-la
 #[inline]
@@ -1251,8 +1254,11 @@ fn fear_update() {
                 if FEAR < AMBF { FEAR = AMBF; }
             }
             if CALM >= FEAR_CALM_NEED {
-                // queda: LENTA nos níveis altos — histerese do susto
+                // queda: LENTA nos níveis altos — histerese do susto; do
+                // COLAPSO (4) desce mais devagar que tudo, mas DESCE: um
+                // susto de verdade não vira o decoro permanente do jogo
                 let (period, dec): (i32, i32) = match lvl {
+                    4 => (4, 1),
                     3 => (5, 1),
                     2 => (3, 1),
                     1 => (2, 1),
@@ -1271,11 +1277,11 @@ fn fear_update() {
         if FEAR < 0 { FEAR = 0; }
         let floor = (FEAR_PK / 3).max(AMBF);
         if FEAR < floor { FEAR = floor; }
-        if FEAR >= FEAR_MAX {
-            // LOUCURA: o medo matou sozinho — motivo de morte 3
-            if STATE == ST_PLAY { death(3); }
-            return;
-        }
+        // o TOPO NÃO MATA — decisão de design: o medo atrapalha, fascina e
+        // desarma, mas nunca é a causa da morte (isso é trabalho dela). O
+        // COLAPSO (100) é o teatro máximo: FOV 6, soluço sem parar, o mundo
+        // tremendo forte e vinheta fechando — com você ainda respirando
+        if FEAR > FEAR_MAX { FEAR = FEAR_MAX; }
         lvl = fear_level();
 
         // ---- soluço involuntário: o corpo trai o medo (r=2: quase inaudível) ----
@@ -1451,7 +1457,7 @@ fn basilisk_turn() {
                 push_event(EV_STINGER);
                 // ELA TE VIU: pico de pânico imediato — o susto de lock visual
                 // (com o freio: a 86+ o spike rende +4 — o terror do lock não
-                // é atalho instantâneo para a loucura)
+                // é atalho instantâneo para o COLAPSO)
                 FEAR += fear_absorb(FEAR_GAIN_SPOTTED);
                 if FEAR > FEAR_PK { FEAR_PK = FEAR; } // o pico marca o trauma
                 CALM = 0;
@@ -1859,7 +1865,7 @@ fn game_step(input: u32) {
 
         compute_fov();
         body_pass();
-        fear_update(); // medo/alucinações/loucura — PODE matar (motivo 3)
+        fear_update(); // medo/alucinações/colapso — o medo atrapalha, NUNCA mata
         if STATE == ST_PLAY { render(); }
         sync_stats();
     }
@@ -2287,19 +2293,10 @@ fn render_dead() {
         ];
         write_block_center(4, &skull, A_BAS);
 
-        let msg = match DEATH_R {
-            1 => "O OLHAR TE ENCONTROU.",
-            2 => "AS ESCAMAS TE TOCARAM.",
-            _ => "A LOUCURA TE TOMOU.",
-        };
+        let msg = if DEATH_R == 1 { "O OLHAR TE ENCONTROU." } else { "AS ESCAMAS TE TOCARAM." };
         write_center(14, msg, A_ALERT);
-        if DEATH_R == 3 {
-            write_center(16, "voce correu atras de uma coroa que nunca existiu.", A_UI);
-            write_center(17, "o basilisco nem precisou te achar.", A_UI);
-        } else {
-            write_center(16, "seus ossos guardam o castelo agora.", A_UI);
-            write_center(17, "o basilisco volta a rondar, paciente.", A_UI);
-        }
+        write_center(16, "seus ossos guardam o castelo agora.", A_UI);
+        write_center(17, "o basilisco volta a rondar, paciente.", A_UI);
         write_center(29, "ENTER - TENTAR DE NOVO", A_ALERT);
     }
 }
@@ -2521,7 +2518,7 @@ pub extern "C" fn pfb_debug_give_crown() {
 }
 
 /// [DEBUG] injeta medo (0..100) direto no medidor — os cenários do smoke usam
-/// para testar níveis/alucinações/loucura sem esperar exposição orgânica.
+/// para testar níveis/alucinações/colapso sem esperar exposição orgânica.
 #[no_mangle]
 pub extern "C" fn pfb_debug_fear(f: u32) {
     unsafe {

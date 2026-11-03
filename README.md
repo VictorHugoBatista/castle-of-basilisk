@@ -72,11 +72,13 @@ ESC volta ao menu.
   ela está de caça perto. A paleta da tela veste a cor do andar (âmbar de
   castelo / âmbar seco / verde-lodo).
 
-## o medo (e a loucura)
+## o medo (o terror que não mata)
 
-Ver a besta deixa marca. O medo **sobe rápido com a exposição** (vê-la de perto
-sobe muito; ela TE VIU dispara um pico) e **desce devagar longe dela** — quanto
-mais alto o nível, mais lenta a queda. E as duas regras que seguram o pior:
+Ver a besta deixa marca — e o medo, aqui, **nunca mata**: ele te atrapalha,
+desarma e tira tua graça. A morte é trabalho dela (olhar, toque). O medo vive
+de você: **sobe rápido com a exposição** (vê-la de perto sobe muito; ela TE VIU
+dispara um pico) e **desce devagar longe dela** — quanto mais alto o nível,
+mais lenta a queda. As regras que seguram tudo:
 
 - **o trauma fica**: um terço do pico de medo da run **não decai** — uma caçada
   que te levou a 60 te deixa assombrado (20) até o fim, mas sobreviver a ela
@@ -84,12 +86,11 @@ mais alto o nível, mais lenta a queda. E as duas regras que seguram o pior:
 - **o lugar respira**: mesmo sem vê-la, o medo rasteja sozinho até um teto por
   andar — no esgoto, o habitat dela, o teto é 30: você não fica são por muito
   tempo por lá;
-- **a loucura só avança pelo que você VÊ**: perto do topo cada susto rende
-  menos (72+: metade, 86+: um quarto) e os sustos miúdos não empurram nada —
-  o sopro atrás da parede e as escamas do rastro alimentam o pavor, os gritos
-  e o mundo tremendo, mas só a visão dela move a descida final. Morrer de
-  medo é uma construção lenta ao longo da run — escapou do olho de perto,
-  escapou do estômago de vez.
+- **o topo só sobe pelo que você VÊ**: perto de 100 cada susto rende menos
+  (72+: metade, 86+: um quarto) e os sustos miúdos não empurram nada — o
+  sopro atrás da parede e as escamas do rastro alimentam o pavor, os gritos
+  e o mundo tremendo, mas só VÊ-LA move o medidor no fim. O medo fica alto
+  porque você ousa olhar, não porque ela anda por perto.
 
 | nível | medo | o que acontece |
 |---|---|---|
@@ -97,7 +98,7 @@ mais alto o nível, mais lenta a queda. E as duas regras que seguram o pior:
 | 1 assombrado | 30–54 | sussurros; fantasmas `o` (**1 em 4 nasce à luz**: vislumbre no seu campo); **corpo falso** (passos que não existem); falso `B` rarefeito |
 | 2 paranoico | 55–74 | tudo de cima **frequentemente**; coroa-fantasma entra; soluço involuntário |
 | 3 pânico | 75–99 | visão encolhe (raio 6); coração dispara no vazio; glitch sem corpo |
-| 4 loucura | 100 | **A LOUCURA TE TOMOU** — morte por medo (motivo 3) |
+| 4 colapso | 100 | **o teatro do pavor inteiro de uma vez** — FOV raio 6, soluço sem parar, o mundo treme forte e a vinheta fecha; e você continua ALI: **o medo nunca mata** |
 
 As **alucinações** só existem no render — a lógica do jogo jamais as vê:
 
@@ -186,8 +187,9 @@ ficando visível em tela em algum momento**, **o MEDO subindo com exposição e
 caindo LONGE dela, a CICATRIZ do pico (nunca cai de um terço), o PAVOR AMBIENTE
 rastejando sozinho, o FREIO DO LIMIAR (perto do 100 a subida cansa e susto
 miúdo não empurra o topo), alucinações nascendo no pânico (fantasma + falso
-`B`), a COROA-FANTASMA nascendo longe e evaporando ao chegar perto, e a
-LOUCURA matando sozinha (motivo 3)**, **um playthrough completo por bot BFS**
+`B`), a COROA-FANTASMA nascendo longe e evaporando ao chegar perto,
+o COLAPSO em 100 QUE NUNCA MATA (segura o caos, decai devagar e continua
+vivo)**, **um playthrough completo por bot BFS**
 (desce os 5 andares na ordem, pega a coroa na Cloaca, escapa pelo portão —
 rotas que evitam a zona de gaze, esquiva geométrica, caminha na água do esgoto),
 **a MORTE NA CLOACA — tela de morte compõe 56x32, não o stride 80 do esgoto**
