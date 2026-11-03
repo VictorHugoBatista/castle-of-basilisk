@@ -10,12 +10,12 @@ regras de jogo). O gameplay em si esta detalhado no README.
 ```
 castle-of-basilisc/
 ├── src/
-│   └── lib.rs              # O JOGO INTEIRO em um arquivo (~1150 linhas, Rust puro)
+│   └── lib.rs              # O JOGO INTEIRO em um arquivo (~1900 linhas, Rust puro)
 ├── web/
 │   ├── index.html          # Canvas 672x576 + filtro CRT 100% CSS
-│   ├── game.js             # Glue JS: tick de 140ms, render diff, WebAudio
+│   ├── game.js             # Glue JS: tick de 140ms, camera, render diff, WebAudio
 │   └── wasm/
-│       └── castle_of_basilisk.wasm   # Binario compilado (~28 KB), comitado
+│       └── castle_of_basilisk.wasm   # Binario compilado (~37 KB), comitado
 ├── scripts/
 │   ├── smoke.mjs           # Gate de testes headless (so merge com "SMOKE OK")
 │   └── debug6.mjs          # Bancada do bot playthrough (mede taxa de vitoria)
@@ -37,7 +37,7 @@ Se crescer, dividir por dominio: `gen.rs`, `basilisk.rs`, `fov.rs`, `exports.rs`
    v  keyboard (WASD/setas/ESPACO/ENTER)
 [game.js] --fetch--> [castle_of_basilisk.wasm] --instantiate--> memoria linear
    ^  ^                    |  exports: pfb_init/new_game/step/pop_event/...
-   |  | rAF loop           |  memoria: grid (56x32x2B) | stats (16B)
+   |  | rAF loop           |  memoria: grid (80x44 MAX x2B, dims por andar) | stats (24B)
    |  +--- tick 140ms ---->|  eventos: ring buffer u32[16]
    |
 [CRT CSS]  <--- canvas --- render diff por celula
@@ -77,16 +77,21 @@ Exports (contrato publico — nao quebrar):
 | `pfb_step`      | `(input: u32)`               | um tick (bits: 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 WAIT, 32 SNEAK, 64 RUN) |
 | `pfb_menu`      | `(input: u32)`               | teclado dos menus (bits: 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 OK, 64 BACK) |
 | `pfb_state`     | `() u32`                     | 0 titulo, 1 jogo, 2 morte, 3 vitoria, 4 controles |
-| `pfb_grid_ptr`  | `() u32`                     | ponteiro do grid de render |
+| `pfb_grid_ptr`  | `() u32`                     | ponteiro do grid de render (dims atuais em STATS[16]/[17]) |
+| `pfb_max_n`     | `() u32`                     | tamanho MAXIMO do grid (W_MAX*H_MAX = 3520): o JS dimensiona as views |
+| `pfb_ui_ptr`    | `() u32`                     | barra de UI fabricada (W0 celulas x [char,attr]): dica contextual / nome do andar |
 | `pfb_stats_ptr` | `() u32`                     | ponteiro do bloco de stats |
 | `pfb_pop_event` | `() u32`                     | consome fila de audio (0 = vazia) |
 | `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown | somente para testes headless |
 
 Layout de memoria:
-- **Grid**: `56x32` celulas x `[char: u8, attr: u8]`. Char da tabela ASCII;
-  coroa = byte `0xA7` ('§' latin-1). Attr = indice da paleta (0..15) OU
-  `0x80 | indice` quando o tile e "lembrado" (fog of war) e escurece no render.
-- **Stats** (u8[16]): `[0] estado`, `[1] motivo de morte (1 olhar, 2 toque)`,
+- **Grid**: buffer maximo `W_MAX x H_MAX` (80x44) celulas x `[char: u8, attr: u8]`,
+  dimensoes REAIS do andar atual publicadas em `STATS[16]/[17]` (funcoes `W()`/`H()`
+  leem `DIMW/DIMH`: castelo e masmorras 56x32, esgotos 80x44). Char da tabela
+  ASCII; coroa = byte `0xA7` ('§' latin-1), agua = `'='` (0x3D). Attr = indice da
+  paleta (0..15) OU `0x80 | indice` quando o tile e "lembrado" (fog of war) e
+  escurece no render.
+- **Stats** (u8[24]): `[0] estado`, `[1] motivo de morte (1 olhar, 2 toque)`,
   `[2] profundidade`, `[3] px`, `[4] py`, `[5] bx`, `[6] by`,
   `[7] estado da IA (0 patrol, 1 invest, 2 hunt)`, `[8] coroa`,
   `[9] segmentos do corpo visíveis` (o JS usa para "engordar" o drone),
@@ -94,7 +99,7 @@ Layout de memoria:
   `[12] jogador esta em escombro (0/1)`, `[13] pedido de iniciar (menu -> JS
   semeia pfb_new_game e limpa)`, `[14] cursor do menu (0 INICIAR, 1 CONTROLES)`,
   `[15] modo de teclas (0 WASD, 1 SETAS — o J S usa para filtrar a tecla de
-  corrida X/K)`.
+  corrida X/K)`, `[16] largura do andar atual`, `[17] altura do andar atual`.
   **REGRA DE OURO**: qualquer funcao que mude estado (morte/vitoria/eventos)
   DEVE chamar `sync_stats()`. (Dois bugs ja nasceram de stats obsoletos —
   o terceiro: `return` cedo apos descer de andar deixava o bot do smoke
@@ -102,8 +107,9 @@ Layout de memoria:
   normal do tick.)
 - **Eventos**: ring buffer `u32[16]`, produtor (Rust) / consumidor (JS).
 
-RNG: xorshift32 com seed POR ANDAR (`SEEDS[3]`), definida em `pfb_new_game`.
-Subir e descer NAO regenera o mapa: o mesmo seed reproduz o mesmo andar.
+RNG: xorshift32 com seed POR ANDAR (`SEEDS[FLOORS]`, FLOORS=5), definida em
+`pfb_new_game`. Subir e descer NAO regenera o mapa: o mesmo seed reproduz o
+mesmo andar.
 
 ### 3.2. Front-end web
 
@@ -122,8 +128,17 @@ Decisoes:
 - **Tick por acumulador de passo fixo**: a cada 140 ms roda um `pfb_step` com
   o input atual; ficar sem input TAMBEM gera tick — imovel e uma acao
   (esconder), e o mundo continua vivo quando o jogador para.
-- **Render diff**: `prevGrid` compara `[char,attr]` por celula; celula animada
-  (pulso/blink dos attrs) redesenha sempre. Evita redesenho global.
+- **Render diff**: `prevGrid` compara `[char,attr]` por celula DE TELA; celula
+  animada (pulso/blink dos attrs, agua `=` com onda de lodo) redesenha sempre.
+  Evita redesenho global.
+- **Camera segue-jogador**: viewport FIXA 56x32 (o canvas de sempre); mapas
+  maiores (esgoto 80x44) deslizam sob ela via `camX/camY` clampados nas bordas.
+  Mudou andar ou dimensoes => `needsFull` (remontagem integral). A dica
+  contextual mora na ULTIMA LINHA DA TELA (UIROW exportada pelo WASM): com a
+  camera, a ultima linha do mapa nem sempre esta visivel.
+- **Paletas por tema** (`PAL_CASTLE/PAL_DUNGEON/PAL_SEWER`, mesmos indices de
+  attr): a troca de andar troca a referencia de paleta + `needsFull` — o CRT
+  veste a cor do lugar (ambar rico / ambar seco / verde-lodo).
 - **CRT em CSS puro** (scanlines `repeating-linear-gradient`, vinheta
   `radial-gradient`, flicker por keyframes): custo ZERO de runtime vs shaders.
 - **Paleta monocromatica (familia #ffb000) sobre #050200**; a EXCECAO e a
@@ -139,6 +154,13 @@ Decisoes:
     terminar, remontagem total (`prevGrid.fill(0)` + `needsFull`).
 - **`AudioContext` so no primeiro gesto do usuario** (exigencia dos
   navegadores). Drone grave (55/58,3 Hz triangle + lowpass) e o "hum" do castelo.
+- **Ambiente sonoro por tema** (`setAmbience`): troca de andar => fade das
+  trilhas velhas + arranque das novas. Terreo: VENTO (noise loop bandpass 430 Hz
+  com LFO duplo na frequencia e no volume). Masmorra: SILÊNCIO PERTURBADOR
+  (estalo de pedra a cada 16-40 s; SFX abafados a 0.7 no bus `sfxBus` — o
+  silencio sepulcral contrasta com qualquer barulho). Esgoto: GOTEIRAS (ping
+  agudo com eco de cisterna, gota dupla ocasional), que PARAM quando ela esta
+  de caca perto. Passos respingam na agua (`T_WATER` sob os pes).
 - **Todos os sons sao sintetizados**: oscillator + gain envelope + StereoPanner.
   Zero samples (binario web leve). Coracao: intervalo/volume/pitch pela
   distancia chebyshev; pan pelo sinal de dx (direita/esquerda).
@@ -170,12 +192,17 @@ Pilares (constantes tunaveis no topo de `src/lib.rs`):
 - **Patrulha por salas** (`pick_next_room`): o mapa se divide nos rects de
   sala da geracao; ela rota sala a sala, fareja (PLOITER) e escolhe a
   proxima. O sorteio soma o RASTRO do jogador: `PHIST[6]` e um anel de salas
-  visitadas com carimbo de tick; sala visitada ha 20..140 ticks vale +14
-  (TRAIL_W_RECENT), ha 140..260 vale +5 (TRAIL_W_OLD); a sala onde voce esta
-  AGORA nunca e sorteavel. Daqui nasce o momento "entrei no quarto e ela
-  acabou de sair": ela caca o seu passado, nao o seu presente. E
-  EAR_COOL=42: apos investigar, barulhos fracos sao ignorados por um tempo
-  (impede a cola eterna passo por passo).
+  visitadas com carimbo de tick; a sala visitada recentemente vale
+  `trail_weights()` por TEMA (castelo 7/2 · masmorra 14/5 · esgoto 21/8) —
+  sala ha 20..140 ticks usa o peso "recente", ha 140..260 o "velho" (janela
+  total: TRAIL_SCENT=260); a sala onde voce esta AGORA nunca e sorteavel.
+  Daqui nasce o momento "entrei no quarto e ela acabou de sair": ela caca o
+  seu passado, nao o seu presente. E `ear_cool()`: apos investigar, barulhos
+  fracos sao ignorados por um tempo (impede a cola eterna passo por passo),
+  por tema castelo 60 · masmorra 42 · esgoto 30 — nos esgotos ela acorda na
+  hora. A farejada (PLOITER) e um SWEEP por pontos da sala (deliberadamente
+  >= 4 tiles da cabeca, `pick_loiter_point`) com anti-retrocesso na patrulha
+  (`bas_step_patrol`): mata o ping-pong de corredor.
 - **Cone de visao** (`in_cone`): ~120 graus na direcao do ultimo passo dela.
   O olhar letal e DIRECIONADO: gaze morte exige LOS + cone (raspa: d<=2 mata
   de qualquer modo). Passar ATRAS dela nao mata — premia o flanco e
@@ -203,7 +230,39 @@ Pilares (constantes tunaveis no topo de `src/lib.rs`):
   com feedback 0.33 e wet 0.55 manda os passos corridos de volta ao master:
   voce OUVE seus proprios passos repetidos nos corredores vazios. O som do
   passo tem 3 intensidades (silencioso/andar/correr) dirigidas pelo medidor
-  de ruido.
+  de ruido (e RESPINGA se os pes estao na agua do esgoto).
+
+### 3.5. Cinco andares tematicos
+
+Nome: `theme()` + geracao parametrizada + temperamento (subsistemas de
+`src/lib.rs`)
+
+Racional: o castelo inteiro com IA identica e uma escadaria. Temas dao
+geografia e curva de tensao: comeca facil (terreo, fora do habitat dela),
+sofre na masmorra, jogo de sobrevivencia pura na cloaca. A coroa desce para
+o andar 5 (fundo da cloaca) e a vitoria segue sendo escapar pelo `<` do
+terreo.
+
+| # | tema | mapa | geracao | a besta |
+|---|------|------|---------|---------|
+| 1 | TH_CASTLE (Portao) | 56x32 | saloes amplos + pilares | quase adormecida: patrol 6/invest 4/hunt 3, ouvido 60, sibilo 1/90, rastro 7/2 |
+| 2-3 | TH_DUNGEON (Masmorras) | 56x32 | celas apertadas, mais portas/sombra/escombro | a cacadora de sempre: 4/3/2, ouvido 42, sibilo 1/47, rastro 14/5 |
+| 4-5 | TH_SEWER (Cloaca Maxima) | 80x44 | bacias/cisternas em rede maior, loops de fuga, canais de agua | CASA dela: 3/2/2, ouvido 30, sibilo 1/23, rastro 21/8, GAZE_R+1 |
+
+- **Mapa maior no esgoto** (`floor_dims`): 80x44 vs 56x32; todos os buffers
+  em `N_MAX`, dims reais publicadas em `STATS[16]/[17]`, camera no JS.
+- **Agua** (`seed_water`, so esgoto; tile `'='` / attr 13): rachaduras de
+  rio por passeio aleatorio que convertem APENAS piso de CORREDOR (fora de
+  sala) — o grafo de BFS/portas nao muda, muda o chao: caminhar na agua
+  acelera ELA (`speed_now`: -1 no periodo => 1/1 tick na agua) e respinga o
+  passo do jogador.
+- **Temperamento por tema** (tabelas `speed_patrol/invest/hunt`, `ear_cool`,
+  `hiss_mod`, `trail_weights`, `gaze_r`): um lugar = uma besta diferente;
+  fora do habitat (terreo) ela e quase decorativa, na casa dela (esgoto)
+  mortifera.
+- **Nomes de andar** (`floor_name` + `ARRIV`): ao chegar num piso novo, o
+  nome ("PORTAO DO CASTELO", "CLOACA MAXIMA I"...) fala na barra de UI por
+  18 ticks; depois a dica contextual toma o lugar.
 
 Contrato de balanceamento: `node scripts/smoke.mjs` e o gate real — o bot
 joga com a MESMA IA que o humano enfrenta; qualquer tunagem de constante
@@ -246,16 +305,19 @@ transforma em codigo.
 Setup: rustup stable + target `wasm32-unknown-unknown`; Node >= 20 para os testes.
 Build: `./build.sh`. Teste: `node scripts/smoke.mjs` (espera-se `SMOKE OK`).
 
-Cenarios cobertos: morte por gaze (agora exigindo o CONE de visao dela),
-morte por toque, IA investiga ruido, rastro de escamas do corpo, playthrough
-completo por bot (ate 40 tentativas), fuzz de 6000 ticks contra estados
-impossiveis.
+Cenarios cobertos: morte por gaze (exigindo o CONE de visao dela), morte por
+toque, IA investiga ruido, rastro de escamas do corpo, playthrough completo
+por bot (ATE OS 5 ANDARES: desce, pega a coroa na Cloaca e escapa; os bots
+incluem a agua `=` entre os tiles passaveis), fuzz de 6000 ticks contra
+estados impossiveis.
 
 ## 9. Consideracoes Futuras / Roadmap
 
-- **Jogo grande** (o objetivo real): mais andares, itens de "ruido falso",
-  basilisco que aprende padroes de fuga, salas com rachaduras de teto,
-  final que explique por que uma besta protege um rei morto.
+- **Jogo grande** (o objetivo real): itens de "ruido falso", basilisco que
+  aprende padroes de fuga, salas com rachaduras de teto, final que explique
+  por que uma besta protege um rei morto.
+- Ajuste fino da trilha ambiente por tema (volume do vento/goteiras, stinger
+  proprio ao entrar no esgoto).
 - Modularizar `lib.rs` quando o escopo passar de PoC (ver secao 1).
 - CI (GitHub Actions) rodando build + smoke a cada push.
 - Save em localStorage (ver secao 4).
@@ -270,12 +332,13 @@ Repo: https://github.com/VictorHugoBatista/castle-of-basilisk
 
 Owner: Victor Hugo Batista
 
-Ultima atualizacao: 2026-10-29
+Ultima atualizacao: 2026-11-03
 
 ## 11. Glossario
 
-- **Gaze**: linha de visao mutua entre basilisco e jogador dentro de GAZE_R
-  (4 tiles). Mata instantaneamente. Pilar/porta fechada bloqueia o olhar.
+- **Gaze**: linha de visao mutua entre basilisco e jogador dentro de
+  `gaze_r()`: 4 tiles (5 nos esgotos). Mata instantaneamente. Pilar/porta
+  fechada bloqueia o olhar.
 - **GRACE**: 14 ticks de imunidade apos cada troca de andar (evita morte
   injusta ao emergir na escada).
 - **Rastro do corpo**: ultimas ~24 posicoes da cabeca (`BODYBUF`, via
@@ -291,5 +354,17 @@ Ultima atualizacao: 2026-10-29
 - **Sombra** (`,`) — tile que esconde: imovel = visao dela 2 tiles; andando = 4;
   no claro = 8. Com a coroa: andar em sombra = farol; imovel em sombra = o
   basilisco persegue sua ultima posicao conhecida, nao voce.
-- **tick**: ciclo de jogo de 140 ms. O basilisco move a cada N ticks
-  (patrulha 4, investigacao 2, cacada 2, cacada com coroa 3).
+- **tick**: ciclo de jogo de 140 ms. O basilisco move a cada N ticks por
+  tema (`speed_patrol/invest/hunt`): castelo 6/4/3, masmorra 4/3/2, esgoto
+  3/2/2 — e 1/1 NA AGUA do esgoto (`speed_now`). Com a coroa ela caça 1
+  periodo mais lento ainda.
+- **Tema** (`theme(depth)`): TH_CASTLE (andar 1), TH_DUNGEON (2-3),
+  TH_SEWER (4-5). Dirige geracao de salas, mapa (56x32 vs 80x44), agua e
+  TODAS as tabelas de temperamento do basilisco.
+- **Agua** (`'='`, 0x3D, attr 13): tile so do esgoto, andavel por ambos —
+  mas e o meio nativo dela (1/1 tick) e respinga o passo do jogador.
+- **UIROW**: barra de UI fabricada pelo WASM (W0 celulas x [char,attr], via
+  `pfb_ui_ptr`): dica contextual e nome do andar, fixa na ULTIMA LINHA DA
+  TELA (seguem a camera, nao o mapa).
+- **ARRIV**: tick da chegada no andar; os primeiros 18 ticks exibem
+  `floor_name` ("MASMORRA I", "CLOACA MAXIMA II") na barra de UI.

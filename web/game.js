@@ -9,8 +9,8 @@ const TICK_MS = 140;
 const IN_UP = 1, IN_DOWN = 2, IN_LEFT = 4, IN_RIGHT = 8, IN_WAIT = 16;
 const IN_SNEAK = 32, IN_RUN = 64;
 
-// ---- paleta (índices de attr do WASM) ----
-const PAL = [
+// ---- paletas por tema (mesmos índices de attr; o tema troca a referência) ----
+const PAL_CASTLE = [
   '#6b4400', // 0 piso
   '#a87000', // 1 parede
   '#4a3400', // 2 sombra ,
@@ -18,16 +18,39 @@ const PAL = [
   '#ffdd66', // 4 escadas (pulsa)
   '#ffe08a', // 5 coroa § (pulsa)
   '#ffd54d', // 6 jogador @
-  '#ff2e00', // 7 basilisco B (cabeça: vermelho quente, halo forte)
+  '#ff2e00', // 7 basilisco B
   '#b57b00', // 8 UI
-  '#ff5000', // 9 alerta (pisca)
+  '#ff5000', // 9 alerta
   '#ffb000', // 10 título
-  '#bf1600', // 11 corpo do basilisco ~ (vermelho sangue, onda + halo no render)
-  '#54421c', // 12 escombro % (becos que ela evita)
-  '#4a6a3a', // 13 água '=' (esgoto: lodo ondulante — o lar dela)
-  '#201500',
+  '#bf1600', // 11 corpo do basilisco ~
+  '#54421c', // 12 escombro %
+  '#201500', '#201500',
   '#0a0600', // 15 vazio
 ];
+const PAL_DUNGEON = [
+  '#4d4304', '#7d6c10', '#38300a', '#9a8a1a', '#fff6a0', '#ffe08a', '#e8d25a',
+  '#ff2e00', '#7a6a20', '#ff5000', '#a08a20', '#bf1600', '#3f3618',
+  '#201500', '#201500', '#050300',
+];
+const PAL_SEWER = [
+  '#3e5228', // 0 piso (lodo)
+  '#5d7a34', // 1 parede (pedra úmida)
+  '#263215', // 2 sombra
+  '#7d9a44', // 3 porta (raro, de pedra)
+  '#cfe088', // 4 escadas
+  '#ffe08a', // 5 coroa
+  '#c3d667', // 6 jogador
+  '#ff2e00', // 7 basilisco
+  '#57603a', // 8 UI
+  '#ff5000', // 9 alerta
+  '#a8b25a', // 10 título
+  '#bf1600', // 11 corpo
+  '#43502a', // 12 escombro
+  '#4a6a3a', // 13 água '=' (waves próprias em colorFor)
+  '#101408', '#030500', // 15 vazio
+];
+const PAL_BY_THEME = [PAL_CASTLE, PAL_DUNGEON, PAL_SEWER];
+let PAL = PAL_CASTLE;
 const WATER_ATTR = 13;
 const PULSE_ATTRS = new Set([4, 5, 7]);
 const BLINK_ATTR = 9;
@@ -64,8 +87,13 @@ const clampInt = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 // ============================================================
 let AC = null;
 let master = null;
+let sfxBus = null; // SFX: a masmorra abafa tudo (o silêncio é ambiente)
 let droneNodes = null;
 let echoIn = null; // barramento do eco do castelo vazio
+let ambGain = null; // bus da trilha ambiente contínua
+let ambNodes = [];
+let ambTimer = null;
+let ambTheme = -1;
 
 function audioOn() {
   if (AC) return;
@@ -73,6 +101,9 @@ function audioOn() {
   master = AC.createGain();
   master.gain.value = 0.5;
   master.connect(AC.destination);
+  sfxBus = AC.createGain();
+  sfxBus.gain.value = 1.0;
+  sfxBus.connect(master);
   // eco do castelo vazio: DelayNode com feedback curto — passos corridos
   // ecoam pelos corredores de pedra vazia
   echoIn = AC.createGain();
@@ -88,7 +119,109 @@ function audioOn() {
   fb.connect(dly);
   dly.connect(wet);
   wet.connect(master);
+  ambGain = AC.createGain();
+  ambGain.gain.value = 1;
+  ambGain.connect(master);
   startDrone();
+}
+
+// tema derivado de DEPTH: 0 castelo · 1 masmorra · 2 esgoto
+function ambientTheme() {
+  const d = stats[2];
+  return d <= 1 ? 0 : (d <= 3 ? 1 : 2);
+}
+
+// troca de trilha ao mudar de andar: fade das velhas, arranque das novas
+function setAmbience(force) {
+  if (!AC) return;
+  const th = stats[0] === 1 ? ambientTheme() : (stats[0] === 2 || stats[0] === 3 ? -1 : ambTheme);
+  if (th === ambTheme && !force) return;
+  ambTheme = th;
+  if (ambTimer) { clearTimeout(ambTimer); ambTimer = null; }
+  const now = AC.currentTime;
+  for (const n of ambNodes) {
+    try { n.gain.setTargetAtTime(0, now, 0.4); } catch (e) {}
+    setTimeout(() => { try { n.stop ? n.stop() : n.disconnect(); } catch (e) {} }, 1600);
+  }
+  ambNodes = [];
+  PAL = PAL_BY_THEME[th === -1 ? 0 : th]; // o CRT respira a cor do lugar
+  needsFull = true;
+  // SFX abafados na masmorra: o silêncio sepulcral contrasta qualquer som
+  sfxBus.gain.setTargetAtTime(th === 1 ? 0.7 : 1.0, now, 0.5);
+  if (th === 0) {
+    // ---- TÉRREO: VENTO — rajadas lentas contra os salões altos ----
+    const g = AC.createGain();
+    g.gain.value = 0;
+    const src = AC.createBufferSource();
+    const len = Math.floor(AC.sampleRate * 3);
+    const buf = AC.createBuffer(1, len, AC.sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+    src.buffer = buf;
+    src.loop = true;
+    const bp = AC.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 430;
+    bp.Q.value = 0.8;
+    // LFO duplo: bolhas de ar mudando o calibre da fresta
+    const lfo = AC.createOscillator();
+    lfo.frequency.value = 0.07;
+    const lfoG = AC.createGain();
+    lfoG.gain.value = 240;
+    lfo.connect(lfoG);
+    lfoG.connect(bp.frequency);
+    const lfo2 = AC.createOscillator();
+    lfo2.frequency.value = 0.13;
+    const lfo2G = AC.createGain();
+    lfo2G.gain.value = 0.035;
+    lfo2.connect(lfo2G);
+    lfo2G.connect(g.gain);
+    src.connect(bp); bp.connect(g); g.connect(ambGain);
+    src.start(); lfo.start(); lfo2.start();
+    ambNodes.push(g);
+    g.gain.setTargetAtTime(0.05, now, 2.5);
+  } else if (th === 1) {
+    // ---- MASMORRA: SILÊNCIO PERTURBADOR — quase nada; a cada 16-40s um
+    // estalo mínimo de madeira/pedra, só para o ouvido ficar tenso ----
+    schedSilence();
+  } else if (th === 2) {
+    // ---- ESCGOTO: GOTEIRAS — ping agudo com eco de cisterna, irregular
+    schedDrips();
+  }
+}
+
+// agendador do silêncio da masmorra: é o que NÃO soa que educa o terror
+function schedSilence() {
+  if (ambTheme !== 1 || !AC) return;
+  ambTimer = setTimeout(() => {
+    // estalo mínimo, quase inaudível: pedra/lagem tremendo longe
+    blip({ type: 'sawtooth', f0: 62 + Math.random() * 26, f1: 40, dur: 0.5, vol: 0.022 });
+    noiseBurst({ dur: 0.4, vol: 0.012, f: 200 + Math.random() * 150, q: 2 });
+    schedSilence();
+  }, 16000 + Math.random() * 24000);
+}
+
+// agendador das goteiras do esgoto; o gotejar para quando ELA caça perto
+function schedDrips() {
+  if (ambTheme !== 2 || !AC) return;
+  ambTimer = setTimeout(() => {
+    const hunted = stats[0] === 1 && stats[7] === 2;
+    if (!hunted) {
+      const drop = () => blip({
+        type: 'sine',
+        f0: 1400 + Math.random() * 400,
+        f1: 460,
+        dur: 0.06,
+        vol: 0.05,
+        out: echoIn,
+      });
+      drop();
+      if (Math.random() < 0.35) { // gota dupla escorrendo
+        blip({ type: 'sine', f0: 1100, f1: 420, dur: 0.05, vol: 0.04, delay: 0.11, out: echoIn });
+      }
+    }
+    schedDrips();
+  }, 320 + Math.random() * 2600);
 }
 
 function startDrone() {
@@ -138,7 +271,7 @@ function blip({ type = 'square', f0 = 600, f1 = null, dur = 0.08, vol = 0.12,
     node = p;
   }
   o.connect(g);
-  node.connect(out || master);
+  node.connect(out || sfxBus);
   o.start(t0);
   o.stop(t0 + dur + 0.05);
 }
@@ -167,7 +300,7 @@ function noiseBurst({ dur = 0.3, vol = 0.15, f = 3000, q = 2, delay = 0, pan = 0
     node = p;
   }
   src.connect(bp); bp.connect(g);
-  node.connect(out || master);
+  node.connect(out || sfxBus);
   src.start(t0);
 }
 
@@ -649,12 +782,14 @@ function frame(nowMs) {
       if (stats[0] !== 1) break;
     }
     heartbeat(nowMs);
+    setAmbience(false); // troca de andar => troca de trilha ambiente
     droneSwell();
   } else {
     acc = 0; // menus: fluxo em tempo real não roda
     droneSwell(); // garante que o droneVolta ao normal fora do jogo
     if (st !== lastState) {
-      drainEvents(); // garantir que eventos finais (morte/vitória) soem
+      drainEvents(); // garantir que eventos finais (morte/vitória) soam
+      setAmbience(false); // morte/vitória: silêncio absoluto sob o cartão
     }
   }
   lastState = stats[0];

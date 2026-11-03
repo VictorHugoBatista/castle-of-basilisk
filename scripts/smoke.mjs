@@ -175,7 +175,7 @@ const trail = scenario('o corpo dela deixa rastro de escamas', () => {
 // desvio do tile quando já está parado sobre o alvo.
 const pass = (i) => {
   const t = wmap[i];
-  return t === 0x2E || t === 0x2C || t === 0x3E || t === 0x3C || t === 0x2B || t === 0xA7;
+  return t === 0x2E || t === 0x2C || t === 0x3E || t === 0x3C || t === 0x2B || t === 0xA7 || t === 0x3D; // 0x3D = água '=' (esgoto)
 };
 // portais (>, <, §) são INTERAÇÕES: só pisável se é o alvo do plano —
 // senão o bot atravessa um '<' sem querer e sobe de andar

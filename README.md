@@ -5,9 +5,17 @@ compilado para **WebAssembly**. Sem itens, sem vida, sem curas: **um toque mata 
 um olhar mata**. A única defesa é **se esconder**.
 
 Você é um ladrão. O rei morreu há cem anos e o castelo apodrece, mas o guardião
-continua rondando: um **basilisco** cego, gigante, paciente. O objetivo é roubar
-**a coroa do rei morto** (andar òssario, andar 3) e **fugir pelo portão** do
-térreo — e ela continuará de caça até o fim.
+continua rondando: um **basilisco** cego, gigante, paciente. Cinco andares separam
+você do saque: o **térreo do castelo**, as **duas masmorras** e a **Cloaca Maxima** —
+a rede de esgoto imperial, o lar dela. Lá embaixo a besta se move a cada passo,
+o escuro é úmido e a água `=` canta em ecos. Roube **a coroa do rei morto**
+(andar 5, fundo da cloaca) e **fuja pelo portão** do térreo trinta metros acima —
+e ela continuará de caça até o fim.
+
+Cada andar tem seu habitat e seu temperamento para ela: no térreo (fora do
+habitat) quase dorme; nas masmorras é a caça paciente de sempre; nos esgotos é
+um deus gargarejando nos canais. E cada lugar soa: vento no salão, silêncio
+perturbador na masmorra, goteiras nas catacumbas molhadas.
 
 ## como rodar
 
@@ -39,7 +47,7 @@ ESC volta ao menu.
 ## como jogar (e sobreviver)
 
 - **`B` = a cabeça do basilisco.** Se ele *puder ver você* a até 4–5 tiles (linha de visão
-  aberta, raios de pilar/porta bloqueiam), o olhar mata.
+  aberta, raios de pilar/porta bloqueiam), o olhar mata — no esgoto, a 5 (`GAZE_R + 1`).
 - **`~` = o corpo dela.** Escamas do rastro que a serpente deixa ao andar — ~24 anéis
   que avançam com a cabeça. Ver o corpo é verlumbre, não morte: **o olhar que mata é
   o da cabeça**. Corpo em tela ganha sombra 3D, halo vermelho e um arrasto grave
@@ -48,25 +56,42 @@ ESC volta ao menu.
 - Se ele **tocar** você, as escamas matam. Não existe vida.
 - `,` = **sombra**. Imóvel dentro dela, você é quase invisível (visão 2 tiles).
   Anda na sombra? 4 tiles. No claro? Ele te vê a 8.
+- **`=` = água do esgoto** (só andares 4-5). Caminhável por você — mas é o meio
+  nativo dela: **na água ela apressa o passo**. Sob os pés, o passo respinga.
 - Ele **ouve**: passos no claro (raio 5), na sombra (raio 3), portas abertas
-  (raio 12 — cuidado ao se esconder atrás delas).
-- Ao pegar a **coroa** (`§` no altar, andar 3), ele **grita** (15 ticks de
+  (raio 12 — cuidado ao se esconder atrás delas). Ouvidos por andar: no térreo
+  ela demora a acordar; nos esgotos desperta na hora.
+- Ao pegar a **coroa** (`§` no altar, andar 5), ele **grita** (15 ticks de
   atordoamento — sua chance de arrancar) e entra em caça eterna pelo cheiro.
   Anda em sombra = farol. **Fica imóvel em sombra = você volta a ser só um
   cheiro fraco** — ela procura sua última posição, não a sua.
 - Ouça o **coração**: intervalo curto = ela está perto; pan = da direita/esquerda.
+- Ouça o **lugar**: vento lento no térreo; na masmorra quase nada (e qualquer
+  som soa abafado); goteiras com eco no esgoto — que param de pingar quando
+  ela está de caça perto. A paleta da tela veste a cor do andar (âmbar de
+  castelo / âmbar seco / verde-lodo).
 
 ## arquitetura
 
 ```
 src/lib.rs                 todo o jogo, Rust puro, sem crates (ABI WASM crua)
 web/index.html             canvas + filtro CRT em CSS puro (scanlines, vinheta, flicker)
-web/game.js                glue: rAF + tick de 140ms, render por diff de bytes, WebAudio
+web/game.js                glue: rAF + tick de 140ms, câmera, render por diff, WebAudio
 web/wasm/*.wasm            binário (~27 KB)
 build.sh                   cargo build --release + copy para web/wasm
 scripts/smoke.mjs          gate de testes headless (roda o jogo no Node)
 scripts/debug6.mjs         bancada do bot playthrough
 ```
+
+## os cinco andares
+
+| # | lugar | mapa | temperamento dela |
+|---|---|---|---|
+| 1 | Portão do castelo (térreo) | 56×32 | quase adormecida (fora do habitat) |
+| 2 | Masmorra I | 56×32 | a caça paciente de sempre |
+| 3 | Masmorra II | 56×32 | caça paciente + rastro forte |
+| 4 | Cloaca Maxima I | 80×44 | casa dela: veloz, olho a 5, ouvido fino |
+| 5 | Cloaca Maxima II (coroa) | 80×44 | idem, com canais de água a escoar |
 
 ### WASM ABI
 
@@ -80,6 +105,8 @@ Nada de wasm-bindgen: o módulo expõe funções `#[no_mangle] extern "C"`:
   e o JS semeia `pfb_new_game`
 - `pfb_grid_ptr()` / `pfb_stats_ptr()` — ponteiros para o grid (2 bytes por
   célula: `[char][attr]`) e para o bloco de status
+- `pfb_max_n()` — tamanho máximo do grid (80×44, esgoto): o JS dimensiona as views
+- `pfb_ui_ptr()` — barra de UI fabricada (dica contextual / nome do andar)
 - `pfb_pop_event()` — fila de eventos de áudio
 - `pfb_state()` — 0 título, 1 jogando, 2 morto, 3 vitória, 4 controles
 - `pfb_debug_*` — ferramentas dos testes (place/map/probe/give_crown)
@@ -101,17 +128,19 @@ e o drone ambiente do castelo (engorda enquanto o corpo dela está visível).
 node scripts/smoke.mjs
 ```
 
-Valida: morte por olhar, morte por toque, IA investigando ruído, **o rastro de
-escamas existindo** (via `pfb_debug_body_ptr`) e **o corpo ficando visível em
-tela em algum momento**, **um playthrough completo por bot BFS** (desce 3
-andares, pega a coroa, escapa — rotas que evitam a zona de gaze, esquiva
-geométrica) e fuzz de 6000 ticks sem estados impossíveis.
+Valida: morte por olhar (com CONE de visão dela), morte por toque, IA investigando
+ruído, **o rastro de escamas existindo** (via `pfb_debug_body_ptr`) e **o corpo
+ficando visível em tela em algum momento**, **um playthrough completo por bot
+BFS** (desce os 5 andares na ordem, pega a coroa na Cloaca, escapa pelo portão —
+rotas que evitam a zona de gaze, esquiva geométrica, caminha na água do esgoto)
+e fuzz de 6000 ticks sem estados impossíveis.
 
 ## status do conceito
 
-Escopo *proof of concept*: 3 andares procedurais (salas + corredores + portas +
-pilares + sombras), IA em 3 estados (patrulha/invest/caça) com BFS real,
-FOV por raio-cast, Um toque mata / Um olhar mata. Para o jogo grande:
-mais andares, itens de "ruído falso", basilisco aprendendo padrões de fuga,
-salas com rachaduras de teto, e um final que explique porque uma besta
+Escopo *proof of concept*: 5 andares temáticos e procedurais — térreo de salões
+amplos com vento, masmorras de celas apertadas com silêncio, esgoto imperial
+80×44 com canais de água `=` — IA em 3 estados (patrulha/invest/caça) com BFS
+real e temperamento por tema, FOV por raycast, um toque mata / Um olhar mata.
+Para o jogo grande: itens de "ruído falso", basilisco aprendendo padrões de
+fuga, salas com rachaduras de teto, e um final que explique porque uma besta
 gigante protege um rei morto.

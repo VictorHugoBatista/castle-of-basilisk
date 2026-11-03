@@ -20,6 +20,17 @@ fn theme(depth: u8) -> u8 {
     if depth <= 1 { TH_CASTLE } else if depth <= 3 { TH_DUNGEON } else { TH_SEWER }
 }
 
+// o nome do piso, escrito na barra de UI ao chegar: o lugar fala
+fn floor_name(depth: u8) -> &'static str {
+    match depth {
+        1 => "PORTAO DO CASTELO",
+        2 => "MASMORRA I",
+        3 => "MASMORRA II",
+        4 => "CLOACA MAXIMA I",
+        _ => "CLOACA MAXIMA II",
+    }
+}
+
 // ---- dimensões do andar atual (runtime): variam por tema. W()/H() leem. ----
 static mut DIMW: usize = W0;
 static mut DIMH: usize = H0;
@@ -177,6 +188,7 @@ static mut DEPTH: u8 = 1;
 static mut CROWN: bool = false;
 static mut TICK: i32 = 0;
 static mut GRACE: i32 = 0;
+static mut ARRIV: i32 = 0; // tick de chegada no andar: o nome do piso anuncia-se
 
 // ---- menu inicial ----
 static mut MENU_SEL: u8 = 0; // cursor: 0 = INICIAR, 1 = CONTROLES
@@ -1295,6 +1307,7 @@ fn place_basilisk() {
 fn enter_floor(depth: u8, ev: u32, by_exit: bool) {
     unsafe {
         DEPTH = depth;
+        ARRIV = TICK;
         let di = depth as usize - 1;
         if SEEDS[di] == 0 { SEEDS[di] = rnd() | 1; }
         gen_floor(depth, SEEDS[di]);
@@ -1667,7 +1680,13 @@ fn render() {
             } else {
                 "UM TOQUE MATA. UM OLHAR MATA. SE ESCONDA"
             };
-            write_ui_center(msg, if BST == B_HUNT { A_ALERT } else { A_UI });
+            // chegada num andar novo: o NOME do lugar fala por uns ticks;
+            // depois a dica contextual toma a barra
+            if TICK - ARRIV < 18 {
+                write_ui_center(floor_name(DEPTH), A_TITLE);
+            } else {
+                write_ui_center(msg, if BST == B_HUNT { A_ALERT } else { A_UI });
+            }
         } else if st == ST_TITLE {
             render_title();
         } else if st == ST_CONTROLS {
@@ -1892,6 +1911,7 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         CROWN = false;
         DEPTH = 1;
         TICK = 0;
+        ARRIV = 0;
         DEATH_R = 0;
         START_REQ = 0;
         DOORS = [0; N_MAX * FLOORS / 64];
