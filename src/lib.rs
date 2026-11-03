@@ -1474,8 +1474,12 @@ fn put_ui(x: usize, ch: u8, a: u8) {
     }
 }
 
-// write_center para a barra de UI (mesma regra de glifos)
+// write_center para a barra de UI (mesma regra de glifos). Zera a barra
+// inteira antes de escrever: os tiles fora da mensagem são SEMPRE vazio —
+// sem isso, sobras de dicas anteriores (run passada ou alerta mais longo)
+// ficam fantasiando a barra para sempre ('AUM TOQUE... ESCONDA0').
 fn write_ui_center(s: &str, a: u8) {
+    unsafe { UIROW.fill(0); }
     let n = s.chars().count();
     let x = if n >= W0 { 0 } else { (W0 - n) / 2 };
     for (k, c) in s.chars().enumerate() {
