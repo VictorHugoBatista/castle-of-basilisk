@@ -76,12 +76,19 @@ ESC volta ao menu.
 
 Ver a besta deixa marca. O medo **sobe rápido com a exposição** (vê-la de perto
 sobe muito; ela TE VIU dispara um pico) e **desce devagar longe dela** — quanto
-mais alto o nível, mais lenta a queda: o susto fica preso no corpo.
+mais alto o nível, mais lenta a queda. E ele **nunca desce até o zero**:
+
+- **o trauma fica**: metade do pico de medo da run **não decai** — depois de uma
+  caçada que te levou a 60, você nunca volta abaixo de 30. Quase morreu de
+  medo uma vez, carrega isso até o fim;
+- **o lugar respira**: mesmo sem vê-la, o medo rasteja sozinho até um teto por
+  andar — no esgoto, o habitat dela, o teto é 30: você não fica são por muito
+  tempo por lá.
 
 | nível | medo | o que acontece |
 |---|---|---|
-| 0 calmo | 0–29 | nada |
-| 1 assombrado | 30–54 | sussurros; fantasmas `o` raros, fora do seu campo |
+| 0 calmo | 0–29 | nada (além do pavor ambiente subindo devagar) |
+| 1 assombrado | 30–54 | sussurros (com e sem fonte); fantasmas `o` vêm até você |
 | 2 paranoico | 55–74 | fantasmas frequentes; **falso `B`** entra; soluço involuntário |
 | 3 pânico | 75–99 | visão encolhe (raio 6); coração dispara no vazio; glitch sem corpo |
 | 4 loucura | 100 | **A LOUCURA TE TOMOU** — morte por medo (motivo 3) |
@@ -89,14 +96,16 @@ mais alto o nível, mais lenta a queda: o susto fica preso no corpo.
 As **alucinações** só existem no render — a lógica do jogo jamais as vê:
 
 - **`o` fantasma** (pálido, pulsante): atravessa paredes (a real jamais
-  atravessa nada); evapora quando você chega a 2 tiles; fora da visão, escurece
-  como todo tile lembrado.
+  atravessa nada) e **deriva na sua direção** — mas evapora quando chega a
+  2 tiles: a aproximação nunca te alcança. Fora da visão, escurece como todo
+  tile lembrado.
 - **Falso `B`**: attr 7 IDÊNTICO ao real. Mentiras dele: o coração não responde,
   jamais gera glitch de escamas, jamais abre porta. Só nasce com a real a mais
-  de 15 tiles (nunca funciona como radar).
-- **Coroa-fantasma `§`**: attr 5 do real, estática, a 8–14 tiles — longe o
-  bastante para você ACEITAR IR. Correr até ela custa fôlego e ruído r=15:
-  a ilusão te entrega a ela. Evapora a 2 tiles, antes de qualquer certeza.
+  de 12 tiles (nunca funciona como radar).
+- **Coroa-fantasma `§`**: attr 5 do real, estática, a 8–14 tiles num corredor
+  **que você já viu** — longe o bastante para você ACEITAR IR. Correr até ela
+  custa fôlego e ruído r=15: a ilusão te entrega a ela. Evapora a 2 tiles,
+  antes de qualquer certeza.
 
 Correr atrás de coroa falsa → ruído alto → ela te encontra → medo sobe: a
 espiral fecha sozinha. No HUD, a placa do canto (`ruído / fôlego / medo`) tem
@@ -165,8 +174,10 @@ node scripts/smoke.mjs
 Valida: morte por olhar (com CONE de visão dela), morte por toque, IA investigando
 ruído, **o rastro de escamas existindo** (via `pfb_debug_body_ptr`) e **o corpo
 ficando visível em tela em algum momento**, **o MEDO subindo com exposição e
-caindo LONGE dela, alucinações nascendo no pânico (fantasma + falso `B`) e a
-LOUCURA matando sozinha (motivo 3)**, **um playthrough completo por bot BFS**
+caindo LONGE dela, a CICATRIZ do pico (nunca cai de metade), o PAVOR AMBIENTE
+rastejando sozinho, alucinações nascendo no pânico (fantasma + falso `B`), a
+COROA-FANTASMA nascendo longe e evaporando ao chegar perto, e a LOUCURA matando
+sozinha (motivo 3)**, **um playthrough completo por bot BFS**
 (desce os 5 andares na ordem, pega a coroa na Cloaca, escapa pelo portão —
 rotas que evitam a zona de gaze, esquiva geométrica, caminha na água do esgoto),
 **a MORTE NA CLOACA — tela de morte compõe 56x32, não o stride 80 do esgoto**

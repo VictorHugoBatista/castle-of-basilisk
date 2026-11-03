@@ -199,9 +199,10 @@ const haunt = scenario('alucinações: pânico gera fantasmas/falso B em tela', 
   const fdv = new DataView(w.memory.buffer, fptr, 20);
   const nGhosts = () => fdv.getUint32(8, true);  // AI_DBG_FEAR[2]
   const fakeBOn = () => fdv.getUint32(12, true); // AI_DBG_FEAR[3]
-  w.pfb_debug_fear(80); // nível 3: ghost 1/25, fake B 1/50, coroa-fantasma 1/120
   let sawGhost = false, sawFake = false;
   for (let k = 0; k < 400 && !(sawGhost && sawFake); k++) {
+    // re-injeta: mantém o nível 3 (o trauma sozinho segura só até metade do pico)
+    if (k % 25 === 0) w.pfb_debug_fear(80);
     w.pfb_step(0); pump();
     if (stats[0] !== 1) return false;
     w.pfb_debug_fear_ptr(); // atualiza o espelho do fantasma antes de ler
@@ -225,6 +226,33 @@ const madness = scenario('loucura mata sozinha (motivo 3, sem ela tocar)', () =>
   w.pfb_step(0); pump();
   if (stats[0] !== 2) return false; // morreu
   return stats[1] === 3;            // e o motivo é a LOUCURA, não ela
+});
+
+// ---------- 2h. trauma: metade do pico NUNCA decai ----------
+// O design diz "o susto fica preso no corpo": depois de um pico 60, o medo
+// desce até 30 e PARA — a cicatriz acompanha você até o fim da run.
+const trauma = scenario('medo: o pico deixa cicatriz (nunca cai de metade)', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
+  if (!far) return false;
+  place(far.x, far.y);
+  w.pfb_debug_fear(60); // um quase-morte: pico 60
+  for (let k = 0; k < 200; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  return stats[18] >= 30; // 200 ticks calmo depois: ainda em 30 — ficou preso
+});
+
+// ---------- 2i. pavor ambiente: o lugar sobe o medo sozinho ----------
+// Sem vê-la UMA vez, parado longe: o medo rasteja até o teto da profundidade.
+const ambient = scenario('pavor ambiente: longe dela, o medo rasteja sozinho', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
+  if (!far) return false;
+  place(far.x, far.y);
+  const f0 = stats[18];
+  for (let k = 0; k < 340; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
+  return stats[18] >= 6 && stats[18] > f0; // teto ambiente do térreo, sem exposição
 });
 
 // ---------- 3. playthrough com bot v2 ----------
@@ -436,6 +464,60 @@ console.log(deadUi
   ? 'PASS - morte nos Canais: tela de morte compõe 56x32'
   : 'FAIL - morte nos Canais: tela de morte');
 
+// ---------- 3c. coroa-fantasma: nasce longe, evapora ao chegar perto ----------
+// A mentira mais cruel (ideia da sessão de design): uma § a 8-14 tiles que
+// some a d<=2. Na bancada ela nunca nascia (0/40 jogos) — o teste trava o
+// regresso: nível 2 sustentado tem que produzi-la, e chegar perto a desmascara.
+let crownOK = false;
+{
+  w.pfb_new_game(1234567);
+  const fdv = new DataView(w.memory.buffer, w.pfb_debug_fear_ptr(), 20);
+  const crownOn = () => { w.pfb_debug_fear_ptr(); return fdv.getUint32(16, true) > 0; };
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
+  if (far) place(far.x, far.y);
+  // exploração prévia: o jogador REAL já viu o andar antes de enlouquecer.
+  // A coroa-fantasma só nasce em tile LEMBRADO (SEEN) — sem isso o cenário
+  // nunca a produz (mapa virgem). Teleportes apenas computam FOV, não tickam.
+  for (let y = 2; y < Hd - 2; y += 5) {
+    for (let x = 2; x < Wd - 2; x += 7) {
+      if (w.pfb_debug_probe(x, y) & 1) place(x, y);
+    }
+  }
+  if (far) place(far.x, far.y); // volta ao ponto de espera
+  const vanishC0 = evSeen[21] || 0;
+  // nível 2 sustentado (re-injeta; o trauma sozinho segura só até metade)
+  let born = false;
+  for (let k = 0; k < 900 && !born; k++) {
+    if (k % 25 === 0) w.pfb_debug_fear(60);
+    w.pfb_step(0); pump();
+    if (stats[0] !== 1) break;
+    born = crownOn();
+  }
+  if (born) {
+    // acha a § no GRID (andar 1 não tem coroa REAL: só pode ser a mentira)
+    ensureViews();
+    let pc = -1;
+    for (let i = 0; i < Wd * Hd; i++) if (grid[i * 2] === 0xA7) { pc = i; break; }
+    if (pc >= 0) {
+      // caminha até ela: a d<=2 a coroa-fantasma desmascara (EV_VANISH_C)
+      const pos = () => stats[3] + stats[4] * Wd;
+      for (let s = 0; s < 240 && stats[0] === 1 && (evSeen[21] || 0) === vanishC0; s++) {
+        if (pc === pos()) break;
+        dangerMemo = new Array(Wd * Hd);
+        const route = bfsRoute(pc, true) || bfsRoute(pc, false);
+        if (!route || !route.length) break;
+        w.pfb_step(dirTo(pos(), route[0])); pump();
+      }
+      for (let s = 0; s < 6 && crownOn(); s++) { w.pfb_step(0); pump(); } // fade termina
+      crownOK = (evSeen[21] || 0) > vanishC0 && !crownOn();
+    }
+  }
+  console.log(crownOK
+    ? 'PASS - coroa-fantasma: nasce longe, evapora ao chegar perto'
+    : 'FAIL - coroa-fantasma');
+}
+
 // ---------- 3b. vislumbre determinístico do corpo ----------
 // O corpo é efêmero em tela; se os cenários/playthrough não o revelaram,
 // procura uma célula com LOS a 3..6 da cabeça e coloca o jogador lá.
@@ -473,6 +555,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, madness].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, madness, trauma, ambient, crownOK].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

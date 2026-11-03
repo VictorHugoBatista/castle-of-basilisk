@@ -18,7 +18,8 @@ castle-of-basilisc/
 │       └── castle_of_basilisk.wasm   # Binario compilado (~37 KB), comitado
 ├── scripts/
 │   ├── smoke.mjs           # Gate de testes headless (so merge com "SMOKE OK")
-│   └── debug6.mjs          # Bancada do bot playthrough (mede taxa de vitoria)
+│   ├── debug6.mjs          # Bancada do bot playthrough (mede taxa de vitoria)
+│   └── fear_bench.mjs      # Bancada do MEDO: telemetria de niveis/alucinacoes
 ├── build.sh                # cargo build release + copia para web/wasm
 ├── Cargo.toml              # cdylib, zero dependencias
 ├── README.md               # Como jogar
@@ -172,12 +173,16 @@ Decisoes:
 
 ### 3.3. Testes headless
 
-Nome: `scripts/smoke.mjs` (gate) e `scripts/debug6.mjs` (bancada)
+Nome: `scripts/smoke.mjs` (gate) e `scripts/debug6.mjs` (bancada de vitoria)
+e `scripts/fear_bench.mjs` (bancada do medo)
 
 Descricao: rodam o MESMO binario do navegador direto no Node. O smoke valida
 regras por cenario e um bot joga do zero ate vencer. Bot: BFS que EVITA a zona
 de perigo (LOS<=9 ou dist<=3), replanejamento a cada 6 passos, esquiva
 geometrica com eixo travado, desvio do tile quando o alvo esta sob os pes.
+O fear_bench roda o mesmo bot com telemetria por tick do medo (nivel, pico,
+alucinacoes nascidas/evaporadas) — e a prova numerica de que um ajuste de
+balance torna o medo VISIVEL sem matar o bot (ver secao 3.6).
 
 Tecnologia e beneficio: o mesmo WASM serve os dois universos — bug de
 navegador reproduz no node (e vice-versa), entao o gate e real, nao simulado.
@@ -286,8 +291,11 @@ Nome: subsistema de `src/lib.rs` (`fear_update`, `fear_haunt`, `phantoms_tick`,
 `render_phantoms`) + HUD/áudio em `web/game.js`.
 
 Descricao: exposição à besta sobe o medo; ausência desce — MAS devagar, e
-quanto mais alto o nível, MAIS lenta a queda (histerese do susto). Em 100 de
-medo, a loucura mata sozinha (motivo 3, `DEATH_R`).
+quanto mais alto o nível, MAIS lenta a queda (histerese do susto). O medo tem
+dois CHÕES que ele jamais desce abaixo (regra "o susto fica preso no corpo"):
+o TRAUMA (metade do pico histórico da run, `FEAR_PK/2`) e o PAVOR AMBIENTE
+(`AMBF`, teto por profundidade). Em 100 de medo, a loucura mata sozinha
+(motivo 3, `DEATH_R`).
 
 Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
 
@@ -295,22 +303,40 @@ Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
   sem LOS mas d<=3 "halito de costas": +2; escamas visiveis +2; EV_STINGER
   pico +15). No esgoto (habitat) ganho x1.5.
 - **Queda**: 8 ticks calado comecam a acalmar; nivel 0: -2/2 ticks · nivel 1:
-  -1/2 · nivel 2: -1/3 · nivel 3: -1/5 — desce sempre mais lento do que sobe.
+  -1/2 · nivel 2: -1/3 · nivel 3: -1/5 — desce sempre mais lento do que sobe;
+  e para no chão (trauma ou pavor ambiente, o que for maior).
+- **Trauma (`FEAR_PK`)**: todo ganho marca o pico; a queda NUNCA leva o medo
+  abaixo de metade dele. Uma caçada até 60 deixa o jogador assombrado (30+)
+  pelo resto da run — a espiral de terror acumula entre andares.
+- **Pavor ambiente (`AMBF`/`AMBT`)**: sem exposição, o medo rasteja +1 a cada
+  `FEAR_AMB_N` ticks até o teto `FEAR_AMB_CAP` da profundidade (terreo 6 ·
+  masmorras 12/18 · esgoto 24/30). Monótono na run: voltar ao térreo não
+  desaprende o que o esgoto ensinou. No habitat dela o teto é 30 = nivel 1
+  sozinho: o LUGAR assombra.
 - **Niveis** (0..4): 30 assombrado · 55 paranoico · 75 panico · 100 LOUCURA
   (morte). Panico encolhe o FOV para raio 6, soluco involuntario (ruido r=2)
   e glitch-fantasma (EV_BODY sem corpo em tela).
 - **Alucinacoes — rendem no GRID de render, NUNCA em MAP/SEEN** (a logica,
   BFS/IA/gaze, jamais as ve; os fantasmas nao bloqueiam nem entregam nada):
-  fantasma 'o' (attr 14, A_GHOST: trespassa paredes, evapora a d<=2,
-  fora do VIS escurece como tile lembrado), falso 'B' (attr 7 do real: o
-  coracao dele nao responde, nao gera glitch de corpo, nasce so com a real
-  a >15 tiles), coroa-fantasma (T_CROWN com attr 5 real, estatica, a 8..14
-  tiles, evapora a d<=2 — a ilusao de vitoria custa folego e ruido r=15 se
-  voce correr atras, fechando a espiral com a IA dela).
-- **Cadencia de spawn** (tabelas PH_*): fantasma 1/200 · 1/60 · 1/25 por
-  nivel (max 1/2/4 em tela); falso B 1/90 · 1/50 · 1/40 (NV 2+); coroa
-  1/400 · 1/120 · 1/90 (NV 2+, nunca com a coroa na mao). PH_CD=10 espaça
+  fantasma 'o' (attr 14, A_GHOST: trespassa paredes, evapora a d<=2, fora do
+  VIS escurece como tile lembrado; TTL longo e 50% dos passos vem NA DIRECAO
+  do jogador — eles assombram VOCE, mas evaporam antes de alcançar), falso 'B'
+  (attr 7 do real: o coracao dele nao responde, nao gera glitch de corpo, nasce
+  so com a real a >12 tiles), coroa-fantasma (T_CROWN com attr 5 real, estatica,
+  a 8..14 tiles em corredor LEMBRADO — spawn exige SEEN==1 e fora do VIS, senao
+  o render a desenharia num buraco nunca visto; evapora a d<=2 — a ilusao de
+  vitoria custa folego e ruido r=15 se voce correr atras, fechando a espiral
+  com a IA dela).
+- **Cadencia de spawn** (tabelas PH_*): fantasma 1/70 · 1/35 · 1/20 · 1/12 por
+  nivel (max 2/3/4 em tela); falso B 1/55 · 1/35 · 1/25 (NV 2+); coroa
+  1/100 · 1/45 · 1/35 (NV 2+, nunca com a coroa na mao); bafarra solta
+  (EV_WHISPER sem fantasma) 1/110 · 1/60 · 1/40 · 1/25. PH_CD=10 espaça
   nascimentos; cores no attr 14 da paleta por tema (JS).
+- **Bancada de balance** (`scripts/fear_bench.mjs`): 40 jogos do bot surdo do
+  debug6 com telemetria do medo (ticks por nivel, pico, alucinacoes nascidas).
+  Referência do ajuste "efeito invisível": antes 94% dos ticks no nivel 0,
+  3/40 jogos com alucinação e coroa 0/40; depois ~88% no nivel 0, ~20/40 com
+  alucinação e 16/40 vitorias INALTERADAS (loucura 10→9).
 
 ## 4. Armazenamento
 
