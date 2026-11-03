@@ -746,6 +746,7 @@ function render(nowMs) {
 function drawHUD() {
   if (stats[0] !== 1) return;
   const now = performance.now();
+  const lvl = stats[10];
 
   // ---- placa dupla: ruído + fôlego, sobre placa escura com moldura ----
   ctx.fillStyle = 'rgba(5,2,0,0.80)';
@@ -802,26 +803,41 @@ function frame(nowMs) {
       acc -= TICK_MS;
       // o tick sempre avança — imóvel também é uma ação (esconderijo)
       w.pfb_step(inputBits());
-      drainEvents();
+      safe(drainEvents, 'eventos');
       if (stats[0] !== 1) break;
     }
-    heartbeat(nowMs);
-    setAmbience(false); // troca de andar => troca de trilha ambiente
-    droneSwell();
+    safe(() => heartbeat(nowMs), 'coração');
+    safe(() => setAmbience(false), 'ambiente'); // troca de andar => troca de trilha
+    safe(droneSwell, 'drone');
   } else {
     acc = 0; // menus: fluxo em tempo real não roda
-    droneSwell(); // garante que o droneVolta ao normal fora do jogo
+    safe(droneSwell, 'drone'); // garante que o drone volta ao normal fora do jogo
     if (st !== lastState) {
-      drainEvents(); // garantir que eventos finais (morte/vitória) soam
-      setAmbience(false); // morte/vitória: silêncio absoluto sob o cartão
+      safe(drainEvents, 'eventos'); // garantir que eventos finais (morte/vitória) soam
+      safe(() => setAmbience(false), 'ambiente'); // morte/vitória: silêncio absoluto
     }
   }
   lastState = stats[0];
 
-  render(nowMs);
-  drawHUD();
-  requestAnimationFrame(frame);
+  safe(() => render(nowMs), 'render');
+  safe(drawHUD, 'HUD');
+  requestAnimationFrame(frame); // SEMPRE re-agenda: 1 erro não congela os controles
 }
+
+// se algo lançar NESTE frame, o loop sobrevive. Sem try/catch, o rAF morre
+// e o input morre junto — o pior bug de UX possível (tela congelada é
+// indistinguível de jogo quebrado; foi o bug real do HUD, morto em 1 frame).
+function safe(fn, label) {
+  try {
+    fn();
+  } catch (err) {
+    if (!safe.silenced.has(label)) {
+      safe.silenced.add(label);
+      console.warn(`[game] ${label} falhou:`, err);
+    }
+  }
+}
+safe.silenced = new Set();
 
 function drainEvents() {
   let e;
