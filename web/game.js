@@ -153,37 +153,79 @@ function setAmbience(force) {
   // SFX abafados na masmorra: o silêncio sepulcral contrasta qualquer som
   sfxBus.gain.setTargetAtTime(th === 1 ? 0.7 : 1.0, now, 0.5);
   if (th === 0) {
-    // ---- TÉRREO: VENTO — rajadas lentas contra os salões altos ----
+    // ---- TÉRREO: VENTO — corpo grave de ruído + assobio de fresta, puxado
+    // por rajadas irregulares (sem LFO de amplitude periódico: aquilo soava
+    // como ondas do mar chegando em intervalo constante) ----
     const g = AC.createGain();
     g.gain.value = 0;
-    const src = AC.createBufferSource();
-    const len = Math.floor(AC.sampleRate * 3);
-    const buf = AC.createBuffer(1, len, AC.sampleRate);
-    const ch = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
-    src.buffer = buf;
-    src.loop = true;
-    const bp = AC.createBiquadFilter();
-    bp.type = 'bandpass';
-    bp.frequency.value = 430;
-    bp.Q.value = 0.8;
-    // LFO duplo: bolhas de ar mudando o calibre da fresta
-    const lfo = AC.createOscillator();
-    lfo.frequency.value = 0.07;
-    const lfoG = AC.createGain();
-    lfoG.gain.value = 240;
-    lfo.connect(lfoG);
-    lfoG.connect(bp.frequency);
-    const lfo2 = AC.createOscillator();
-    lfo2.frequency.value = 0.13;
-    const lfo2G = AC.createGain();
-    lfo2G.gain.value = 0.035;
-    lfo2.connect(lfo2G);
-    lfo2G.connect(g.gain);
-    src.connect(bp); bp.connect(g); g.connect(ambGain);
-    src.start(); lfo.start(); lfo2.start();
-    ambNodes.push(g);
-    g.gain.setTargetAtTime(0.05, now, 2.5);
+
+    // buffer de ruído branco em loop (contínuo, sem emenda audível)
+    const noiseSrc = () => {
+      const buf = AC.createBuffer(1, Math.floor(AC.sampleRate * 4), AC.sampleRate);
+      const ch = buf.getChannelData(0);
+      for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+      const s = AC.createBufferSource();
+      s.buffer = buf;
+      s.loop = true;
+      s.start();
+      return s;
+    };
+
+    // corpo do vento: ar canalizado grave — lowpass duplo em cascata dá a
+    // densidade "marrom" do vento real (em vez do whoosh de bandpass)
+    const bodyLo = AC.createBiquadFilter();
+    bodyLo.type = 'lowpass';
+    bodyLo.frequency.value = 300;
+    bodyLo.Q.value = 0.4;
+    const bodyHi = AC.createBiquadFilter();
+    bodyHi.type = 'lowpass';
+    bodyHi.frequency.value = 300;
+    bodyHi.Q.value = 0.4;
+    const body1 = noiseSrc();
+    body1.connect(bodyLo); bodyLo.connect(bodyHi); bodyHi.connect(g);
+
+    // assobio da fresta: faixa fina e aguda, volume baixo, deslizando devagar
+    const wl = AC.createBiquadFilter();
+    wl.type = 'bandpass';
+    wl.frequency.value = 1750;
+    wl.Q.value = 7;
+    const wG = AC.createGain();
+    wG.gain.value = 0.008;
+    const wh = noiseSrc();
+    wh.connect(wl); wl.connect(wG); wG.connect(g);
+
+    // a fresta "muda de calibre": o assobio deriva de afinação devagar
+    const drift = AC.createOscillator();
+    drift.frequency.value = 0.05;
+    const driftG = AC.createGain();
+    driftG.gain.value = 240;
+    drift.connect(driftG);
+    driftG.connect(wl.frequency);
+    drift.start();
+
+    // rajadas irregulares: o vento chega em "feixes" imprevisíveis, duração
+    // e espaçamento sorteados — nunca o mesmo intervalo duas vezes
+    const gust = () => {
+      if (ambTheme !== 0 || !AC) return;
+      const t = AC.currentTime;
+      const rise = 1.2 + Math.random() * 2.2;   // subida: 1.2-3.4 s
+      const fall = 2.5 + Math.random() * 3.5;   // descida: 2.5-6.0 s
+      const peak = 520 + Math.random() * 420;   // corpo abre (mais alto)
+      const rest = 240 + Math.random() * 110;   // corpo fecha (mais grave)
+      const gW = 0.013 + Math.random() * 0.016; // assobio cresce na rajada
+      for (const f of [bodyLo, bodyHi]) {
+        f.frequency.setTargetAtTime(peak, t, rise * 0.45);
+        f.frequency.setTargetAtTime(rest, t + rise + 0.5, fall * 0.5);
+      }
+      wG.gain.setTargetAtTime(gW, t, rise * 0.45);
+      wG.gain.setTargetAtTime(0.006, t + rise + 0.5, fall * 0.5);
+      ambTimer = setTimeout(gust, (rise + fall) * 1000 * (0.7 + Math.random() * 0.9));
+    };
+
+    ambNodes.push(g, drift, body1, wh);
+    g.connect(ambGain); // o vento precisa chegar ao master: sem isso ele toca num nó cego e o térreo fica mudo
+    gust();
+    g.gain.setTargetAtTime(0.06, now, 3);
   } else if (th === 1) {
     // ---- MASMORRA: SILÊNCIO PERTURBADOR — quase nada; a cada 16-40s um
     // estalo mínimo de madeira/pedra, só para o ouvido ficar tenso ----
