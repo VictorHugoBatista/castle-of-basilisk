@@ -109,9 +109,11 @@ pub const EV_VANISH_C: u32 = 21; // a coroa mentiu: a § falsa evaporou
 pub const EV_SIBILO: u32 = 22;
 pub(crate) const SIB_R: i32 = 6; // raio do sopro: acima de 6 tiles nada dela te alcança
 
-// cadência do sopro (mudança de sibilo em web/game.js para o RT): períodos
-// em MS convertidos para ticks (TICK_MS) — a quantização do tick é
-// imperceptível contra um sopro de ~2.3 s
+// cadência do sopro (migrada de web/game.js para o RT): períodos em MS
+// convertidos para ticks (TICK_MS) — o relógio de rAF (~16 ms) virou tick
+// de JOGO (140 ms). Deltas honestos: travessia do raio dispara no tick
+// seguinte (<= 140 ms de atraso) e o piso de medo (SIB_FLOOR_MS=900) vira
+// 6 ticks = 840 ms — imperceptível contra um sopro de ~2.3 s
 pub(crate) const SIB_PATROL_MS: i32 = 2400;  // + dist*180: a patrulha respira devagar
 pub(crate) const SIB_PATROL_D_MS: i32 = 180;
 pub(crate) const SIB_CROWN_MS: i32 = 1500;   // + dist*140: caça com coroa não pára

@@ -257,8 +257,12 @@ Pilares (constantes tunaveis no topo de `src/consts.rs`):
 - **Sibilo de perto** (`sibilo_tick`, basilisk.rs; EV_SIBILO=22): a fala dela
   num raio de 6 tiles (`SIB_R`) e decisao DO RT — periodos por coroa/medo
   (`SIB_PATROL_MS` 2400+d*180 · caça com coroa 1500+d*140 · clamp 1000..5200,
-  o medo −140 ms/nivel piso 900; quantizados em ticks de 140 ms) e o
-  SILENCIO DE PROPÓSITO: ~1 sopro em 3 nao sai (`SIB_GAP_PCT=38`, fora da
+  o medo −140 ms/nivel piso 900). O relógio MIGROU junto: no JS era rAF
+  (~16 ms de granularidade, `Math.random()` de browser), agora e o TICK do
+  jogo (`ms / TICK_MS`) — deltas honestos da troca: a travessia do raio
+  dispara no tick seguinte (atraso maximo <= 140 ms) e o piso de medo de
+  900 ms vira 6 ticks = 840 ms; imperceptivel contra um sopro de ~2.3 s.
+  E o SILENCIO DE PROPÓSITO: ~1 sopro em 3 nao sai (`SIB_GAP_PCT=38`, fora da
   caça com coroa), sorte no stream propria `rsib()` — a fala dela nao
   desgasta o rng do mundo. Vol/pan/brilho pela proximidade ficam no JS (a
   voz: dois sopros emendados + a "lingua" no fim, caso 22 do playEvent).
