@@ -428,11 +428,15 @@ const calmWhisper = scenario('calmo: sussurro raro, medo nenhum (paranoia nasce 
 
 // ---------- 2j. sibilo próximo: a fala dela nasce no RT (evento 22) ----------
 // A decisão (quando sopra, se cala de propósito, períodos por coroa/medo)
-// migrou de web/game.js para basilisk.rs — o gate agora VERIFICA a fala:
-// ela a 3 tiles tem que deixar EV_SIBILO na fila (a cadência com o silêncio
-// proposital de 38% pede janela: 24 ticks dão 2 tentativas do período).
-const sib = scenario('sibilo próximo: a decisão de falar nasce no RT (evento 22)', () => {
-  let sibOK = false;
+// migrou de web/game.js para basilisk.rs — o gate agora VERIFICA os dois
+// lados: (a) dentro do raio, EV_SIBILO chega (janela de 24 ticks: 2
+// tentativas do período, silêncio proposital de 38%); (b) FORA do raio,
+// evento 22 com d > 6 é o gate do raio quebrado. A checagem usa a posição
+// PÓS-TURNO (stats logo após o pfb_step): é a mesmíssima que o sibilo_tick
+// usou para decidir — ela pode cruzar o raio NO tick (d pré > 6, d pós <= 5),
+// e isso é fala legítima; o que é regressão é falar com d pós > 6.
+const sib = scenario('sibilo próximo: fala DENTRO do raio, silêncio FORA (evento 22)', () => {
+  let sibOK = false, fora = 0;
   for (let attempt = 1; attempt <= 40 && !sibOK; attempt++) {
     w.pfb_new_game(1000 + attempt * 7919);
     for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); } // aquecimento
@@ -447,11 +451,20 @@ const sib = scenario('sibilo próximo: a decisão de falar nasce no RT (evento 2
       }
     if (!spot) continue;
     w.pfb_debug_bas_place(spot.x, spot.y);
-    const s0 = evSeen[22] || 0;
-    for (let k = 0; k < 24; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) break; }
-    if (stats[0] === 1 && (evSeen[22] || 0) > s0) sibOK = true;
+    let prev = evSeen[22] || 0, dentro = 0;
+    for (let k = 0; k < 24; k++) {
+      w.pfb_step(0); pump();
+      if (stats[0] !== 1) break;
+      const d = Math.max(Math.abs(stats[5] - stats[3]), Math.abs(stats[6] - stats[4]));
+      const now = evSeen[22] || 0;
+      if (now > prev) {
+        if (d > 6) { fora += now - prev; } else { dentro += now - prev; }
+        prev = now;
+      }
+    }
+    if (stats[0] === 1 && dentro > 0) sibOK = true;
   }
-  return sibOK;
+  return sibOK && fora === 0;
 });
 
 // ---------- 2k. diff de render: a máscara nasce no Rust ----------
