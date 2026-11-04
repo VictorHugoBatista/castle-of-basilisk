@@ -10,7 +10,17 @@ regras de jogo). O gameplay em si esta detalhado no README.
 ```
 castle-of-basilisc/
 ├── src/
-│   └── lib.rs              # O JOGO INTEIRO em um arquivo (~1900 linhas, Rust puro)
+│   ├── lib.rs              # Glue: declara os módulos e re-exporta o namespace flat
+│   ├── consts.rs           # Constantes tunáveis: temas, tiles, attrs, balance
+│   ├── state.rs            # Estado global: TODAS as `static mut` (layout documentado)
+│   ├── rng.rs              # XORSHIFT32, seed por andar
+│   ├── grid.rs             # Helpers de grid, linha de visão, fila de eventos de áudio
+│   ├── gen.rs              # Geração procedural dos 5 andares + BFS
+│   ├── basilisk.rs         # IA da besta: rastro, cone, turnos, ruído por rota
+│   ├── fear.rs             # Medo/loucura e alucinações
+│   ├── flow.rs             # Fluxo do tick: jogador, subir/descer, morte, vitória
+│   ├── ui.rs               # Barra de UI, FOV e render
+│   └── exports.rs          # ABI `#[no_mangle]` pub extern "C" + dev tools do smoke
 ├── web/
 │   ├── index.html          # Canvas 672x576 + filtro CRT 100% CSS
 │   ├── game.js             # Glue JS: tick de 140ms, camera, render diff, WebAudio
@@ -27,9 +37,16 @@ castle-of-basilisc/
 └── ARCHITECTURE.md         # Este documento
 ```
 
-Decisao: **um unico arquivo Rust** (src/lib.rs). Racional: o jogo cabe clinicamente
-em um arquivo, evita saltos de contexto e burocracia num proof of concept.
-Se crescer, dividir por dominio: `gen.rs`, `basilisk.rs`, `fov.rs`, `exports.rs`.
+Decisao: **o Rust vive em modulos por dominio** (src/lib.rs e' o glue que declara
+os modulos e re-exporta o namespace flat — o codigo continua achatado como era
+so com um arquivo; cada modulo abre com `use crate::*;`). Racional: o arquivo
+unico cresceu a ~2900 linhas e toda tunagem de balance virava Ctrl+F em montanha;
+os cortes seguem as costuras que ja existiam nas secoes commentadas (estado, rng,
+geracao, basilisco, medo, render, exports). Custos de runtime ZERO: com
+lto=true + codegen-units=1 o LLVM otimiza atraves dos modulos como se fosse um
+arquivo so — o .wasm resultante e identico em comportamento (gate: smoke verde)
+e ~76 bytes maiores no total. Nada de crates: a regra de zero dependencias e
+zero alocacao se mantem.
 
 ## 2. Diagrama do Sistema
 
@@ -52,7 +69,7 @@ todo o estado vive na memoria linear do WASM.
 
 ### 3.1. Nucleo do jogo (WASM)
 
-Nome: `src/lib.rs` -> `castle_of_basilisk.wasm`
+Nome: `src/*.rs` -> `castle_of_basilisk.wasm`
 
 Descricao: gera os andares, roda a IA do basilisco, processa input, calcula
 FOV, desenha o grid ASCII e publica eventos de audio. Nada de I/O: sem
@@ -190,7 +207,7 @@ navegador reproduz no node (e vice-versa), entao o gate e real, nao simulado.
 
 ### 3.4. Sistema de suspense e furtividade
 
-Nome: subsistemas de `src/lib.rs` (IA, ruido, escombro) + HUD/eco em
+Nome: subsistemas de `src/basilisk.rs` (IA, ruido, escombro) + HUD/eco em
 `web/game.js`.
 
 Descricao: transforma o basilisco de "perseguidor sempre colado" em predadora
@@ -198,7 +215,7 @@ de imprevisibilidade: patrulha por salas, caca o seu PASSADO (nao voce), ouve
 por rota (paredes importam) e o jogador ganha passada silenciosa, corrida com
 folego e esconderijos de escombro.
 
-Pilares (constantes tunaveis no topo de `src/lib.rs`):
+Pilares (constantes tunaveis no topo de `src/consts.rs`):
 
 - **Patrulha por salas** (`pick_next_room`): o mapa se divide nos rects de
   sala da geracao; ela rota sala a sala, fareja (PLOITER) e escolhe a
@@ -248,7 +265,7 @@ Pilares (constantes tunaveis no topo de `src/lib.rs`):
 ### 3.5. Cinco andares tematicos
 
 Nome: `theme()` + geracao parametrizada + temperamento (subsistemas de
-`src/lib.rs`)
+`src/consts.rs` e `src/gen.rs`)
 
 Racional: o castelo inteiro com IA identica e uma escadaria. Temas dao
 geografia e curva de tensao: comeca facil (terreo, fora do habitat dela),
@@ -296,7 +313,7 @@ re-precisa passar no gate.
 
 ### 3.6. Medo e loucura
 
-Nome: subsistema de `src/lib.rs` (`fear_update`, `fear_haunt`, `phantoms_tick`,
+Nome: subsistema de `src/fear.rs` (`fear_update`, `fear_haunt`, `phantoms_tick`,
 `render_phantoms`) + HUD/áudio em `web/game.js`.
 
 Descricao: exposição à besta sobe o medo; ausência desce — MAS devagar, e
@@ -307,7 +324,7 @@ o TRAUMA (um terço do pico histórico da run, `FEAR_PK/3`) e o PAVOR AMBIENTE
 acontece além do proprio teatro do pavor no máximo (`COLAPSO` — decisão de
 design: o medo atrapalha e fascina; a morte é trabalho dela, `DEATH_R` 1/2).
 
-Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
+Pilares (constantes tunáveis no topo de `src/consts.rs`, prefixo `FEAR_`/`PH_`):
 
 - **Exposição**: visao mutua sobe por faixa (d<=3: +7, d<=8: +3, d<=12: +1;
   sem LOS mas d<=3 "halito de costas": +2; escamas visiveis +2; EV_STINGER
@@ -425,7 +442,8 @@ estados impossiveis.
   por que uma besta protege um rei morto.
 - Ajuste fino da trilha ambiente por tema (volume do vento/goteiras, stinger
   proprio ao entrar no esgoto).
-- Modularizar `lib.rs` quando o escopo passar de PoC (ver secao 1).
+- Modularizar `game.js` por dominio (audio/render/input), como ja feito no
+  Rust (ver secao 1).
 - CI (GitHub Actions) rodando build + smoke a cada push.
 - Save em localStorage (ver secao 4).
 - `wasm-opt` (binaryen) se o binario crescer; strip ja vem do cargo.
@@ -439,7 +457,7 @@ Repo: https://github.com/VictorHugoBatista/castle-of-basilisk
 
 Owner: Victor Hugo Batista
 
-Ultima atualizacao: 2026-11-03
+Ultima atualizacao: 2026-11-04
 
 ## 11. Glossario
 

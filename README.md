@@ -144,7 +144,7 @@ nos pulsos do pânico — fora do grid, na pele: informação nenhuma, só espan
 ## arquitetura
 
 ```
-src/lib.rs                 todo o jogo, Rust puro, sem crates (ABI WASM crua)
+src/lib.rs + src/*.rs       o jogo em módulos por domínio, Rust puro, sem crates (ABI WASM crua)
 web/index.html             canvas + filtro CRT em CSS puro (scanlines, vinheta, flicker)
 web/game.js                glue: rAF + tick de 140ms, câmera, render por diff, WebAudio
 web/wasm/*.wasm            binário (~27 KB)
