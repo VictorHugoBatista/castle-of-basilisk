@@ -469,9 +469,8 @@ function bodyRumble(pan) {
   blip({ type: 'sine', f0: 65, f1: 40, dur: 0.5, vol: 0.16, pan });
 }
 
-// sibilo do basilisco: exalação sibilante que revela ela no escuro —
-// intervalo, agudeza e pan dependem da proximidade (o ritmo herdado do
-// coração que substituiu: a régua de tensão é a mesma, o som é ELA agora)
+// sibilo do basilisco: "ssssss" longo de cobra — só se ouve DE PERTO (raio 6),
+// e às vezes ela simplesmente PARA no meio da patrulha: o silêncio dela é o aviso
 let sibiloT0 = 0;
 function sibilo(nowMs) {
   if (!AC || stats[0] !== 1) return;
@@ -479,30 +478,34 @@ function sibilo(nowMs) {
   const dy = stats[6] - stats[4];
   const dist = Math.max(Math.abs(dx), Math.abs(dy));
   const crown = stats[8] === 1;
-  // intervalo: pertoooo = sibila sem parar; caça com coroa: sibila constante
+  // radio de PERTO: acima de 6 tiles o sibilo não te alcança — som nenhum
+  // dela (t0 sem reset: cruzar o raio dispara o sopro na hora, o susto da
+  // muralha de som que se escancara no seu rosto)
+  if (dist > 6) return;
+  // sopro longo pede pausa longa: patrulha respira devagar; caça com coroa não
   let period;
-  if (crown) period = 320 + dist * 45;
-  else period = 700 + dist * 130; // patrulha longe = sibilo esporádico
-  period = Math.max(260, Math.min(1500, period));
-  // o MEDO convoca o sibilo — e não pergunta se ela está perto:
-  // o pavor siliba sozinho (nível 3+: o sibilo assombra no vazio)
+  if (crown) period = 1500 + dist * 140;
+  else period = 2400 + dist * 180;
+  period = Math.max(1000, Math.min(5200, period));
+  // o medo aperta o sopro que já está no ar — mas só se ela estiver ali mesmo
   const fl = stats[19] || 0;
-  if (fl > 0) period = Math.max(175, period - fl * 65);
+  if (fl > 0) period = Math.max(900, period - fl * 140);
   if (nowMs - sibiloT0 < period) return;
   sibiloT0 = nowMs;
-  const closeness = Math.max(0, Math.min(1, 1 - dist / 14));
-  const vol = (0.04 + closeness * 0.15) + fl * 0.012;
-  const pan = Math.max(-1, Math.min(1, dx / 8));
-  // quanto mais perto, mais agudo e rasante (o oposto do coração: o sibilo SOBE)
-  const bright = 2800 + closeness * 2400 + fl * 300;
-  // corpo da exalação: ruído filtrado largo, o sopro de escamas abrindo a boca
-  noiseBurst({ dur: 0.5 + closeness * 0.3, vol, f: bright, q: 0.9, pan });
-  // ponta "sss": brilho fino e agudo sobre o corpo — a língua bifurcada
-  noiseBurst({ dur: 0.26, vol: vol * 0.85, f: bright * 1.9, q: 5, delay: 0.09, pan });
-  // cauda: a exalação se apaga devagar — ela NUNCA parou de sibilar
-  noiseBurst({ dur: 0.65, vol: vol * 0.35, f: bright * 0.75, q: 0.8, delay: 0.26, pan });
-  // fundo traiçoeiro: sub-sine afundando sob o assobio
-  blip({ type: 'sine', f0: 95 + closeness * 40, f1: 42, dur: 0.55, vol: vol * 0.3, pan });
+  // o silêncio dela é DE PROPÓSITO: ~1 sopro em 3 não sai (fora da caça com
+  // coroa — ela nunca para quando te quer). O gap engole a régua inteira:
+  // você desconfiou que ela passou, e o silêncio não te responde.
+  if (!crown && Math.random() < 0.38) return;
+  const closeness = Math.max(0, Math.min(1, 1 - dist / 7));
+  const vol = 0.05 + closeness * 0.16;
+  const pan = Math.max(-1, Math.min(1, dx / 6));
+  const bright = 3400 + closeness * 2200; // perto = "ssssss" mais agudo e rasante
+  // o "ssssss" mesmo: dois sopros emendados — prato de ~2.3s que quase encosta
+  // no próximo (de perto soa CONTÍNUO; é o gap sorteado que te esquenta a nuca)
+  noiseBurst({ dur: 1.1, vol, f: bright, q: 1.0, pan });
+  noiseBurst({ dur: 1.2, vol: vol * 0.85, f: bright * 1.05, q: 1.0, delay: 0.9, pan });
+  // a língua no fim do sopro: ponta "sss" rarefeita e aguda, a boca fechando
+  noiseBurst({ dur: 0.7, vol: vol * 0.65, f: bright * 1.7, q: 5, delay: 1.6, pan });
 }
 
 // ============================================================
