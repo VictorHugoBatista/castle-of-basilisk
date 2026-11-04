@@ -749,15 +749,17 @@ fn gen_once(depth: u8, seed: u32) {
         // (porta de um lado, barra do outro) ou LACRADA (maciço de rocha).
         // As escalas de serviço entre galerias nascem nos vãos de rocha. ----
 
-        // colunas de escada: grupos de rocha sem cela (2-3 por andar) — é ali
-        // que os corredores de serviço atravessam as galerias
-        let mut linkcol: [i32; 3] = [0; 3];
-        let nl = 2 + rndn(2);
-        for li in 0..nl {
-            let x = 3 + (rndn(17) * 3) as i32;
-            let mut dup = false;
-            for k in 0..li { if linkcol[k] == x { dup = true; } }
-            if !dup { linkcol[li] = x; }
+        // vãos de rocha: grupos sem cela, 3-5 por andar (número SORTEADO) —
+        // é neles que os corredores de serviço ligam as três galerias; o
+        // quantas ligações e onde, nunca nasce duas vezes igual
+        let mut links: u32 = 0; // bit g aceso = o grupo g é um vão de serviço
+        let nl = 3 + rndn(3) as u32;
+        let mut used = 0u32;
+        let mut tries = 0u32;
+        while used < nl && tries < 40 {
+            tries += 1;
+            let bit = 1u32 << rndn(17);
+            if links & bit == 0 { links |= bit; used += 1; }
         }
 
         // pass 1: os três corredores largos nasceram PRIMEIRO — as celas
@@ -778,9 +780,7 @@ fn gen_once(depth: u8, seed: u32) {
             let by = 2 + bi as i32 * 10;
             for gi in 0..17usize {
                 let gx = 3 + gi as i32 * 3;
-                let mut islink = false;
-                for k in 0..nl { if linkcol[k] == gx { islink = true; } }
-                if islink { continue; } // vão de rocha: escada de serviço
+                if links & (1u32 << gi) != 0 { continue; } // vão de rocha: corredor de serviço
                 for side in 0..2usize {
                     let iy0 = if side == 0 { by } else { by + 7 };
                     let iy1 = iy0 + 1;
@@ -820,11 +820,11 @@ fn gen_once(depth: u8, seed: u32) {
                 }
             }
         }
-        // escalas de serviço: corredor vertical estreito atravessando os
+        // corredores de serviço: coluna vertical estreita atravessando os
         // vãos de rocha entre as galerias (do corredor de uma à outra)
-        for li in 0..3usize {
-            if linkcol[li] == 0 { continue; }
-            let x = linkcol[li];
+        for g in 0..17usize {
+            if links & (1u32 << g) == 0 { continue; }
+            let x = 3 + g as i32 * 3;
             carve_v(x, 5, 17);
             carve_v(x, 15, 27);
         }
@@ -981,16 +981,18 @@ fn gen_once(depth: u8, seed: u32) {
     }
 
     // ---- masmorra funda (andar 3): perto dos canais, POÇAS RASAS varrem o
-    // chão — glifo igual ao da água imperial, mas rasa: maré nenhuma. Nascem
-    // em PISO (não em parede), encharcam 1-5 tiles e acabam onde o chão acaba ----
+    // chão — o esgoto respira lá embaixo: encharcadas e frequentes, do
+    // corredor largo ao fundo das celas. Glifo igual ao da água imperial,
+    // mas rasa: maré nenhuma. Nascem em PISO, encharcam 3-8 tiles e acabam
+    // onde o chão acaba ----
     if th == TH_DUNGEON && depth == 3 {
-        for _ in 0..18 {
+        for _ in 0..34 {
             let mut cx = (1 + rndn(W() - 2)) as i32;
             let mut cy = (1 + rndn(H() - 2)) as i32;
             let i0 = idx(cx as usize, cy as usize);
             if unsafe { MAP[i0] != T_FLOOR } { continue; }
             unsafe { MAP[i0] = T_SHALLOW; }
-            let mut len = rndn(5) as i32; // poça de 1-5 tiles: rasas, não rios
+            let mut len = 2 + rndn(6) as i32; // poça de 3-8 tiles: rasas, não rios
             while len > 0 {
                 let ndx: i32 = match rndn(4) { 0 => 1, 1 => -1, _ => 0 };
                 let ndy = if ndx == 0 { if rndn(2) == 0 { 1 } else { -1 } } else { 0 };
@@ -1012,10 +1014,12 @@ fn gen_once(depth: u8, seed: u32) {
 
     // ---- saída '>' (até o andar 4) ou coroa '§' com altar (andar 5: a Cloaca
     // Maxima profunda, onde o rei morto coroou-se a si mesmo) ----
-    // ala de celas: a escada fica NO FIM do corredor da última galeria —
-    // a travessia da masmorra é o passeio inteiro pela ala
+    // ala de celas: a DESCIDA também é sorteada — galeria de 2º/3º andar à
+    // sorte, coluna aleatória do corredor dela: nunca na galeria do '<',
+    // nunca na mesma posição duas vezes
     let (dx, dy) = if th == TH_DUNGEON {
-        (51i32, 26i32) // fim leste do corredor da galeria 3 (linhas 25-27)
+        let byl = 12 + (rndn(2) as i32) * 10; // galeria 2 (linhas 15-17) ou 3 (25-27)
+        (4 + rndn(47) as i32, byl + 4) // meio do corredor dela, x sorteado
     } else {
         rcenter(rn - 1)
     };
