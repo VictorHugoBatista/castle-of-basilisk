@@ -146,8 +146,8 @@ scripts/debug6.mjs         bancada do bot playthrough
 | # | lugar | mapa | temperamento dela |
 |---|---|---|---|
 | 1 | Ruínas do castelo (térreo) | 56×32 | quase adormecida (fora do habitat) |
-| 2 | Masmorra Assombrada | 56×32 | a caça paciente de sempre |
-| 3 | Masmorra Assombrada | 56×32 | caça paciente + rastro forte |
+| 2 | Masmorra Assombrada | 64×36 | a caça paciente de sempre |
+| 3 | Masmorra Assombrada | 64×36 | caça paciente + rastro forte |
 | 4 | Canais Envenenados | 80×44 | casa dela: veloz, olho a 5, ouvido fino |
 | 5 | Canais Envenenados (coroa) | 80×44 | idem, com canais de água a escoar |
 

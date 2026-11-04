@@ -6,6 +6,8 @@
 
 pub const W0: usize = 56;  // castelo: o mapa de sempre
 pub const H0: usize = 32;
+pub const W_BANK: usize = 64; // masmorras: a ala de celas — maior que o palácio,
+pub const H_BANK: usize = 36; // menor que a cloaca
 pub const W_MAX: usize = 80; // esgotos: a rede imperial, consideravelmente maior
 pub const H_MAX: usize = 44;
 pub const N_MAX: usize = W_MAX * H_MAX;
@@ -625,9 +627,10 @@ fn gen_floor(depth: u8, seed: u32) {
 }
 
 fn floor_dims(depth: u8) -> (usize, usize) {
-    // térreo e masmorras: o castelo de sempre. Esgotos: a rede imperial é
-    // consideravelmente maior — dois andares inteiros de cloaca para atravessar.
-    if depth >= 4 { (W_MAX, H_MAX) } else { (W0, H0) }
+    // térreo: o palácio de sempre. Masmorras: a ala de celas — maior que o
+    // palácio, menor que a cloaca. Esgotos: a rede imperial, consideravelmente
+    // maior — dois andares inteiros de cloaca para atravessar.
+    if depth >= 4 { (W_MAX, H_MAX) } else if depth >= 2 { (W_BANK, H_BANK) } else { (W0, H0) }
 }
 
 fn gen_once(depth: u8, seed: u32) {
@@ -747,38 +750,42 @@ fn gen_once(depth: u8, seed: u32) {
         // central e as barras na altura dos olhos. Celas de quatro destinos:
         // TRANCADA (grade integral), ABERTA (portas, com os ossos), MEIA
         // (porta de um lado, barra do outro) ou LACRADA (maciço de rocha).
-        // As escalas de serviço entre galerias nascem nos vãos de rocha. ----
+        // O corredor de serviço atinge as galerias nos vãos de rocha. ----
+        // a ala (64x36) é MAIOR que o palácio (56x32), MENOR que a cloaca
+        // (80x44): grupos e passos se leem das dims do andar, nunca fixos
 
         // vãos de rocha: grupos sem cela, 3-5 por andar (número SORTEADO) —
         // é neles que os corredores de serviço ligam as três galerias; o
         // quantas ligações e onde, nunca nasce duas vezes igual
+        let groups = (W() - 6) / 3; // grupos de 3 colunas, margem 3 de cada lado
+        let cend = 3 + groups as i32 * 3 - 2; // última coluna do corredor
         let mut links: u32 = 0; // bit g aceso = o grupo g é um vão de serviço
         let nl = 3 + rndn(3) as u32;
         let mut used = 0u32;
         let mut tries = 0u32;
         while used < nl && tries < 40 {
             tries += 1;
-            let bit = 1u32 << rndn(17);
+            let bit = 1u32 << rndn(groups);
             if links & bit == 0 { links |= bit; used += 1; }
         }
 
         // pass 1: os três corredores largos nasceram PRIMEIRO — as celas
         // preenchem o resto da tabela de salas, nunca antes deles
         for bi in 0..3usize {
-            let by = 2 + bi as i32 * 10; // a galeria ocupa 9 rows: 2-10 · 12-20 · 22-30
+            let by = 2 + bi as i32 * 11; // a galeria ocupa 9 rows, passo 11: 2-10 · 13-21 · 24-32
             let cy0 = by + 3;
             for y in cy0..=cy0 + 2 {
-                for x in 3..=52 {
+                for x in 3..=cend {
                     unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; }
                 }
             }
-            set_room(unsafe { RN }, 3, cy0, 52, cy0 + 2);
+            set_room(unsafe { RN }, 3, cy0, cend, cy0 + 2);
             unsafe { RN += 1; }
         }
         // pass 2: celas — grupos de 3 colunas (2 de cela + 1 de parede)
         for bi in 0..3usize {
-            let by = 2 + bi as i32 * 10;
-            for gi in 0..17usize {
+            let by = 2 + bi as i32 * 11;
+            for gi in 0..groups {
                 let gx = 3 + gi as i32 * 3;
                 if links & (1u32 << gi) != 0 { continue; } // vão de rocha: corredor de serviço
                 for side in 0..2usize {
@@ -822,11 +829,11 @@ fn gen_once(depth: u8, seed: u32) {
         }
         // corredores de serviço: coluna vertical estreita atravessando os
         // vãos de rocha entre as galerias (do corredor de uma à outra)
-        for g in 0..17usize {
+        for g in 0..groups {
             if links & (1u32 << g) == 0 { continue; }
             let x = 3 + g as i32 * 3;
-            carve_v(x, 5, 17);
-            carve_v(x, 15, 27);
+            carve_v(x, 5, 18);
+            carve_v(x, 16, 29);
         }
     } else {
         for _ in 0..attempt_n {
@@ -1018,8 +1025,8 @@ fn gen_once(depth: u8, seed: u32) {
     // sorte, coluna aleatória do corredor dela: nunca na galeria do '<',
     // nunca na mesma posição duas vezes
     let (dx, dy) = if th == TH_DUNGEON {
-        let byl = 12 + (rndn(2) as i32) * 10; // galeria 2 (linhas 15-17) ou 3 (25-27)
-        (4 + rndn(47) as i32, byl + 4) // meio do corredor dela, x sorteado
+        let byl = 13 + (rndn(2) as i32) * 11; // galeria 2 (linhas 16-18) ou 3 (27-29)
+        (4 + rndn(W() - 9) as i32, byl + 4) // meio do corredor dela, x sorteado
     } else {
         rcenter(rn - 1)
     };
