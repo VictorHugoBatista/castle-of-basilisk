@@ -135,11 +135,14 @@ PR criado (número N), rodar o review automático no diff DO PR:
 
 - **Passar tudo pelo `/review`** — é ele o primeiro par de olhos no diff,
   sempre, sem exceção ("só docs", "só uma linha" também passam).
-- Corrigir no MESMO commit (amend) TODO problema apontado — debug esquecido,
-  comentário rascunho, mudança colateral que não pertence ao PR, docs/ABI
-  que ficaram pra trás do código (seção 3/5) — e devolver com
-  `git push --force-with-lease` (o PR é atualizado na hora); rodar
-  `/review` de novo até não sobrar achado relevante.
+- Corrigir TODO problema apontado em **commit NOVO, com mensagem própria que
+  diga o que foi corrigido** — debug esquecido, comentário rascunho, mudança
+  colateral que não pertence ao PR, docs/ABI que ficaram pra trás do código
+  (seção 3/5). **NUNCA usar `commit --amend`, nunca reescrever histórico
+  publicado** (nem `--force`, nem `--force-with-lease`): o histórico tem que
+  mostrar CADA passo — cada correção é um commit, um por linha de achado
+  quando couber, e o PR atualiza com `git push` normal. Rodar `/review` de
+  novo até não sobrar achado relevante.
 - Se o `/review` não estiver disponível no ambiente do agente, não é dispença
   para pular: anotar no PR que ele ficou a dever, reler o diff manualmente
   (finds de bug, colateral, docs/ABI) e deixar o `/review` para o dono.
