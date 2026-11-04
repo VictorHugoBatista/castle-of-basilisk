@@ -61,6 +61,7 @@ const T_BARS: u8 = b'|';   // masmorra: grade de cela — bloqueia passagem, a L
 const T_SKULL: u8 = 0xA5;  // masmorra: caveira '¥' restada nas celas abertas (transitável)
 const T_SHALLOW: u8 = b'='; // masmorra funda: poça rasa — MESMO glifo da água, mas rasa:
                             // não é o habitat dela, e os pés dela não ganham maré
+const T_DEEP: u8 = 0xF7;   // esgoto: '÷' fundura — água demais até para ela: não se passa
 
 // ---- atributos (índice da paleta em JS) ----
 const A_FLOOR: u8 = 0;
@@ -396,8 +397,8 @@ fn opaque(x: i32, y: i32) -> bool {
 fn walkable(x: i32, y: i32) -> bool {
     if x < 0 || y < 0 || x >= W() as i32 || y >= H() as i32 { return false; }
     let t = tile_at(x as usize, y as usize);
-    // grades de cela: como parede para os pés, como ar para a vista
-    t != T_WALL && t != T_PILLAR && t != T_BARS
+    // grades de cela e funduras de esgoto: como parede para os pés, como ar para a vista
+    t != T_WALL && t != T_PILLAR && t != T_BARS && t != T_DEEP
 }
 
 // caminhável PARA ELA: escombros entram na rota só quando há prova fresca
@@ -645,6 +646,11 @@ fn gen_once(depth: u8, seed: u32) {
     }
 
     let th = theme(depth);
+
+    // esgoto: canais imperiais (1-2 rios verticais) — declarados aqui: o
+    // desenho do leito (desabamentos/funduras) vem depois do cave de salas
+    let mut canals: [(i32, i32); 2] = [(0, 0), (0, 0)]; // (leito esquerdo, largura)
+    let mut nc = 0usize;
     // ---- salas: cada tema tem seu caráter ----
     // castle: salões amplos de palácio · dungeon: celas pequenas e endurecidas
     // · sewer: bacias/cisternas grandes numa rede muito maior
@@ -836,6 +842,50 @@ fn gen_once(depth: u8, seed: u32) {
             carve_v(x, 16, 29);
         }
     } else {
+        // ---- CANAIS IMPERIAIS: 1-2 rios verticais de '=' correndo o andar de
+        // cima a baixo — posição e largura à sorte, sempre separados. As
+        // cavernas bizarras nascem dele mais adiante, CORTANDO o rio. ----
+        nc = 1 + rndn(2) as usize;
+        canals[0] = (6 + rndn(26) as i32, 2 + rndn(2) as i32); // faixa 6..31
+        if nc == 2 { canals[1] = (44 + rndn(26) as i32, 2 + rndn(2) as i32); } // faixa 44..69
+        for ci in 0..nc {
+            let (cxs, cw) = canals[ci];
+            for y in 1..H() as i32 - 1 {
+                for x in cxs..cxs + cw {
+                    unsafe { MAP[idx(x as usize, y as usize)] = T_WATER; }
+                }
+            }
+        }
+        // cavernas bizarras CORTANDO os canais: uma garantida por canal,
+        // escavada seca sobre a água — o vão da caverna é a ponte de pedra
+        for ci in 0..nc {
+            let (cxs, cw) = canals[ci];
+            for _ in 0..8 {
+                let w = (6 + rndn(5)) as i32;
+                let h = (4 + rndn(3)) as i32;
+                let mut x0 = cxs - (1 + rndn((w - cw - 1) as usize) as i32);
+                if x0 < 1 { x0 = 1; }
+                if x0 + w - 1 > W() as i32 - 2 { continue; }
+                let y0 = 1 + rndn((H() as usize - 2 - h as usize)) as i32;
+                let mut ok = true;
+                let n = unsafe { RN };
+                for r in 0..n {
+                    if x0 <= rget(r, 2) + 2 && x0 + w - 1 + 2 >= rget(r, 0) &&
+                       y0 <= rget(r, 3) + 2 && y0 + h - 1 + 2 >= rget(r, 1) { ok = false; break; }
+                }
+                if !ok { continue; }
+                for y in y0..y0 + h {
+                    for x in x0..x0 + w {
+                        unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; }
+                    }
+                }
+                set_room(unsafe { RN }, x0, y0, x0 + w - 1, y0 + h - 1);
+                unsafe { RN += 1; }
+                break; // um cortador por canal (o esgoto nunca fica sem ponte)
+            }
+        }
+        // as bacias/cisternas bizarras de sempre preenchem o resto do andar —
+        // mas FORA dos leitos: os canais são dos rios (e dos cortadores)
         for _ in 0..attempt_n {
             if unsafe { RN } >= max_rooms { break; }
             let w = (rndn(w_span) + w_base) as i32;
@@ -844,6 +894,14 @@ fn gen_once(depth: u8, seed: u32) {
             let y0 = (rndn(H() - h as usize - 2) + 1) as i32;
             let x1 = x0 + w - 1;
             let y1 = y0 + h - 1;
+            // sobrepõe algum canal? a caverna não cava dentro do rio de graça
+            let mut in_canal = false;
+            for ci in 0..nc {
+                let (cxs, cw) = canals[ci];
+                if cxs == 0 { continue; }
+                if x0 <= cxs + cw - 1 + room_gap && x1 + room_gap >= cxs { in_canal = true; break; }
+            }
+            if in_canal { continue; }
             let mut ok = true;
             let n = unsafe { RN };
             for r in 0..n {
@@ -982,9 +1040,55 @@ fn gen_once(depth: u8, seed: u32) {
         }
     }
 
-    // ---- esgoto: canais de água sobre os corredores (o habitat dela) ----
-    if th == TH_SEWER {
-        seed_water();
+    // ---- esgoto: DESABAMENTOS E FUNDURAS nos canais imperiais — o leito
+    // parte-se em pedaços (pedra fechando a água) e uns vãos são profundos
+    // demais ('÷'): não se passa. Só na água FORA de sala, para não
+    // ajuizar cavernas ----
+    if th == TH_SEWER && nc > 0 {
+        for ci in 0..nc {
+            let (cxs, cw) = canals[ci];
+            if cxs == 0 { continue; }
+            // desabamento: 0-2 por canal — a rocha caiu no leito e fechou
+            let npl = rndn(3) as i32;
+            for _ in 0..npl {
+                let len = 2 + rndn(3) as i32; // 2-4 linhas de rocha
+                let y0 = 2 + rndn((H() as usize - 4 - len as usize)) as i32;
+                let mut ok = true;
+                for y in y0..y0 + len {
+                    for x in cxs..cxs + cw {
+                        if unsafe { MAP[idx(x as usize, y as usize)] } != T_WATER { ok = false; }
+                        if room_of(x, y) >= 0 { ok = false; }
+                    }
+                }
+                if ok {
+                    for y in y0..y0 + len {
+                        for x in cxs..cxs + cw {
+                            unsafe { MAP[idx(x as usize, y as usize)] = T_WALL; }
+                        }
+                    }
+                }
+            }
+            // fundura: 1-2 trechos de água demais — '÷' sem leito
+            let nd = 1 + rndn(2) as i32;
+            for _ in 0..nd {
+                let len = 2 + rndn(4) as i32; // 2-5 linhas fundas
+                let y0 = 2 + rndn((H() as usize - 4 - len as usize)) as i32;
+                let mut ok = true;
+                for y in y0..y0 + len {
+                    for x in cxs..cxs + cw {
+                        if unsafe { MAP[idx(x as usize, y as usize)] } != T_WATER { ok = false; }
+                        if room_of(x, y) >= 0 { ok = false; }
+                    }
+                }
+                if ok {
+                    for y in y0..y0 + len {
+                        for x in cxs..cxs + cw {
+                            unsafe { MAP[idx(x as usize, y as usize)] = T_DEEP; }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // ---- masmorra funda (andar 3): perto dos canais, POÇAS RASAS varrem o
@@ -1049,36 +1153,6 @@ fn gen_once(depth: u8, seed: u32) {
     // ---- becos de escombro: esconderijos que ela não patrulha (por último:
     // escava só em parede, nunca conecta nem encolhe caminhos) ----
     dig_pockets(depth, rub_quota);
-}
-
-// ================= água (habitat do basilisco, só no esgoto) =================
-
-// córregos de '=' viajando pelos corredores: cume-de-onda com momentum.
-// Caminho-por-terra: só converte piso de CORREDOR (fora de sala), então rotas
-// de BFS/portais não mudam de grafo — é um jogo de chão, não de arquitetura.
-fn seed_water() {
-    unsafe {
-        for _ in 0..12 {
-            let mut cx = (1 + rndn(W() - 2)) as i32;
-            let mut cy = (1 + rndn(H() - 2)) as i32;
-            if room_of(cx, cy) >= 0 { continue; } // começa em CORREDOR
-            let mut len = 14 + rndn(40) as i32;
-            while len > 0 {
-                let i = idx(cx as usize, cy as usize);
-                let t = MAP[i];
-                if t == T_FLOOR || t == T_SHADOW {
-                    MAP[i] = T_WATER;
-                    len -= 1;
-                }
-                let dx: i32 = match rndn(4) { 0 => 1, 1 => -1, _ => 0 };
-                let dy: i32 = if dx == 0 { if rndn(2) == 0 { 1 } else { -1 } } else { 0 };
-                cx += dx;
-                cy += dy;
-                if cx < 1 || cy < 1 || cx >= W() as i32 - 1 || cy >= H() as i32 - 1 { break; }
-                if room_of(cx, cy) >= 0 && rndn(3) == 0 { break; } // entra pouco na bacia
-            }
-        }
-    }
 }
 
 fn set_room_t(x: i32, y: i32, t: u8) {

@@ -60,6 +60,11 @@ ESC volta ao menu.
   Anda na sombra? 4 tiles. No claro? Ele te vê a 8.
 - **`=` = água do esgoto** (só andares 4-5). Caminhável por você — mas é o meio
   nativo dela: **na água ela apressa o passo**. Sob os pés, o passo respinga.
+  Os **canais imperiais** correm de cima a baixo (1-2, largura e posição à
+  sorte), muitas vezes interrompidos: **desabamentos** fecham o leito de pedra e
+  cavernas secas cortam o rio (o vão da cisterna é a ponte).
+- **`÷` = fundura**: água demais nos canais — não se passa, nem para ela.
+  Águas abertas: vê-se através, afogamento não. Contorna ou usa a caverna.
 - **`|` = grade de cela** (masmorras): bloqueia passagem, MAS a luz passa —
   de através dela você vê o que vem (e ela vê você; o olhar segue valendo).
   Nas masmorras, portas de cela viram grade: "celas trancadas" para sempre.
@@ -209,10 +214,12 @@ Escopo *proof of concept*: 5 andares temáticos e procedurais — térreo do
 palácio: grandes salões com colunata interna cercados por corredores e
 cômodos pendurados nas paredes deles (portas nos gargalos), masmorras de
 celas com grades (a luz atravessa, o corpo não), caveiras nas celas abertas
-e poças rasas no andar fundo, esgoto imperial 80×44 com canais de água `=` —
-IA em 3 estados (patrulha/invest/caça) com BFS real e temperamento por tema,
-FOV por raycast, um toque mata / Um olhar mata. Cada tema tem o próprio
-caráter de geração.
+e poças rasas no andar fundo, esgoto imperial 80×44 com **canais imperiais
+verticais** (1–2 rios `=` de cima a baixo, largura e posição à sorte,
+interrompidos por desabamentos de pedra, funduras `÷` atravessáveis por
+ninguém e cavernas-bacia que cortam o rio a seco) — IA em 3 estados
+(patrulha/invest/caça) com BFS real e temperamento por tema, FOV por raycast,
+um toque mata / Um olhar mata. Cada tema tem o próprio caráter de geração.
 Para o jogo grande: itens de "ruído falso", basilisco aprendendo padrões de
 fuga, salas com rachaduras de teto, e um final que explique porque uma besta
 gigante protege um rei morto.

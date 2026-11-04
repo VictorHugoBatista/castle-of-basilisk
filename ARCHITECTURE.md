@@ -260,7 +260,7 @@ terreo.
 |---|------|------|---------|---------|
 | 1 | TH_CASTLE (Ruinas do castelo) | 56x32 | saloes amplos + pilares | quase adormecida: patrol 6/invest 4/hunt 3, ouvido 60, sibilo 1/90, rastro 7/2 |
 | 2-3 | TH_DUNGEON (Masmorras) | 64x36 | ala de celas: 3 galerias de corredor largo empilhadas, celas 2x2 dos lados (trancada/aberta/meia/lacrada), 3-5 corredores de servico sorteados, descida em galeria/coluna sorteadas, pocas rasas no andar 3 | a cacadora de sempre: 4/3/2, ouvido 42, sibilo 1/47, rastro 14/5 |
-| 4-5 | TH_SEWER (Canais Envenenados) | 80x44 | bacias/cisternas em rede maior, loops de fuga, canais de agua | CASA dela: 3/2/2, ouvido 30, sibilo 1/23, rastro 21/8, GAZE_R+1 |
+| 4-5 | TH_SEWER (Canais Envenenados) | 80x44 | 1-2 canais imperiais verticais (teto a fundo, largura/posicao sorteadas) com desabamentos (0-2 pedras por canal) e funduras '÷' (1-2 trechos, nao atravesaveis nem por ela); cavernas-bacia cortando o rio (uma garantida por canal, seca sobre a agua) + bacias/cisternas fora dos leitos | CASA dela: 3/2/2, ouvido 30, sibilo 1/23, rastro 21/8, GAZE_R+1 |
 
 - **Mapas por tema** (`floor_dims`): castelo 56x32, masmorras 64x36, esgoto
   80x44; todos os buffers
@@ -270,11 +270,13 @@ terreo.
   para `W0/H0` quando `STATE != ST_PLAY` (o JS fora de jogo le o grid como
   56 colunas; morrer no esgoto com stride 80 rasgava a tela em diagonal).
   `gen_once` restaura as dims do andar quando ele regenera.
-- **Agua** (`seed_water`, so esgoto; tile `'='` / attr 13): rachaduras de
-  rio por passeio aleatorio que convertem APENAS piso de CORREDOR (fora de
-  sala) — o grafo de BFS/portas nao muda, muda o chao: caminhar na agua
+- **Agua** (tile `'='` / attr 13, e fundura `'÷'`= 0xF7 / attr 13): os CANAIS
+  IMPERIAIS do esgoto sao 1-2 rios verticais de teto a fundo, largura/posicao
+  sorteadas; os corredores que os cruzam mantem o leito de agua (ponte molhada)
+  o grafo de caminhabilidade nao muda — agua e pisavel — mas caminhar nela
   acelera ELA (`speed_now`: -1 no periodo => 1/1 tick na agua) e respinga o
-  passo do jogador.
+  passo do jogador. FUNDURAS (`÷`) nao sao pisaveis NEM por ela; desabamentos
+  (pedra no leito) fecham o rio em pecazos que se religam pelas cavernas.
 - **Temperamento por tema** (tabelas `speed_patrol/invest/hunt`, `ear_cool`,
   `hiss_mod`, `trail_weights`, `gaze_r`): um lugar = uma besta diferente;
   fora do habitat (terreo) ela e quase decorativa, na casa dela (esgoto)
