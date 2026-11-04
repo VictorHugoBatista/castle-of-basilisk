@@ -8,7 +8,8 @@ ajuste nasce numa branch, passa pelo gate de testes e entra na `master` via PR.
 ## 1. o fluxo, sempre nessa ordem
 
 ```
-branch nova → ajuste → teste local → commit → push → PR → review → merge
+branch nova → ajuste → teste local → commit → review (automático +
+próprio) → push → PR → review do dono → merge
 ```
 
 NENHUM ajuste direto na `master`. Sem exceções: nem fix miúdo, nem typo,
@@ -117,6 +118,26 @@ node scripts/smoke.mjs  # gate headless: mortes, IA, medo, coroa, bot BFS, fuzz
 
 ## 6. push e PR
 
+**Nenhum PR nasce sem review automático do `/review`.** Antes de
+`git push -u origin`, com o diff da branch commitado:
+
+```bash
+git diff master...HEAD        # conferir o que vai ser revisado
+/review                       # review automático do diff
+```
+
+- **Passar tudo pelo `/review`** — é ele o primeiro par de olhos no diff,
+  sempre, sem exceção ("só docs", "só uma linha" também passam).
+- Corrigir no MESMO commit (amend) TODO problema apontado — debug esquecido,
+  comentário rascunho, mudança colateral que não pertence ao PR, docs/ABI
+  que ficaram pra trás do código (seção 3/5) — e rodar `/review` de novo
+  até não sobrar achado relevante.
+- O `/review` não substitui a leitura própria: reler o diff por cima
+  procurando o que automação não pega (coerência com as seções 3 e 4,
+  padrões respeitados, gate de testes rodado onde o commit descreve).
+- Só depois de `/review` limpo + diff relido: push e um PR que você
+  assinaria por baixo.
+
 ```bash
 git push -u origin <tipo>/<slug>
 ```
@@ -132,9 +153,10 @@ PR para `master` (`base: master ← compare: <tipo>/<slug>`):
   - **números** — bench antes/depois quando for gameplay.
 - Se o PR atualiza ABI/stats/IDs de evento, conferir que o README e o
   ARCHITECTURE correspondentes acompanharam os números.
-- Depois do review do agente, **PARAR**: PR aberto é estado final — o merge
-  é do dono do repo, e só quando ELE pedir. Agentes não chamam `gh pr merge`
-  jamais: nem normal, nem squash, nem sobre PRs "óbvios" ou verdes.
+- Depois do review **do dono** sobre o PR, **PARAR**: PR aberto é estado
+  final — o merge é do dono do repo, e só quando ELE pedir. Agentes não
+  chamam `gh pr merge` jamais: nem normal, nem squash, nem sobre PRs
+  "óbvios" ou verdes.
 - Merge SQUASH não é o padrão: se a branch tem commits coesos, merge normal
   preserva a narrativa; se a branch ficou suja (WIP, "esqueci um `,`"),
   squash antes do merge.
