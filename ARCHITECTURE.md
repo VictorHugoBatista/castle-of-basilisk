@@ -217,6 +217,14 @@ O fear_bench roda o mesmo bot com telemetria por tick do medo (nivel, pico,
 alucinacoes nascidas/evaporadas) — e a prova numerica de que um ajuste de
 balance torna o medo VISIVEL sem matar o bot (ver secao 3.6).
 
+Nota sobre o cenario do sibilo (evento 22): a GEOMETRIA E COMANDADA por
+design — teletransporte discreto dela a 3 tiles (debug_bas_place nao ticka o
+jogo) porque ela raramente re-entra no raio de PERTO por passeio natural numa
+janela curta. A fidelidade da cadencia (períodos, silencio proposital de 38%)
+vem da DISTRIBUICAO por seed (40 tentativas, padrao dos cenarios brake/
+playthrough), nao do passeio organico. O lado negativo (fala com d > 6 = gate
+do raio quebrado) e checado tick a tick.
+
 Tecnologia e beneficio: o mesmo WASM serve os dois universos — bug de
 navegador reproduz no node (e vice-versa), entao o gate e real, nao simulado.
 

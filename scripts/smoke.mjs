@@ -435,6 +435,11 @@ const calmWhisper = scenario('calmo: sussurro raro, medo nenhum (paranoia nasce 
 // PÓS-TURNO (stats logo após o pfb_step): é a mesmíssima que o sibilo_tick
 // usou para decidir — ela pode cruzar o raio NO tick (d pré > 6, d pós <= 5),
 // e isso é fala legítima; o que é regressão é falar com d pós > 6.
+//
+// GEOMETRIA COMANDADA, POR DESIGN (ver ARCHITECTURE §3.3): o teleporte
+// discreto (não ticka o jogo) só existirá porque ela raramente re-entra no
+// raio por passeio natural numa janela curta — a fidelidade da cadência vem
+// da distribuição por seed (40 tentativas), não do passeio orgânico.
 const sib = scenario('sibilo próximo: fala DENTRO do raio, silêncio FORA (evento 22)', () => {
   let sibOK = false, fora = 0;
   for (let attempt = 1; attempt <= 40 && !sibOK; attempt++) {
