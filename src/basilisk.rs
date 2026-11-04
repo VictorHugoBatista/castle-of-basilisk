@@ -385,3 +385,35 @@ pub(crate) fn doors_on_line(x0: usize, y0: usize, x1: usize, y1: usize) -> i32 {
     }
     n
 }
+
+// ================= sibilo próximo =================
+
+// A fala dela num raio de PERTO: decisão INTEIRA no RT, som no JS (EV_SIBILO
+// = evento 22: volume/pan/brilho derivam da proximidade lá). Antes isto era
+// relógio de rAF + Math.random() de browser em web/game.js; agora a cadência
+// nasce em consts.rs e a sorte no stream própria (rsib). O silêncio dela é
+// DE PROPÓSITO: ~1 sopro em 3 não sai (fora da caça com coroa — quando te
+// quer, ela nunca para). O gap engole a régua inteira: você desconfiou que
+// ela passou, e o silêncio não te responde.
+pub(crate) fn sibilo_tick() {
+    unsafe {
+        let d = cheb(BX, BY, PX, PY);
+        // raio de PERTO: acima de SIB_R o sopro não te alcança — som nenhum
+        // dela. Sem reset do timer: cruzar o raio dispara o sopro na hora.
+        if d > SIB_R { return; }
+        let (base, dtile) = if CROWN {
+            (SIB_CROWN_MS, SIB_CROWN_D_MS)
+        } else {
+            (SIB_PATROL_MS, SIB_PATROL_D_MS)
+        };
+        let mut ms = (base + d * dtile).clamp(SIB_MIN_MS, SIB_MAX_MS);
+        // o medo aperta o sopro que já está no ar — mas só se ela está ali mesmo
+        let fl = fear_level() as i32;
+        if fl > 0 { ms = (ms - fl * TICK_MS).max(SIB_FLOOR_MS); }
+        let per = ms / TICK_MS;
+        if TICK - SIB_T < per { return; }
+        SIB_T = TICK;
+        if !CROWN && rsib() % 100 < SIB_GAP_PCT { return; } // o silêncio dela é de propósito
+        push_event(EV_SIBILO);
+    }
+}

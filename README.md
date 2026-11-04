@@ -146,7 +146,7 @@ nos pulsos do pânico — fora do grid, na pele: informação nenhuma, só espan
 ```
 src/lib.rs + src/*.rs       o jogo em módulos por domínio, Rust puro, sem crates (ABI WASM crua)
 web/index.html             canvas + filtro CRT em CSS puro (scanlines, vinheta, flicker)
-web/game.js                glue: rAF + tick de 140ms, câmera, render por diff, WebAudio
+web/game.js                glue: rAF + tick de 140ms, render do bitmap de diff que o WASM produz, WebAudio
 web/wasm/*.wasm            binário (~27 KB)
 build.sh                   cargo build --release + copy para web/wasm
 scripts/smoke.mjs          gate de testes headless (roda o jogo no Node)
@@ -178,6 +178,10 @@ Nada de wasm-bindgen: o módulo expõe funções `#[no_mangle] extern "C"`:
 - `pfb_max_n()` — tamanho máximo do grid (80×44, esgoto): o JS dimensiona as views
 - `pfb_ui_ptr()` — barra de UI fabricada (dica contextual / nome do andar)
 - `pfb_pop_event()` — fila de eventos de áudio
+- `pfb_diff_ptr()` / `pfb_diff_ack()` — diff de render produzido no WASM:
+  `[0]` flags (bit0 = repinte integral), `[1]` camX, `[2]` camY,
+  `[3..227]` bitmap de células de TELA mudadas; o JS pinta o marcado e
+  confirma com o ack
 - `pfb_state()` — 0 título, 1 jogando, 2 morto, 3 vitória, 4 controles
 - `pfb_debug_*` — ferramentas dos testes (place/bas_place/map/probe/give_crown)
 
@@ -190,7 +194,10 @@ O WASM nunca aloca: as views JS são criadas uma vez e ficam válidas.
 seu rastro) · `12` sibilo distante · `13` A BESTA abriu uma porta ·
 `14/15/16` escamas do corpo visíveis (centro/esquerda/direita) ·
 `18` sussurro da mente (nasceu alucinação) · `19` soluço involuntário do medo ·
-`20` alucinação evaporou de perto · `21` a coroa mentiu (falsa § evaporou) —
+`20` alucinação evaporou de perto · `21` a coroa mentiu (falsa § evaporou) ·
+`22` sibilo de perto (a DECISÃO de falar nasce no WASM: raio 6, períodos por
+coroa/medo e o silêncio proposital de ~1 em 3; volume/pan/brilho pela
+proximidade ficam no JS) —
 mais o **batimento cardíaco** contínuo (intervalo/volume/pan pela distância, e
 dispara sozinho no pânico) e o drone ambiente do castelo (engorda enquanto o
 corpo dela está visível).

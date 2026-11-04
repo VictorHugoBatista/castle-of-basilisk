@@ -426,6 +426,125 @@ const calmWhisper = scenario('calmo: sussurro raro, medo nenhum (paranoia nasce 
   return (evSeen[18] || 0) > w0 && stats[18] < 30; // nível calmo, mas o ouvido já mente
 });
 
+// ---------- 2j. sibilo próximo: a fala dela nasce no RT (evento 22) ----------
+// A decisão (quando sopra, se cala de propósito, períodos por coroa/medo)
+// migrou de web/game.js para basilisk.rs — o gate agora VERIFICA os dois
+// lados: (a) dentro do raio, EV_SIBILO chega (janela de 24 ticks: 2
+// tentativas do período, silêncio proposital de 38%); (b) FORA do raio,
+// evento 22 com d > 6 é o gate do raio quebrado. A checagem usa a posição
+// PÓS-TURNO (stats logo após o pfb_step): é a mesmíssima que o sibilo_tick
+// usou para decidir — ela pode cruzar o raio NO tick (d pré > 6, d pós <= 5),
+// e isso é fala legítima; o que é regressão é falar com d pós > 6.
+//
+// GEOMETRIA COMANDADA, POR DESIGN (ver ARCHITECTURE §3.3): o teleporte
+// discreto (não ticka o jogo) só existirá porque ela raramente re-entra no
+// raio por passeio natural numa janela curta — a fidelidade da cadência vem
+// da distribuição por seed (40 tentativas), não do passeio orgânico.
+const sib = scenario('sibilo próximo: fala DENTRO do raio, silêncio FORA (evento 22)', () => {
+  let sibOK = false, fora = 0;
+  for (let attempt = 1; attempt <= 40 && !sibOK; attempt++) {
+    w.pfb_new_game(1000 + attempt * 7919);
+    for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); } // aquecimento
+    if (stats[0] !== 1) continue;
+    // pousa ela (teletransporte discreto, não ticka) em CÉLULA a 3 tiles do jogador
+    const px = stats[3], py = stats[4];
+    const cheb = (x, y) => Math.max(Math.abs(x - px), Math.abs(y - py));
+    let spot = null;
+    for (let y = 1; y < Hd - 1 && !spot; y++)
+      for (let x = 1; x < Wd - 1 && !spot; x++) {
+        if (w.pfb_debug_probe(x, y) & 1 && cheb(x, y) === 3) spot = { x, y };
+      }
+    if (!spot) continue;
+    w.pfb_debug_bas_place(spot.x, spot.y);
+    let prev = evSeen[22] || 0, dentro = 0;
+    for (let k = 0; k < 24; k++) {
+      w.pfb_step(0); pump();
+      if (stats[0] !== 1) break;
+      const d = Math.max(Math.abs(stats[5] - stats[3]), Math.abs(stats[6] - stats[4]));
+      const now = evSeen[22] || 0;
+      if (now > prev) {
+        if (d > 6) { fora += now - prev; } else { dentro += now - prev; }
+        prev = now;
+      }
+    }
+    if (stats[0] === 1 && dentro > 0) sibOK = true;
+  }
+  return sibOK && fora === 0;
+});
+
+// ---------- 2k. diff de render: a máscara nasce no Rust ----------
+// O diff byte-a-byte que era do JS (prevGrid) agora é produzido em
+// render() (ui.rs): bitmap de células de TELA mudadas + full flag + câmera.
+const renderDiff = scenario('diff de render: bitmap nasce no RT, zera no ack', () => {
+  w.pfb_new_game(1234567);
+  const dp = new Uint8Array(w.memory.buffer, w.pfb_diff_ptr(), 227);
+  w.pfb_step(16); pump(); // esperar: o andar vivo (ela ronda, rastro, dica) marca células
+  let any = false;
+  for (let k = 3; k < 227; k++) if (dp[k]) { any = true; break; }
+  w.pfb_diff_ack(); // o "frame" consumiu: flags + bitmap zeram
+  const cleared = dp[0] === 0 && dp.every((b, i) => (i >= 3 ? b === 0 : true));
+  // a câmera publicada respeita as bordas DO VIEWPORT (o clamp nasceu no RT):
+  // camX <= W-56 e camY <= H-32 — atrás disso era bound tautológico
+  // (< stats[16] jamais falha dado o clamp); no andar 56x32: só o 0
+  const camOk = dp[1] <= stats[16] - 56 && dp[2] <= stats[17] - 32;
+  return any && cleared && camOk;
+});
+
+// ---------- 2l. contrato do diff: bitmap == byte-a-byte real ----------
+// A PINTURA em canvas vive no navegador (não há teste headless dela), mas o
+// CONTRATO do glue sim: emulação do "prevGrid" que morreu — a máscara do
+// Rust tem que ser EXATAMENTE as células de TELA cujo [ch,attr] mudou desde
+// o último consumo, e bit0 tem que significar janela/andar/tela mudou.
+// 120 passos por tentativa (movimento, porta, rastro dela, escada);
+// teleporte nenhum aqui — o teste come HONESTO o passeio natural.
+const diffContract = scenario('contrato do diff: bitmap == byte-a-byte real (120 passos)', () => {
+  const VWX = 56, VHX = 32;
+  for (let attempt = 1; attempt <= 8; attempt++) {
+    w.pfb_new_game(987654 + attempt * 7919);
+    ensureViews();
+    w.pfb_diff_ack(); // baseline limpo: acompanha só o que vier a partir daqui
+    const dp = new Uint8Array(w.memory.buffer, w.pfb_diff_ptr(), 227);
+    // snapshot inicial: o viewport JÁ composição pelo new_game (o diff dele
+    // tinha que caber no ack acima)
+    let snap = null;
+    snap = { camX: dp[1], camY: dp[2], w: Wd, h: Hd, depth: stats[2], b: new Uint8Array(VWX * VHX * 2) };
+    const read = (sx, x, y, b) => { // copia células [ch,attr] do viewport para o snapshot
+      const wi = (b.camY + ((sx / VWX) | 0)) * b.w + b.camX + (sx % VWX);
+      b.b[sx * 2] = grid[wi * 2]; b.b[sx * 2 + 1] = grid[wi * 2 + 1];
+    };
+    for (let sx = 0; sx < VWX * VHX; sx++) read(sx, 0, 0, snap);
+    let steps = 0, bad = 0, bits = 0;
+    for (let k = 0; k < 120; k++) {
+      w.pfb_step([0, 16, 1, 2, 4, 8][k % 6]); pump();
+      if (stats[0] !== 1) break;
+      ensureViews();
+      steps++;
+      const full = (dp[0] & 1) !== 0;
+      const changedWin = snap.camX !== dp[1] || snap.camY !== dp[2]
+        || snap.w !== Wd || snap.h !== Hd || snap.depth !== stats[2];
+      // bit0 <=> janela/andar mudou (a telha de estado acompanha DEPTH aqui:
+      // STATE sai do jogo = break acima)
+      if (full !== changedWin) bad++;
+      if (!full) {
+        for (let si = 0; si < VWX * VHX; si++) {
+          const wi = (dp[2] + ((si / VWX) | 0)) * Wd + dp[1] + (si % VWX);
+          const same = grid[wi * 2] === snap.b[si * 2] && grid[wi * 2 + 1] === snap.b[si * 2 + 1];
+          const bit = (dp[3 + (si >> 3)] & (1 << (si & 7))) !== 0;
+          if (bit) bits++;
+          if (bit === same) { bad++; break; }
+        }
+      }
+      // confirma o consumo EXATAMENTE como o glue pintaria: snapshot do frame
+      const fresh = { camX: dp[1], camY: dp[2], w: Wd, h: Hd, depth: stats[2], b: new Uint8Array(VWX * VHX * 2) };
+      for (let sx = 0; sx < VWX * VHX; sx++) read(sx, 0, 0, fresh);
+      snap = fresh;
+      w.pfb_diff_ack();
+    }
+    if (steps >= 60 && bad === 0 && bits > 0) return true;
+  }
+  return false;
+});
+
 // ---------- 3. playthrough com bot v2 ----------
 // Bot "surdo" (pior caso: humano tem o coração/áudio como aviso prévio).
 // Estratégia: rota BFS que evita a zona de perigo (LOS ≤9 ou dist ≤3),
@@ -750,6 +869,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

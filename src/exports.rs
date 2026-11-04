@@ -71,6 +71,12 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         CALM = 0;
         DECAYT = 0;
         clear_phantoms();
+        SIB_T = -(SIB_MAX_MS / TICK_MS);
+        R_SIB = ((seed | 1) ^ 0xA5A5A5A5) | 1; // stream própria do sibilo, derivada da seed
+        DIFF = [0; 227];
+        DIFF_PREV = [0; W0 * H0 * 2];
+        DIFF_ST = 0xFF;
+        DIFF_DP = 0xFF;
         let s = rnd();
         SEEDS[0] = s | 1;
         gen_floor(1, SEEDS[0]);
@@ -87,6 +93,25 @@ pub extern "C" fn pfb_new_game(seed: u32) {
 #[no_mangle]
 pub extern "C" fn pfb_step(input: u32) {
     game_step(input);
+}
+
+/// O diferencial de render nasce no Rust (ui.rs: diff_pass no fim de render()):
+/// [0] flags (bit0 = repinte integral — câmera/andar/tela mudaram),
+/// [1]=camX [2]=camY (canto da janela corrente), [3..227] bitmap de células de
+/// TELA mudadas (56×32, bit si; sticky entre acks). O JS lê após os ticks do
+/// frame, pinta o marcado (e os attrs animados, que continuam por lá) e
+/// confirma com pfb_diff_ack().
+#[no_mangle]
+pub extern "C" fn pfb_diff_ptr() -> u32 { unsafe { DIFF.as_ptr() as u32 } }
+
+/// Confirmação do consumo do diff: zera flags + bitmap. O próximo render
+/// marca de novo o que mudar.
+#[no_mangle]
+pub extern "C" fn pfb_diff_ack() {
+    unsafe {
+        DIFF[0] = 0;
+        for k in 3..227 { DIFF[k] = 0; }
+    }
 }
 
 /// Input das telas de menu (titulo e controles). Bits:

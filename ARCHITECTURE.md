@@ -54,9 +54,9 @@ zero alocacao se mantem.
 [Usuario]
    v  keyboard (WASD/setas/ESPACO/ENTER)
 [game.js] --fetch--> [castle_of_basilisk.wasm] --instantiate--> memoria linear
-   ^  ^                    |  exports: pfb_init/new_game/step/pop_event/...
-   |  | rAF loop           |  memoria: grid (80x44 MAX x2B, dims por andar) | stats (24B)
-   |  +--- tick 140ms ---->|  eventos: ring buffer u32[16]
+   ^  ^                    |  exports: pfb_init/new_game/step/diff/ack/pop_event/...
+   |  | rAF loop           |  memoria: grid (80x44 MAX x2B, dims por andar) | stats (32B)
+   |  +--- tick 140ms ---->|  eventos: ring buffer u32[16]   · diff: bitmap 224B
    |
 [CRT CSS]  <--- canvas --- render diff por celula
 [WebAudio] <--- eventos -- efeitos sintetizados + sibilo por proximidade
@@ -100,6 +100,8 @@ Exports (contrato publico — nao quebrar):
 | `pfb_ui_ptr`    | `() u32`                     | barra de UI fabricada (W0 celulas x [char,attr]): dica contextual / nome do andar |
 | `pfb_stats_ptr` | `() u32`                     | ponteiro do bloco de stats |
 | `pfb_pop_event` | `() u32`                     | consome fila de audio (0 = vazia) |
+| `pfb_diff_ptr`  | `() u32`                     | diff de render (bit0 = repinte integral, [1] camX, [2] camY, [3..227] bitmap de celulas de TELA mudadas) |
+| `pfb_diff_ack`  | `()`                         | confirmacao do consumo: zera flags + bitmap |
 | `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown/fear/fear_ptr | somente para testes headless |
 
 Layout de memoria:
@@ -127,9 +129,18 @@ Layout de memoria:
   replanejando com posicao velha sob mapa novo; sincronizar OU seguir o fluxo
   normal do tick.)
 - **Eventos**: ring buffer `u32[16]`, produtor (Rust) / consumidor (JS).
-  `18` EV_WHISPER (sussurro: nasceu alucinacao) · `19` EV_WHELP (soluco
-  involuntario do medo) · `20` EV_VANISH (alucinacao evaporou de perto) ·
-  `21` EV_VANISH_C (a coroa-fantasma evaporou).
+  `22` EV_SIBILO (o sopro DE PERTO: decisao no RT — basilisk.rs `sibilo_tick()`
+  decide quando ela sopra e se cala de proposito; vol/pan/brilho pela
+  proximidade ficam no JS, caso 22 do playEvent). `18` EV_WHISPER (sussurro:
+  nasceu alucinacao) · `19` EV_WHELP (soluco involuntario do medo) ·
+  `20` EV_VANISH (alucinacao evaporou de perto) · `21` EV_VANISH_C (a
+  coroa-fantasma evaporou).
+
+- **Diff de render** (DIFF 227 bytes via `pfb_diff_ptr`): a comparacao
+  byte-a-byte `[ch,attr]` do viewport 56x32 nasce no Rust (ui.rs `diff_pass`,
+  no fim de `render()`) — o JS pinta so o marcado (+ os attrs animados, que
+  repintam todo frame: cor viva nao muda byte nenhum no bitmap) e confirma
+  com `pfb_diff_ack()`.
 
 RNG: xorshift32 com seed POR ANDAR (`SEEDS[FLOORS]`, FLOORS=5), definida em
 `pfb_new_game`. Subir e descer NAO regenera o mapa: o mesmo seed reproduz o
@@ -152,14 +163,18 @@ Decisoes:
 - **Tick por acumulador de passo fixo**: a cada 140 ms roda um `pfb_step` com
   o input atual; ficar sem input TAMBEM gera tick — imovel e uma acao
   (esconder), e o mundo continua vivo quando o jogador para.
-- **Render diff**: `prevGrid` compara `[char,attr]` por celula DE TELA; celula
-  animada (pulso/blink dos attrs, agua `=` com onda de lodo) redesenha sempre.
-  Evita redesenho global.
-- **Camera segue-jogador**: viewport FIXA 56x32 (o canvas de sempre); mapas
-  maiores (esgoto 80x44) deslizam sob ela via `camX/camY` clampados nas bordas.
-  Mudou andar ou dimensoes => `needsFull` (remontagem integral). A dica
-  contextual mora na ULTIMA LINHA DA TELA (UIROW exportada pelo WASM): com a
-  camera, a ultima linha do mapa nem sempre esta visivel.
+- **Diff de render nasce no Rust** (desde a migracao): `diff_pass()` roda no
+  fim de `render()` e publica `DIFF` (bit0 = repinte integral; bitmap de
+  celulas de TELA mudadas, sticky ate o ack). O JS pergunta `pfb_diff_ptr()`,
+  repinta o marcado e os attrs animados (pulso/blink/tosca/agua/fantasma,
+  que sao COR NO TEMPO e nao mudam byte), confirma com `pfb_diff_ack()` e
+  nunca compara byte nenhum: o `prevGrid` morreu.
+- **Camera segue-jogador nasce no RT**: viewport FIXA 56x32 (o canvas de
+  sempre); `cam()` clampa `PX/PY` nas bordas do andar e publica `DIFF[1]/[2]`
+  — mudou andar/dims/janela => bit0 (repinte integral). Mapas maiores
+  (esgoto 80x44) deslizam sob ela. A dica contextual mora na ULTIMA LINHA DA
+  TELA (UIROW exportada pelo WASM): com a camera, a ultima linha do mapa nem
+  sempre esta visivel.
 - **Paletas por tema** (`PAL_CASTLE/PAL_DUNGEON/PAL_SEWER`, mesmos indices de
   attr): a troca de andar troca a referencia de paleta + `needsFull` — o CRT
   veste a cor do lugar (ambar rico / ambar seco / verde-lodo).
@@ -202,6 +217,14 @@ O fear_bench roda o mesmo bot com telemetria por tick do medo (nivel, pico,
 alucinacoes nascidas/evaporadas) — e a prova numerica de que um ajuste de
 balance torna o medo VISIVEL sem matar o bot (ver secao 3.6).
 
+Nota sobre o cenario do sibilo (evento 22): a GEOMETRIA E COMANDADA por
+design — teletransporte discreto dela a 3 tiles (debug_bas_place nao ticka o
+jogo) porque ela raramente re-entra no raio de PERTO por passeio natural numa
+janela curta. A fidelidade da cadencia (períodos, silencio proposital de 38%)
+vem da DISTRIBUICAO por seed (40 tentativas, padrao dos cenarios brake/
+playthrough), nao do passeio organico. O lado negativo (fala com d > 6 = gate
+do raio quebrado) e checado tick a tick.
+
 Tecnologia e beneficio: o mesmo WASM serve os dois universos — bug de
 navegador reproduz no node (e vice-versa), entao o gate e real, nao simulado.
 
@@ -231,6 +254,18 @@ Pilares (constantes tunaveis no topo de `src/consts.rs`):
   hora. A farejada (PLOITER) e um SWEEP por pontos da sala (deliberadamente
   >= 4 tiles da cabeca, `pick_loiter_point`) com anti-retrocesso na patrulha
   (`bas_step_patrol`): mata o ping-pong de corredor.
+- **Sibilo de perto** (`sibilo_tick`, basilisk.rs; EV_SIBILO=22): a fala dela
+  num raio de 6 tiles (`SIB_R`) e decisao DO RT — periodos por coroa/medo
+  (`SIB_PATROL_MS` 2400+d*180 · caça com coroa 1500+d*140 · clamp 1000..5200,
+  o medo −140 ms/nivel piso 900). O relógio MIGROU junto: no JS era rAF
+  (~16 ms de granularidade, `Math.random()` de browser), agora e o TICK do
+  jogo (`ms / TICK_MS`) — deltas honestos da troca: a travessia do raio
+  dispara no tick seguinte (atraso maximo <= 140 ms) e o piso de medo de
+  900 ms vira 6 ticks = 840 ms; imperceptivel contra um sopro de ~2.3 s.
+  E o SILENCIO DE PROPÓSITO: ~1 sopro em 3 nao sai (`SIB_GAP_PCT=38`, fora da
+  caça com coroa), sorte no stream propria `rsib()` — a fala dela nao
+  desgasta o rng do mundo. Vol/pan/brilho pela proximidade ficam no JS (a
+  voz: dois sopros emendados + a "lingua" no fim, caso 22 do playEvent).
 - **Cone de visao** (`in_cone`): ~120 graus na direcao do ultimo passo dela.
   O olhar letal e DIRECIONADO: gaze morte exige LOS + cone (raspa: d<=2 mata
   de qualquer modo). Passar ATRAS dela nao mata — premia o flanco e
@@ -485,6 +520,10 @@ Ultima atualizacao: 2026-11-04
   coroa falsa]` para o smoke.
 - **EV_18..21**: eventos mentais (sussurro / soluço / evaporou / coroa mentiu).
   O JS não os panlama pela posição real da besta: acontecem dentro da cabeça.
+- **EV_22 / DIFF**: borda da migração de glue para RT — `EV_SIBILO` é a
+  decisão de fala dela (basilisk.rs; a voz é toda do JS) e `DIFF`
+  (`pfb_diff_ptr`) é o bitmap de render diff que o Rust produz e o JS pinta
+  (sticky até `pfb_diff_ack`).
 - **tick**: ciclo de jogo de 140 ms. O basilisco move a cada N ticks por
   tema (`speed_patrol/invest/hunt`): castelo 6/4/3, masmorra 4/3/2, esgoto
   3/2/2 — e 1/1 NA AGUA do esgoto (`speed_now`). Com a coroa ela caça 1

@@ -103,6 +103,30 @@ pub const EV_WHELP: u32 = 19;    // soluço involuntário: o corpo trai o medo
 pub const EV_VANISH: u32 = 20;   // uma alucinação evaporou de perto
 pub const EV_VANISH_C: u32 = 21; // a coroa mentiu: a § falsa evaporou
 
+// ---- sibilo próximo: a fala dela DE PERTO ----
+// Decisão inteira no RT (basilisk.rs: quando ela sopra, se cala de propósito);
+// o SOM é do JS (caso 22 do playEvent: vol/pan/brilho derivam da proximidade).
+pub const EV_SIBILO: u32 = 22;
+pub(crate) const SIB_R: i32 = 6; // raio do sopro: acima de 6 tiles nada dela te alcança
+
+// cadência do sopro (migrada de web/game.js para o RT): períodos em MS
+// convertidos para ticks (TICK_MS) — o relógio de rAF (~16 ms) virou tick
+// de JOGO (140 ms). Deltas honestos: travessia do raio dispara no tick
+// seguinte (<= 140 ms de atraso) e o piso de medo (SIB_FLOOR_MS=900) vira
+// 6 ticks = 840 ms — imperceptível contra um sopro de ~2.3 s
+pub(crate) const SIB_PATROL_MS: i32 = 2400;  // + dist*180: a patrulha respira devagar
+pub(crate) const SIB_PATROL_D_MS: i32 = 180;
+pub(crate) const SIB_CROWN_MS: i32 = 1500;   // + dist*140: caça com coroa não pára
+pub(crate) const SIB_CROWN_D_MS: i32 = 140;
+pub(crate) const SIB_MIN_MS: i32 = 1000;     // clamp: sopro nunca mais rápido que 1 s
+pub(crate) const SIB_MAX_MS: i32 = 5200;     // nem mais lento que 5.2 s
+pub(crate) const SIB_FLOOR_MS: i32 = 900;    // o medo aperta o sopro até este piso (−140 ms/nível)
+pub(crate) const SIB_GAP_PCT: u32 = 38;      // ~1 sopro em 3 não sai (fora da caça com coroa)
+
+// duração de um tick na fronteira WASM↔JS: o loop de web/game.js roda a este
+// passo fixo — o sibilo nasce em ms no RT e vira ticks aqui
+pub(crate) const TICK_MS: i32 = 140;
+
 // estados do jogo
 pub const ST_TITLE: u8 = 0;
 pub const ST_PLAY: u8 = 1;
