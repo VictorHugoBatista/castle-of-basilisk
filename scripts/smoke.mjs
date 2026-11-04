@@ -478,8 +478,10 @@ const renderDiff = scenario('diff de render: bitmap nasce no RT, zera no ack', (
   for (let k = 3; k < 227; k++) if (dp[k]) { any = true; break; }
   w.pfb_diff_ack(); // o "frame" consumiu: flags + bitmap zeram
   const cleared = dp[0] === 0 && dp.every((b, i) => (i >= 3 ? b === 0 : true));
-  // a câmera publicada respeita as bordas do andar (o clamp nasceu no RT)
-  const camOk = dp[1] < stats[16] && dp[2] < stats[17];
+  // a câmera publicada respeita as bordas DO VIEWPORT (o clamp nasceu no RT):
+  // camX <= W-56 e camY <= H-32 — atrás disso era bound tautológico
+  // (< stats[16] jamais falha dado o clamp); no andar 56x32: só o 0
+  const camOk = dp[1] <= stats[16] - 56 && dp[2] <= stats[17] - 32;
   return any && cleared && camOk;
 });
 
