@@ -1,5 +1,5 @@
-// Castle of Basilisk — glue JS: render diff, WebAudio sintetizado, loop de ticks.
-// WASM ABI crua: lemos grid/stats direto da memória exportada.
+// Castle of Basilisk — glue JS: render (diff que o RUST produz), WebAudio
+// sintetizado, loop de ticks. WASM ABI crua: lemos grid/stats/diff direto da memória exportada.
 
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
@@ -55,6 +55,10 @@ let PAL = PAL_CASTLE;
 const WATER_ATTR = 13;
 const GHOST_ATTR = 14; // 'o': as mentiras do RT (alucinações do medo)
 const PULSE_ATTRS = new Set([4, 5, 7]);
+// attrs "vivos": a cor respira no tempo (pulso/blink de attr, onda de lodo,
+// fantasma pálido) — repintam TODO frame independente do diff (que compara
+// bytes; cor viva não muda byte nenhum)
+const ANIM_ATTRS = new Set([4, 5, 7, 9, 13, 14]);
 const BLINK_ATTR = 9;
 const DIM_FLAG = 0x80;
 
@@ -77,14 +81,18 @@ const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 32);
 const N_MAX = w.pfb_max_n();
 const grid = new Uint8Array(w.memory.buffer, w.pfb_grid_ptr(), N_MAX * 2);
 const uirow = new Uint8Array(w.memory.buffer, w.pfb_ui_ptr(), VW * 2);
-const prevGrid = new Uint8Array(VW * VH * 2); // diff de render, em células DE TELA
 const mapview = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), N_MAX); // tiles do andar
+// DIFF: o diferencial de render nasce no RUST (diff_pass no fim de render()):
+// [0] flags (bit0 = repinte integral), [1] camX, [2] camY, [3..227] bitmap de
+// células de TELA mudadas (sticky: os bits somam até o frame chamar
+// pfb_diff_ack())
+const diffView = new Uint8Array(w.memory.buffer, w.pfb_diff_ptr(), 227);
 
 // ---- câmera: mapa do andar atual (stats[16]/[17]) desliza sob a viewport ----
+// camX/camY NÃO se calculam aqui mais: nascem no RT (DIFF[1]/[2], o clamp
+// fica lá onde o jogador mora); estas variáveis só leem
 let MWd = VW, MHd = VH;
 let camX = 0, camY = 0;
-let prevCamX = -1, prevCamY = -1, prevDepth = -1, prevMW = 0, prevMH = 0;
-const clampInt = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 // ============================================================
 // áudio sintetizado
@@ -459,6 +467,24 @@ function playEvent(ev, pan) {
       blip({ type: 'sine', f0: 87, f1: 62, dur: 0.4, vol: 0.12, delay: 0.05 });
       break;
     }
+    case 22: { // EV_SIBILO: o sopro DE PERTO — decisão no RT (Rust), som aqui
+      // o RT já decidiu QUANDO ela sopra e se cala de propósito; daqui
+      // nasce só a voz: vol/pan/brilho pela proximidade
+      const dx = stats[5] - stats[3];
+      const dy = stats[6] - stats[4];
+      const dist = Math.max(Math.abs(dx), Math.abs(dy));
+      const closeness = Math.max(0, Math.min(1, 1 - dist / 7));
+      const vol = 0.05 + closeness * 0.16;
+      const pan = Math.max(-1, Math.min(1, dx / 6));
+      const bright = 3400 + closeness * 2200; // perto = "ssssss" mais agudo e rasante
+      // o "ssssss" mesmo: dois sopros emendados — prato de ~2.3s que quase encosta
+      // no próximo (de perto soa CONTÍNUO; é o gap dela que te esquenta a nuca)
+      noiseBurst({ dur: 1.1, vol, f: bright, q: 1.0, pan });
+      noiseBurst({ dur: 1.2, vol: vol * 0.85, f: bright * 1.05, q: 1.0, delay: 0.9, pan });
+      // a língua no fim do sopro: ponta "sss" rarefeita e aguda, a boca fechando
+      noiseBurst({ dur: 0.7, vol: vol * 0.65, f: bright * 1.7, q: 5, delay: 1.6, pan });
+      break;
+    }
   }
 }
 
@@ -467,45 +493,6 @@ function bodyRumble(pan) {
   noiseBurst({ dur: 0.55, vol: 0.11, f: 160, q: 0.8, pan });
   noiseBurst({ dur: 0.3, vol: 0.05, f: 420, q: 1.6, pan, delay: 0.08 });
   blip({ type: 'sine', f0: 65, f1: 40, dur: 0.5, vol: 0.16, pan });
-}
-
-// sibilo do basilisco: "ssssss" longo de cobra — só se ouve DE PERTO (raio 6),
-// e às vezes ela simplesmente PARA no meio da patrulha: o silêncio dela é o aviso
-let sibiloT0 = 0;
-function sibilo(nowMs) {
-  if (!AC || stats[0] !== 1) return;
-  const dx = stats[5] - stats[3];
-  const dy = stats[6] - stats[4];
-  const dist = Math.max(Math.abs(dx), Math.abs(dy));
-  const crown = stats[8] === 1;
-  // radio de PERTO: acima de 6 tiles o sibilo não te alcança — som nenhum
-  // dela (t0 sem reset: cruzar o raio dispara o sopro na hora, o susto da
-  // muralha de som que se escancara no seu rosto)
-  if (dist > 6) return;
-  // sopro longo pede pausa longa: patrulha respira devagar; caça com coroa não
-  let period;
-  if (crown) period = 1500 + dist * 140;
-  else period = 2400 + dist * 180;
-  period = Math.max(1000, Math.min(5200, period));
-  // o medo aperta o sopro que já está no ar — mas só se ela estiver ali mesmo
-  const fl = stats[19] || 0;
-  if (fl > 0) period = Math.max(900, period - fl * 140);
-  if (nowMs - sibiloT0 < period) return;
-  sibiloT0 = nowMs;
-  // o silêncio dela é DE PROPÓSITO: ~1 sopro em 3 não sai (fora da caça com
-  // coroa — ela nunca para quando te quer). O gap engole a régua inteira:
-  // você desconfiou que ela passou, e o silêncio não te responde.
-  if (!crown && Math.random() < 0.38) return;
-  const closeness = Math.max(0, Math.min(1, 1 - dist / 7));
-  const vol = 0.05 + closeness * 0.16;
-  const pan = Math.max(-1, Math.min(1, dx / 6));
-  const bright = 3400 + closeness * 2200; // perto = "ssssss" mais agudo e rasante
-  // o "ssssss" mesmo: dois sopros emendados — prato de ~2.3s que quase encosta
-  // no próximo (de perto soa CONTÍNUO; é o gap sorteado que te esquenta a nuca)
-  noiseBurst({ dur: 1.1, vol, f: bright, q: 1.0, pan });
-  noiseBurst({ dur: 1.2, vol: vol * 0.85, f: bright * 1.05, q: 1.0, delay: 0.9, pan });
-  // a língua no fim do sopro: ponta "sss" rarefeita e aguda, a boca fechando
-  noiseBurst({ dur: 0.7, vol: vol * 0.65, f: bright * 1.7, q: 5, delay: 1.6, pan });
 }
 
 // ============================================================
@@ -541,7 +528,6 @@ function startGame() {
   held.clear();
   runHeld.clear();
   w.pfb_new_game((Date.now() & 0x7fffffff) | 1); // deterministic xorshift32 seed
-  sibiloT0 = 0;
 }
 
 function menuStep(e) {
@@ -635,7 +621,6 @@ const SERPENT_ATTRS = new Set([7, 11]);
 let glitchUntil = -1e9;
 let prevGlitchOn = false;
 let prevSerp = new Map();
-let inPlayPrev = false;
 let droneUp = false;
 
 function redrawWorldCell(si, wi, nowMs) {
@@ -728,30 +713,19 @@ function forceRedraw() { needsFull = true; }
 
 function render(nowMs) {
   const inPlay = stats[0] === 1;
-  // ---- câmera: segue o jogador, clampada nas bordas do andar ----
-  if (inPlay) {
-    MWd = stats[16]; MHd = stats[17];
-    if (stats[2] !== prevDepth || MWd !== prevMW || MHd !== prevMH) {
-      needsFull = true;
-      prevDepth = stats[2]; prevMW = MWd; prevMH = MHd;
-    }
-    camX = clampInt(stats[3] - (VW >> 1), 0, Math.max(0, MWd - VW));
-    camY = clampInt(stats[4] - (VH >> 1), 0, Math.max(0, MHd - VH));
-    if (camX !== prevCamX || camY !== prevCamY) {
-      needsFull = true; // reposicionou a janela: remonta tudo
-      prevCamX = camX; prevCamY = camY;
-    }
-  } else {
-    if (inPlayPrev) needsFull = true; // menus/telas: viewport integral 56x32
-    MWd = VW; MHd = VH; camX = 0; camY = 0;
-    prevCamX = 0; prevCamY = 0;
-  }
-  inPlayPrev = inPlay;
+  // ---- câmera + diff: nascem no RT (pfb_diff_ptr). bit0 = remontagem
+  // integral (mudou câmera/andar/tela); bitmap = cada célula de TELA cujo
+  // [ch,attr] mudou desde o último ack. É o diff byte-a-byte que era do JS.
+  MWd = inPlay ? stats[16] : VW;
+  MHd = inPlay ? stats[17] : VH;
+  camX = inPlay ? diffView[1] : 0;
+  camY = inPlay ? diffView[2] : 0;
+  if (diffView[0] & 1) needsFull = true;
 
-  if (needsFull) {
+  const full = needsFull;
+  if (full) {
     ctx.fillStyle = PAL[15];
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    prevGrid.fill(0);
     needsFull = false;
   }
   const serp = new Map(); // si (tela) -> wi (mundo)
@@ -761,17 +735,11 @@ function render(nowMs) {
     const attr = grid[wi * 2 + 1];
     if (inPlay && SERPENT_ATTRS.has(attr & 0x7f)) {
       serp.set(si, wi);
-      prevGrid[si * 2] = ch;
-      prevGrid[si * 2 + 1] = attr;
       continue;
     }
-    const pCh = prevGrid[si * 2];
-    const pAttr = prevGrid[si * 2 + 1];
-    const anim = (PULSE_ATTRS.has(attr & 0x7f)) || (attr & 0x7f) === BLINK_ATTR
-      || (attr & 0x7f) === WATER_ATTR || (attr & 0x7f) === GHOST_ATTR;
-    const prevAnim = (PULSE_ATTRS.has(pAttr & 0x7f)) || (pAttr & 0x7f) === BLINK_ATTR
-      || (pAttr & 0x7f) === WATER_ATTR || (pAttr & 0x7f) === GHOST_ATTR;
-    if (ch === pCh && attr === pAttr && !anim && !prevAnim) continue;
+    // não mudou (bitmap do Rust zero) e não é attr vivo: nada a pintar.
+    // Attr vivo repinta todo frame: a cor respira e não anda no bitmap.
+    if (!full && !(diffView[3 + (si >> 3)] & (1 << (si & 7))) && !ANIM_ATTRS.has(attr & 0x7f)) continue;
     const x = (si % VW) * CELL_W;
     const y = ((si / VW) | 0) * CELL_H;
     // limpa célula
@@ -782,8 +750,6 @@ function render(nowMs) {
       ctx.fillStyle = colorFor(ch, attr, nowMs);
       ctx.fillText(c, x + 1, y + CELL_H / 2 + 1);
     }
-    prevGrid[si * 2] = ch;
-    prevGrid[si * 2 + 1] = attr;
   }
 
   // passada da serpente: cada célula desenhada com sombra/halo/onda;
@@ -830,6 +796,9 @@ function render(nowMs) {
   if (gOn && Math.random() < 0.7) glitchSlices();
   if (prevGlitchOn && !gOn) { needsFull = true; }
   prevGlitchOn = gOn;
+
+  // consumido: o Rust zera flags + bitmap — o próximo render marca de novo
+  w.pfb_diff_ack();
 }
 
 // HUD: medidor de som (o "quanto te ouviam agora") + fôlego + MEDO (terceira
@@ -947,7 +916,6 @@ function frame(nowMs) {
       safe(drainEvents, 'eventos');
       if (stats[0] !== 1) break;
     }
-    safe(() => sibilo(nowMs), 'sibilo');
     safe(() => setAmbience(false), 'ambiente'); // troca de andar => troca de trilha
     safe(droneSwell, 'drone');
   } else {

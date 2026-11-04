@@ -426,6 +426,50 @@ const calmWhisper = scenario('calmo: sussurro raro, medo nenhum (paranoia nasce 
   return (evSeen[18] || 0) > w0 && stats[18] < 30; // nível calmo, mas o ouvido já mente
 });
 
+// ---------- 2j. sibilo próximo: a fala dela nasce no RT (evento 22) ----------
+// A decisão (quando sopra, se cala de propósito, períodos por coroa/medo)
+// migrou de web/game.js para basilisk.rs — o gate agora VERIFICA a fala:
+// ela a 3 tiles tem que deixar EV_SIBILO na fila (a cadência com o silêncio
+// proposital de 38% pede janela: 24 ticks dão 2 tentativas do período).
+const sib = scenario('sibilo próximo: a decisão de falar nasce no RT (evento 22)', () => {
+  let sibOK = false;
+  for (let attempt = 1; attempt <= 40 && !sibOK; attempt++) {
+    w.pfb_new_game(1000 + attempt * 7919);
+    for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); } // aquecimento
+    if (stats[0] !== 1) continue;
+    // pousa ela (teletransporte discreto, não ticka) em CÉLULA a 3 tiles do jogador
+    const px = stats[3], py = stats[4];
+    const cheb = (x, y) => Math.max(Math.abs(x - px), Math.abs(y - py));
+    let spot = null;
+    for (let y = 1; y < Hd - 1 && !spot; y++)
+      for (let x = 1; x < Wd - 1 && !spot; x++) {
+        if (w.pfb_debug_probe(x, y) & 1 && cheb(x, y) === 3) spot = { x, y };
+      }
+    if (!spot) continue;
+    w.pfb_debug_bas_place(spot.x, spot.y);
+    const s0 = evSeen[22] || 0;
+    for (let k = 0; k < 24; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) break; }
+    if (stats[0] === 1 && (evSeen[22] || 0) > s0) sibOK = true;
+  }
+  return sibOK;
+});
+
+// ---------- 2k. diff de render: a máscara nasce no Rust ----------
+// O diff byte-a-byte que era do JS (prevGrid) agora é produzido em
+// render() (ui.rs): bitmap de células de TELA mudadas + full flag + câmera.
+const renderDiff = scenario('diff de render: bitmap nasce no RT, zera no ack', () => {
+  w.pfb_new_game(1234567);
+  const dp = new Uint8Array(w.memory.buffer, w.pfb_diff_ptr(), 227);
+  w.pfb_step(16); pump(); // esperar: o andar vivo (ela ronda, rastro, dica) marca células
+  let any = false;
+  for (let k = 3; k < 227; k++) if (dp[k]) { any = true; break; }
+  w.pfb_diff_ack(); // o "frame" consumiu: flags + bitmap zeram
+  const cleared = dp[0] === 0 && dp.every((b, i) => (i >= 3 ? b === 0 : true));
+  // a câmera publicada respeita as bordas do andar (o clamp nasceu no RT)
+  const camOk = dp[1] < stats[16] && dp[2] < stats[17];
+  return any && cleared && camOk;
+});
+
 // ---------- 3. playthrough com bot v2 ----------
 // Bot "surdo" (pior caso: humano tem o coração/áudio como aviso prévio).
 // Estratégia: rota BFS que evita a zona de perigo (LOS ≤9 ou dist ≤3),
@@ -750,6 +794,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

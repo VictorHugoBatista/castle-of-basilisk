@@ -207,6 +207,7 @@ pub(crate) fn game_step(input: u32) {
         if STATE == ST_PLAY {
             note_player_room();
             basilisk_turn();
+            if STATE == ST_PLAY { sibilo_tick(); } // a fala dela: o olhar dela pode ter matado no passo acima
         }
         if STATE != ST_PLAY { return; }
 

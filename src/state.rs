@@ -112,6 +112,26 @@ pub(crate) static mut QUEUE: [u16; N_MAX] = [0; N_MAX];
 pub(crate) static mut UIROW: [u8; W0 * 2] = [0; W0 * 2];
 pub(crate) static mut R32: u32 = 1;
 
+// ---- sibilo próximo (produtor: basilisk.rs · consumidor: JS, evento 22) ----
+pub(crate) static mut SIB_T: i32 = -(SIB_MAX_MS / TICK_MS); // último sopro (tick); começa no fundo: entrar no raio dispara na hora
+pub(crate) static mut R_SIB: u32 = 1;  // xorshift PRÓPRIO do sibilo: a fala dela não desgasta o rng do mundo
+
+// ---- diff de render: produtor Rust (ui.rs: diff_pass dentro de render()),
+// consumidor JS (pfb_diff_ptr/pfb_diff_ack) — a comparação byte-a-byte que
+// antes vivia em web/game.js nasceu aqui, ao lado do grid que muda ----
+// Layout de DIFF (227 bytes, contrato ABI — mudou layout, muda doc no mesmo
+// commit):
+//   [0]  flags — bit0 = repinte integral (câmera/andar/tela mudaram);
+//   [1]  camX, [2] camY — canto superior esquerdo da janela corrente;
+//   [3..227] bitmap: bit si = célula de TELA si mudou [ch,attr] desde o
+//          último pfb_diff_ack (OR de todos os renders entre acks; sticky).
+pub(crate) static mut DIFF: [u8; 227] = [0; 227];
+// cópia do viewport 56×32 (células [ch,attr]) diffrado por último
+pub(crate) static mut DIFF_PREV: [u8; W0 * H0 * 2] = [0; W0 * H0 * 2];
+// último STATE/DEPTH diffrado (0xFF = nunca: o primeiro render pede full)
+pub(crate) static mut DIFF_ST: u8 = 0xFF;
+pub(crate) static mut DIFF_DP: u8 = 0xFF;
+
 // [DEBUG] espelho do estado da IA, atualizado a cada tick (leitura pelo smoke)
 pub(crate) static mut AI_DBG: [usize; 8] = [0; 8];
 pub(crate) static mut AI_DBG_FEAR: [usize; 5] = [0; 5]; // [FEAR, nível, n fantasmas, fake B, coroa falsa]

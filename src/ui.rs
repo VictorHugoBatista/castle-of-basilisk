@@ -255,6 +255,7 @@ pub(crate) fn render() {
         } else {
             render_win();
         }
+        diff_pass(); // o diff acompanha TODA composição (jogo e telas de UI)
     }
 }
 
@@ -443,6 +444,53 @@ pub(crate) fn render_win() {
     write_center(14, "o castelo fica orfao de reis.", A_UI);
     write_center(16, "a besta continua, paciente, no escuro.", A_UI);
     write_center(30, "ENTER - OUTRO DESTINO", A_ALERT);
+}
+
+// ================= diff de render (produtor Rust) =================
+
+// câmera do RT: segue o jogador, clampa nas bordas do andar (a mesma conta
+// que o JS fazia — nasceu aqui, onde o jogador mora; o JS só lê DIFF[1]/[2]).
+// Fora de jogo: janela 0,0 (as telas de UI compõem no viewport padrão).
+pub(crate) fn cam() -> (usize, usize) {
+    unsafe {
+        if STATE != ST_PLAY { return (0, 0); }
+        (
+            PX.saturating_sub(W0 / 2).min(W().saturating_sub(W0)),
+            PY.saturating_sub(H0 / 2).min(H().saturating_sub(H0)),
+        )
+    }
+}
+
+// roda no FIM de render(): compara o viewport 56×32 corrente com DIFF_PREV e
+// marca em DIFF o que mudou (sticky: OR de todos os renders entre acks).
+// Mudança de câmera/andar/tela => bit0 (repinte integral); célula a célula =>
+// bitmap em DIFF[3..]. SEM alocação: buffers fixos de state.rs.
+pub(crate) fn diff_pass() {
+    unsafe {
+        let (cx, cy) = cam();
+        let wsp = W();
+        if cx != DIFF[1] as usize || cy != DIFF[2] as usize || STATE != DIFF_ST || DEPTH != DIFF_DP {
+            DIFF[0] |= 1; // repinte integral
+        }
+        DIFF[1] = cx as u8;
+        DIFF[2] = cy as u8;
+        DIFF_ST = STATE;
+        DIFF_DP = DEPTH;
+        for sy in 0..H0 {
+            for sx in 0..W0 {
+                let si = sy * W0 + sx;
+                let wi = ((cy + sy) * wsp + cx + sx) * 2;
+                let c0 = GRID[wi];
+                let c1 = GRID[wi + 1];
+                let p = si * 2;
+                if c0 != DIFF_PREV[p] || c1 != DIFF_PREV[p + 1] {
+                    DIFF[3 + (si >> 3)] |= 1 << (si & 7); // bit si do bitmap
+                    DIFF_PREV[p] = c0;
+                    DIFF_PREV[p + 1] = c1;
+                }
+            }
+        }
+    }
 }
 
 pub(crate) fn sync_stats() {
