@@ -469,31 +469,40 @@ function bodyRumble(pan) {
   blip({ type: 'sine', f0: 65, f1: 40, dur: 0.5, vol: 0.16, pan });
 }
 
-// coração: intervalo, tom e pan dependem da proximidade dela
-let heartT0 = 0;
-function heartbeat(nowMs) {
+// sibilo do basilisco: exalação sibilante que revela ela no escuro —
+// intervalo, agudeza e pan dependem da proximidade (o ritmo herdado do
+// coração que substituiu: a régua de tensão é a mesma, o som é ELA agora)
+let sibiloT0 = 0;
+function sibilo(nowMs) {
   if (!AC || stats[0] !== 1) return;
   const dx = stats[5] - stats[3];
   const dy = stats[6] - stats[4];
   const dist = Math.max(Math.abs(dx), Math.abs(dy));
   const crown = stats[8] === 1;
-  // intervalo: pertoooo = arranca; caça com coroa: acelera constante
+  // intervalo: pertoooo = sibila sem parar; caça com coroa: sibila constante
   let period;
   if (crown) period = 320 + dist * 45;
-  else period = 700 + dist * 130; // patrulha longe = lento
+  else period = 700 + dist * 130; // patrulha longe = sibilo esporádico
   period = Math.max(260, Math.min(1500, period));
-  // o MEDO também acelera o peito — e não pergunta se ela está perto:
-  // o pavor late sozinha (nível 3+: o coração dispara no vazio)
+  // o MEDO convoca o sibilo — e não pergunta se ela está perto:
+  // o pavor siliba sozinho (nível 3+: o sibilo assombra no vazio)
   const fl = stats[19] || 0;
   if (fl > 0) period = Math.max(175, period - fl * 65);
-  if (nowMs - heartT0 < period) return;
-  heartT0 = nowMs;
+  if (nowMs - sibiloT0 < period) return;
+  sibiloT0 = nowMs;
   const closeness = Math.max(0, Math.min(1, 1 - dist / 14));
-  const vol = (0.05 + closeness * 0.22) + fl * 0.02;
+  const vol = (0.04 + closeness * 0.15) + fl * 0.012;
   const pan = Math.max(-1, Math.min(1, dx / 8));
-  const pitch = 55 + closeness * 25; // quanto mais perto, mais grave e alto
-  blip({ type: 'sine', f0: pitch * 2, f1: pitch, dur: 0.1, vol, pan });
-  blip({ type: 'sine', f0: pitch * 1.6, f1: pitch * 0.8, dur: 0.08, vol: vol * 0.7, delay: 0.13, pan });
+  // quanto mais perto, mais agudo e rasante (o oposto do coração: o sibilo SOBE)
+  const bright = 2800 + closeness * 2400 + fl * 300;
+  // corpo da exalação: ruído filtrado largo, o sopro de escamas abrindo a boca
+  noiseBurst({ dur: 0.5 + closeness * 0.3, vol, f: bright, q: 0.9, pan });
+  // ponta "sss": brilho fino e agudo sobre o corpo — a língua bifurcada
+  noiseBurst({ dur: 0.26, vol: vol * 0.85, f: bright * 1.9, q: 5, delay: 0.09, pan });
+  // cauda: a exalação se apaga devagar — ela NUNCA parou de sibilar
+  noiseBurst({ dur: 0.65, vol: vol * 0.35, f: bright * 0.75, q: 0.8, delay: 0.26, pan });
+  // fundo traiçoeiro: sub-sine afundando sob o assobio
+  blip({ type: 'sine', f0: 95 + closeness * 40, f1: 42, dur: 0.55, vol: vol * 0.3, pan });
 }
 
 // ============================================================
@@ -529,7 +538,7 @@ function startGame() {
   held.clear();
   runHeld.clear();
   w.pfb_new_game((Date.now() & 0x7fffffff) | 1); // deterministic xorshift32 seed
-  heartT0 = 0;
+  sibiloT0 = 0;
 }
 
 function menuStep(e) {
@@ -889,7 +898,7 @@ function drawHUD() {
 // ============================================================
 // Não é informação do jogo (o RT nunca mente — alucinação nenhuma vaza lógica):
 // é o SEU corpo à beira de quebrar. O mundo treme (duas senoides desafinadas,
-// nada de tremor uniforme) e a vinheta vermelha fecha nos pulsos do coração.
+// nada de tremor uniforme) e a vinheta vermelha fecha nos pulsos do medo.
 const wrapEl = document.getElementById('wrap');
 const fearv = document.getElementById('fearv');
 const wrapBaseTransform = ''; // sempre limpa: nenhum outro transform usa o wrap
@@ -903,7 +912,7 @@ function fearScreen(nowMs) {
   const ty = Math.cos(t * 33.3) + Math.sin(t * 19.1) * 0.5;
   const amp = lvl >= 3 ? 2.6 : 1.4;
   wrapEl.style.transform = `translate(${(tx * amp).toFixed(1)}px, ${(ty * amp * 0.7).toFixed(1)}px)`;
-  // vinheta pulsando como o coração (batida mais rápida no pânico)
+  // vinheta pulsando no ritmo do pânico (fecha mais rápido em nível alto)
   const beat = Math.sin(t * (lvl >= 3 ? 5.2 : 3.4));
   const base = lvl >= 3 ? 0.30 : 0.12;
   const wave = lvl >= 3 ? 0.10 : 0.06;
@@ -935,7 +944,7 @@ function frame(nowMs) {
       safe(drainEvents, 'eventos');
       if (stats[0] !== 1) break;
     }
-    safe(() => heartbeat(nowMs), 'coração');
+    safe(() => sibilo(nowMs), 'sibilo');
     safe(() => setAmbience(false), 'ambiente'); // troca de andar => troca de trilha
     safe(droneSwell, 'drone');
   } else {
