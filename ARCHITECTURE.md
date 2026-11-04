@@ -42,7 +42,7 @@ Se crescer, dividir por dominio: `gen.rs`, `basilisk.rs`, `fov.rs`, `exports.rs`
    |  +--- tick 140ms ---->|  eventos: ring buffer u32[16]
    |
 [CRT CSS]  <--- canvas --- render diff por celula
-[WebAudio] <--- eventos -- efeitos sintetizados + coracao por proximidade
+[WebAudio] <--- eventos -- efeitos sintetizados + sibilo por proximidade
 ```
 
 Nao existe server, banco de dados ou rede. O jogo roda inteiro no navegador;
@@ -346,7 +346,7 @@ Pilares (constantes tunáveis no topo de `src/lib.rs`, prefixo `FEAR_`/`PH_`):
   fantasma 'o' (attr 14, A_GHOST: trespassa paredes, evapora a d<=2, fora do
   VIS escurece como tile lembrado; TTL longo e 50% dos passos vem NA DIRECAO
   do jogador — eles assombram VOCE, mas evaporam antes de alcançar), falso 'B'
-  (attr 7 do real: o coracao dele nao responde, nao gera glitch de corpo, nasce
+  (attr 7 do real: o sibilo dele nao responde, nao gera glitch de corpo, nasce
   so com a real a >12 tiles), coroa-fantasma (T_CROWN com attr 5 real, estatica,
   a 8..14 tiles em corredor LEMBRADO — spawn exige SEEN==1 e fora do VIS, senao
   o render a desenharia num buraco nunca visto; evapora a d<=2 — a ilusao de
@@ -457,7 +457,7 @@ Ultima atualizacao: 2026-11-03
 - **ATTR**: segundo byte do grid; indice da paleta JS + flag `0x80` de
   "lembrado" (fog of war).
 - **Bot**: jogador automatico headless dos testes. E "surdo" (nao ouve o
-  coracao), portanto e o pior caso do gameplay: se o bot vence, humano vence.
+  sibilo), portanto e o pior caso do gameplay: se o bot vence, humano vence.
 - **Sombra** (`,`) — tile que esconde: imovel = visao dela 2 tiles; andando = 4;
   no claro = 8. Com a coroa: andar em sombra = farol; imovel em sombra = o
   basilisco persegue sua ultima posicao conhecida, nao voce.

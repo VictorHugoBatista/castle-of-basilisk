@@ -83,7 +83,7 @@ ESC volta ao menu.
   atordoamento — sua chance de arrancar) e entra em caça eterna pelo cheiro.
   Anda em sombra = farol. **Fica imóvel em sombra = você volta a ser só um
   cheiro fraco** — ela procura sua última posição, não a sua.
-- Ouça o **coração**: intervalo curto = ela está perto; pan = da direita/esquerda.
+- Ouça o **sibilo** do basilisco: intervalo curto = ela está perto; pan = da direita/esquerda.
 - Ouça o **lugar**: vento lento no térreo; na masmorra quase nada (e qualquer
   som soa abafado); goteiras com eco no esgoto — que param de pingar quando
   ela está de caça perto. A paleta da tela veste a cor do andar (âmbar de
@@ -114,7 +114,7 @@ mais lenta a queda. As regras que seguram tudo:
 | 0 calmo | 0–29 | nada na tela — mas o sussurro raro chega ("fui eu?") e o corpo às vezes PARECE ter passado por cima de você: não há ninguém |
 | 1 assombrado | 30–54 | sussurros; fantasmas `o` (**1 em 4 nasce à luz**: vislumbre no seu campo); **corpo falso** (passos que não existem); falso `B` rarefeito |
 | 2 paranoico | 55–74 | tudo de cima **frequentemente**; coroa-fantasma entra; soluço involuntário |
-| 3 pânico | 75–99 | visão encolhe (raio 6); coração dispara no vazio; glitch sem corpo |
+| 3 pânico | 75–99 | visão encolhe (raio 6); sibilo assombra no vazio; glitch sem corpo |
 | 4 colapso | 100 | **o teatro do pavor inteiro de uma vez** — FOV raio 6, soluço sem parar, o mundo treme forte e a vinheta fecha; e você continua ALI: **o medo nunca mata** |
 
 As **alucinações** só existem no render — a lógica do jogo jamais as vê:
@@ -123,7 +123,7 @@ As **alucinações** só existem no render — a lógica do jogo jamais as vê:
   atravessa nada) e **deriva na sua direção** — mas evapora quando chega a
   2 tiles: a aproximação nunca te alcança. Fora da visão, escurece como todo
   tile lembrado.
-- **Falso `B`**: attr 7 IDÊNTICO ao real. Mentiras dele: o coração não responde,
+- **Falso `B`**: attr 7 IDÊNTICO ao real. Mentiras dele: o sibilo não responde,
   jamais gera glitch de escamas, jamais abre porta. Só nasce com a real a mais
   de 12 tiles (nunca funciona como radar).
 - **Coroa-fantasma `§`**: attr 5 do real, estática, a 8–14 tiles num corredor
@@ -133,10 +133,10 @@ As **alucinações** só existem no render — a lógica do jogo jamais as vê:
 
 Correr atrás de coroa falsa → ruído alto → ela te encontra → medo sobe: a
 espiral fecha sozinha. No HUD, a placa do canto (`ruído / fôlego / medo`) tem
-a barra de medo tremendo em nível alto, e o coração dispara sozinho no pânico.
+a barra de medo tremendo em nível alto, e o sibilo siliba sozinho no pânico.
 A partir do **paranoico**, o próprio mundo treme (duas ondas desafinadas —
 nada uniforme, é o corpo respirando errado) e uma **vinheta vermelha** fecha
-nos pulsos do coração — fora do grid, na pele: informação nenhuma, só espanto.
+nos pulsos do pânico — fora do grid, na pele: informação nenhuma, só espanto.
 
 ## arquitetura
 
