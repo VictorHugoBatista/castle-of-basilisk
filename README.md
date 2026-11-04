@@ -60,6 +60,22 @@ ESC volta ao menu.
   Anda na sombra? 4 tiles. No claro? Ele te vê a 8.
 - **`=` = água do esgoto** (só andares 4-5). Caminhável por você — mas é o meio
   nativo dela: **na água ela apressa o passo**. Sob os pés, o passo respinga.
+  Os **canais imperiais** correm de cima a baixo (1–2, leito de 1 córrego fino
+  a 5 de largura, flanqueado por **margens secas de alvenaria** — dá para
+  andar na beira sem molhar o pé — e os lados ondulam), muitas vezes
+  interrompidas: **desabamentos em montinho irregular** (bordas escalonadas
+  linha a linha, cacos de `%` espalhados para fora) fecham margem e leito de
+  uma vez, e cavernas secas cortam o rio (o vão da cisterna é a ponte).
+- **`÷` = fundura**: a galeira inteira afunda nesse trecho (margem e leito) —
+  água demais: não se passa, nem para ela. Vê-se através. Contorna pelo alto,
+  pelo fundo ou pela caverna-ponte.
+- **`|` = grade de cela** (masmorras): bloqueia passagem, MAS a luz passa —
+  de através dela você vê o que vem (e ela vê você; o olhar segue valendo).
+  Nas masmorras, portas de cela viram grade: "celas trancadas" para sempre.
+- **`¥` = caveira**: ossos nas celas abertas — só resto dos que não saíram.
+  Caminhável, decorada.
+- Masmorra funda (andar 3): **poças rasas `=`** — mesmo glifo da água, MAS
+  rasas: raso não é habitat, e a maré não acelera ela lá.
 - Ele **ouve**: passos no claro (raio 5), na sombra (raio 3), portas abertas
   (raio 12 — cuidado ao se esconder atrás delas). Ouvidos por andar: no térreo
   ela demora a acordar; nos esgotos desperta na hora.
@@ -139,8 +155,8 @@ scripts/debug6.mjs         bancada do bot playthrough
 | # | lugar | mapa | temperamento dela |
 |---|---|---|---|
 | 1 | Ruínas do castelo (térreo) | 56×32 | quase adormecida (fora do habitat) |
-| 2 | Masmorra Assombrada | 56×32 | a caça paciente de sempre |
-| 3 | Masmorra Assombrada | 56×32 | caça paciente + rastro forte |
+| 2 | Masmorra Assombrada | 64×36 | a caça paciente de sempre |
+| 3 | Masmorra Assombrada | 64×36 | caça paciente + rastro forte |
 | 4 | Canais Envenenados | 80×44 | casa dela: veloz, olho a 5, ouvido fino |
 | 5 | Canais Envenenados (coroa) | 80×44 | idem, com canais de água a escoar |
 
@@ -160,7 +176,7 @@ Nada de wasm-bindgen: o módulo expõe funções `#[no_mangle] extern "C"`:
 - `pfb_ui_ptr()` — barra de UI fabricada (dica contextual / nome do andar)
 - `pfb_pop_event()` — fila de eventos de áudio
 - `pfb_state()` — 0 título, 1 jogando, 2 morto, 3 vitória, 4 controles
-- `pfb_debug_*` — ferramentas dos testes (place/map/probe/give_crown)
+- `pfb_debug_*` — ferramentas dos testes (place/bas_place/map/probe/give_crown)
 
 O WASM nunca aloca: as views JS são criadas uma vez e ficam válidas.
 
@@ -198,10 +214,16 @@ e fuzz de 6000 ticks sem estados impossíveis.
 
 ## status do conceito
 
-Escopo *proof of concept*: 5 andares temáticos e procedurais — térreo de salões
-amplos com vento, masmorras de celas apertadas com silêncio, esgoto imperial
-80×44 com canais de água `=` — IA em 3 estados (patrulha/invest/caça) com BFS
-real e temperamento por tema, FOV por raycast, um toque mata / Um olhar mata.
+Escopo *proof of concept*: 5 andares temáticos e procedurais — térreo do
+palácio: grandes salões com colunata interna cercados por corredores e
+cômodos pendurados nas paredes deles (portas nos gargalos), masmorras de
+celas com grades (a luz atravessa, o corpo não), caveiras nas celas abertas
+e poças rasas no andar fundo, esgoto imperial 80×44 com **canais imperiais
+verticais** (1–2 rios `=` de cima a baixo, largura e posição à sorte,
+interrompidos por desabamentos de pedra, funduras `÷` atravessáveis por
+ninguém e cavernas-bacia que cortam o rio a seco) — IA em 3 estados
+(patrulha/invest/caça) com BFS real e temperamento por tema, FOV por raycast,
+um toque mata / Um olhar mata. Cada tema tem o próprio caráter de geração.
 Para o jogo grande: itens de "ruído falso", basilisco aprendendo padrões de
 fuga, salas com rachaduras de teto, e um final que explique porque uma besta
 gigante protege um rei morto.
