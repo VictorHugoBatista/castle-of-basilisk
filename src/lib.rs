@@ -848,14 +848,14 @@ fn gen_once(depth: u8, seed: u32) {
         // ondulando devagar (o rio não é régua). Posição à sorte, separados.
         // desabamentos/funduras e as cavernas-bacia veem mais adiante. ----
         nc = 1 + rndn(2) as usize;
-        canals[0] = (4 + rndn(26) as i32, 1 + rndn(5) as i32, 1 + rndn(2) as i32, 1 + rndn(2) as i32);
-        if nc == 2 { canals[1] = (44 + rndn(24) as i32, 1 + rndn(5) as i32, 1 + rndn(2) as i32, 1 + rndn(2) as i32); }
+        canals[0] = (4 + rndn(24) as i32, 1 + rndn(5) as i32, 1 + rndn(3) as i32, 1 + rndn(3) as i32);
+        if nc == 2 { canals[1] = (45 + rndn(22) as i32, 1 + rndn(5) as i32, 1 + rndn(3) as i32, 1 + rndn(3) as i32); }
         for ci in 0..nc {
             let (sx, cw, bl, br) = canals[ci];
             let span = bl + cw + br;
             let mut d = 0i32; // a maré balança: margem de um lado engorda quando a do outro emagrece
             for y in 1..H() as i32 - 1 {
-                if rndn(3) == 0 { d += if rndn(2) == 0 { 1 } else { -1 }; }
+                if rndn(2) == 0 { d += if rndn(2) == 0 { 1 } else { -1 }; }
                 if d < 1 - bl { d = 1 - bl; }
                 if d > br - 1 { d = br - 1; }
                 let wx = sx + bl + d; // água da linha: começa aqui
@@ -1062,24 +1062,49 @@ fn gen_once(depth: u8, seed: u32) {
             let (cxs, cw, bl, br) = canals[ci];
             if cxs == 0 { continue; }
             let span = cw + bl + br;
-            // desabamento: 0-2 por canal — a rocha caiu e fechou a galeria
+            // desabamento: 0-2 por canal — a rocha cai em MONTINHO: bordas
+            // escalonadas linha a linha (cada linha sela o leito DELA com
+            // franjas a sorte) e cacos de '%' espalhados para fora
             let npl = rndn(3) as i32;
             for _ in 0..npl {
-                let len = 2 + rndn(3) as i32; // 2-4 linhas de rocha
-                let y0 = 2 + rndn(H() as usize - 4 - len as usize) as i32;
+                let h = 2 + rndn(3) as i32; // altura do montinho 2-4
+                let y0 = 2 + rndn(H() as usize - 3 - h as usize) as i32;
                 let mut ok = true;
-                for y in y0..y0 + len {
+                for y in y0..y0 + h {
                     for x in cxs..cxs + span {
                         let t = unsafe { MAP[idx(x as usize, y as usize)] };
                         if t != T_WATER && t != T_FLOOR { ok = false; }
                         if room_of(x, y) >= 0 { ok = false; }
                     }
                 }
-                if ok {
-                    for y in y0..y0 + len {
-                        for x in cxs..cxs + span {
-                            unsafe { MAP[idx(x as usize, y as usize)] = T_WALL; }
+                if !ok { continue; }
+                // monte: cada linha sela o leito DELA (encontra a água que
+                // meandrou nessa linha) com franjas de largura à sorte
+                for k in 0..h {
+                    let y = y0 + k;
+                    let (mut a, mut b) = (i32::MAX, i32::MIN);
+                    for x in cxs..cxs + span {
+                        if unsafe { MAP[idx(x as usize, y as usize)] } == T_WATER {
+                            if x < a { a = x; }
+                            if x > b { b = x; }
                         }
+                    }
+                    if a > b { continue; }
+                    let kL = 1 + rndn(3) as i32;
+                    let kR = 1 + rndn(3) as i32;
+                    for x in (a - kL)..=(b + kR) {
+                        if x <= 0 || x >= W() as i32 - 1 { continue; }
+                        unsafe { MAP[idx(x as usize, y as usize)] = T_WALL; }
+                    }
+                }
+                // cacos: o desabamento joga pedra além do monte
+                for _ in 0..(2 + rndn(4) as usize) {
+                    let x = cxs - 1 + rndn((span + 2) as usize) as i32;
+                    let y = y0 - 1 + rndn((h + 2) as usize) as i32;
+                    if x < 1 || y < 1 || x >= W() as i32 - 1 || y >= H() as i32 - 1 { continue; }
+                    let t = unsafe { MAP[idx(x as usize, y as usize)] };
+                    if t == T_WATER || t == T_FLOOR {
+                        unsafe { MAP[idx(x as usize, y as usize)] = T_RUBBLE; }
                     }
                 }
             }

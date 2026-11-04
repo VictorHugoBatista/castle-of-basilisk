@@ -63,8 +63,9 @@ ESC volta ao menu.
   Os **canais imperiais** correm de cima a baixo (1–2, leito de 1 córrego fino
   a 5 de largura, flanqueado por **margens secas de alvenaria** — dá para
   andar na beira sem molhar o pé — e os lados ondulam), muitas vezes
-  interrompidos: **desabamentos** fecham margem e leito de pedra de uma vez,
-  e cavernas secas cortam o rio (o vão da cisterna é a ponte).
+  interrompidas: **desabamentos em montinho irregular** (bordas escalonadas
+  linha a linha, cacos de `%` espalhados para fora) fecham margem e leito de
+  uma vez, e cavernas secas cortam o rio (o vão da cisterna é a ponte).
 - **`÷` = fundura**: a galeira inteira afunda nesse trecho (margem e leito) —
   água demais: não se passa, nem para ela. Vê-se através. Contorna pelo alto,
   pelo fundo ou pela caverna-ponte.

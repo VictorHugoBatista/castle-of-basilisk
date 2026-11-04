@@ -272,14 +272,16 @@ terreo.
   `gen_once` restaura as dims do andar quando ele regenera.
 - **Agua** (tile `'='` / attr 13, e fundura `'÷'`= 0xF7 / attr 13): os CANAIS
   IMPERIAIS do esgoto sao 1-2 rios verticais de teto a fundo: leito de 1 a 5
-  de largura com MARGENS SECAS de alvenaria (1-2 de cada lado, pisaveis) e
+  de largura com MARGENS SECAS de alvenaria (1-3 de cada lado, pisaveis) e
   lados que meandram devagar (o leito nao e reta de regua); os corredores que
   os cruzam mantem o leito (ponte molhada). O grafo de caminhabilidade nao
   muda — agua e pisavel — mas caminhar nela acelera ELA (`speed_now`: -1 no
   periodo => 1/1 tick na agua) e respinga o passo do jogador. FUNDURAS (`÷`)
   nao sao pisaveis NEM por ela e afundam a GALERIA INTEIRA (margens incluidas:
-  a seca nao da a volta); desabamentos (pedra) fecham margem e leito juntos,
-  partindo cada rio em pedacos que se religam pelas cavernas-cortadoras.
+  a seca nao da a volta); desabamentos (pedra) fecham margem e leito juntos
+  em MONTINHO IRREGULAR: cada linha sela o leito que meandrou nela, borda
+  escalonada a sorte e cacos de '%' fora do monte, partindo cada rio em
+  pedacos que se religam pelas cavernas-cortadoras.
 - **Temperamento por tema** (tabelas `speed_patrol/invest/hunt`, `ear_cool`,
   `hiss_mod`, `trail_weights`, `gaze_r`): um lugar = uma besta diferente;
   fora do habitat (terreo) ela e quase decorativa, na casa dela (esgoto)
