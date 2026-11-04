@@ -22,7 +22,7 @@ function ensureViews() {
 }
 ensureViews();
 
-const pass = (i) => [0x2E, 0x2C, 0x3E, 0x3C, 0x2B, 0xA7, 0x3D].includes(map[i]);
+const pass = (i) => [0x2E, 0x2C, 0x3E, 0x3C, 0x2B, 0xA7, 0x3D, 0xA5].includes(map[i]); // 0x3D = água '=' · 0xA5 = caveira '¥'
 const findTile = (t) => { for (let i = 0; i < W * H; i++) if (map[i] === t) return i; return -1; };
 
 let dangerMemo = null;
@@ -148,7 +148,8 @@ for (let g = 0; g < N; g++) {
       let mvBit;
       if ((hunted && basDist <= 9) || stepDanger) {
         const dg = dodge();
-        mvBit = dg ? dirBit(dg) : dirTo(pos, nxt);
+        if (dg === null) continue; // sem saída: Espera um tick — ela se move (celas são esconderijo legítimo)
+        mvBit = dirBit(dg);
       } else mvBit = dirTo(pos, nxt);
       w.pfb_step(mvBit);
       if (stats[0] !== 1) break;

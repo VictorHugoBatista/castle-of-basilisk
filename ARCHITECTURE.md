@@ -88,7 +88,7 @@ Exports (contrato publico — nao quebrar):
 Layout de memoria:
 - **Grid**: buffer maximo `W_MAX x H_MAX` (80x44) celulas x `[char: u8, attr: u8]`,
   dimensoes REAIS do andar atual publicadas em `STATS[16]/[17]` (funcoes `W()`/`H()`
-  leem `DIMW/DIMH`: castelo e masmorras 56x32, esgotos 80x44). Char da tabela
+  leem `DIMW/DIMH`: castelo 56x32, masmorras 64x36, esgotos 80x44). Char da tabela
   ASCII; coroa = byte `0xA7` ('§' latin-1), agua = `'='` (0x3D). Attr = indice da
   paleta (0..15) OU `0x80 | indice` quando o tile e "lembrado" (fog of war) e
   escurece no render.
@@ -259,21 +259,29 @@ terreo.
 | # | tema | mapa | geracao | a besta |
 |---|------|------|---------|---------|
 | 1 | TH_CASTLE (Ruinas do castelo) | 56x32 | saloes amplos + pilares | quase adormecida: patrol 6/invest 4/hunt 3, ouvido 60, sibilo 1/90, rastro 7/2 |
-| 2-3 | TH_DUNGEON (Masmorras) | 56x32 | celas apertadas, mais portas/sombra/escombro | a cacadora de sempre: 4/3/2, ouvido 42, sibilo 1/47, rastro 14/5 |
-| 4-5 | TH_SEWER (Canais Envenenados) | 80x44 | bacias/cisternas em rede maior, loops de fuga, canais de agua | CASA dela: 3/2/2, ouvido 30, sibilo 1/23, rastro 21/8, GAZE_R+1 |
+| 2-3 | TH_DUNGEON (Masmorras) | 64x36 | ala de celas: 3 galerias de corredor largo empilhadas, celas 2x2 dos lados (trancada/aberta/meia/lacrada), 3-5 corredores de servico sorteados, descida em galeria/coluna sorteadas, pocas rasas no andar 3 | a cacadora de sempre: 4/3/2, ouvido 42, sibilo 1/47, rastro 14/5 |
+| 4-5 | TH_SEWER (Canais Envenenados) | 80x44 | 1-2 canais imperiais verticais (teto a fundo, largura/posicao sorteadas) com desabamentos (0-2 pedras por canal) e funduras '÷' (1-2 trechos, nao atravesaveis nem por ela); cavernas-bacia cortando o rio (uma garantida por canal, seca sobre a agua) + bacias/cisternas fora dos leitos | CASA dela: 3/2/2, ouvido 30, sibilo 1/23, rastro 21/8, GAZE_R+1 |
 
-- **Mapa maior no esgoto** (`floor_dims`): 80x44 vs 56x32; todos os buffers
+- **Mapas por tema** (`floor_dims`): castelo 56x32, masmorras 64x36, esgoto
+  80x44; todos os buffers
   em `N_MAX`, dims reais publicadas em `STATS[16]/[17]`, camera no JS.
   **REGRA DE UI**: as telas FORA de jogo (titulo/controles/morte/vitoria)
   sao compostas SEMPRE no viewport padrao 56x32 — `render()` volta `DIMW/DIMH`
   para `W0/H0` quando `STATE != ST_PLAY` (o JS fora de jogo le o grid como
   56 colunas; morrer no esgoto com stride 80 rasgava a tela em diagonal).
   `gen_once` restaura as dims do andar quando ele regenera.
-- **Agua** (`seed_water`, so esgoto; tile `'='` / attr 13): rachaduras de
-  rio por passeio aleatorio que convertem APENAS piso de CORREDOR (fora de
-  sala) — o grafo de BFS/portas nao muda, muda o chao: caminhar na agua
-  acelera ELA (`speed_now`: -1 no periodo => 1/1 tick na agua) e respinga o
-  passo do jogador.
+- **Agua** (tile `'='` / attr 13, e fundura `'÷'`= 0xF7 / attr 13): os CANAIS
+  IMPERIAIS do esgoto sao 1-2 rios verticais de teto a fundo: leito de 1 a 5
+  de largura com MARGENS SECAS de alvenaria (1-3 de cada lado, pisaveis) e
+  lados que meandram devagar (o leito nao e reta de regua); os corredores que
+  os cruzam mantem o leito (ponte molhada). O grafo de caminhabilidade nao
+  muda — agua e pisavel — mas caminhar nela acelera ELA (`speed_now`: -1 no
+  periodo => 1/1 tick na agua) e respinga o passo do jogador. FUNDURAS (`÷`)
+  nao sao pisaveis NEM por ela e afundam a GALERIA INTEIRA (margens incluidas:
+  a seca nao da a volta); desabamentos (pedra) fecham margem e leito juntos
+  em MONTINHO IRREGULAR: cada linha sela o leito que meandrou nela, borda
+  escalonada a sorte e cacos de '%' fora do monte, partindo cada rio em
+  pedacos que se religam pelas cavernas-cortadoras.
 - **Temperamento por tema** (tabelas `speed_patrol/invest/hunt`, `ear_cool`,
   `hiss_mod`, `trail_weights`, `gaze_r`): um lugar = uma besta diferente;
   fora do habitat (terreo) ela e quase decorativa, na casa dela (esgoto)

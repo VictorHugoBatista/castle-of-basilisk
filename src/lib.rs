@@ -6,6 +6,8 @@
 
 pub const W0: usize = 56;  // castelo: o mapa de sempre
 pub const H0: usize = 32;
+pub const W_BANK: usize = 64; // masmorras: a ala de celas — maior que o palácio,
+pub const H_BANK: usize = 36; // menor que a cloaca
 pub const W_MAX: usize = 80; // esgotos: a rede imperial, consideravelmente maior
 pub const H_MAX: usize = 44;
 pub const N_MAX: usize = W_MAX * H_MAX;
@@ -55,6 +57,11 @@ const T_UP: u8 = b'<';
 const T_CROWN: u8 = 0xA7; // '§' latin-1
 const T_RUBBLE: u8 = b'%'; // becos de escombro: transitáveis por você, evitados por ela
 const T_WATER: u8 = b'=';  // esgoto: canais imperiais — caminháveis, mas o lar dela
+const T_BARS: u8 = b'|';   // masmorra: grade de cela — bloqueia passagem, a LUZ atravessa
+const T_SKULL: u8 = 0xA5;  // masmorra: caveira '¥' restada nas celas abertas (transitável)
+const T_SHALLOW: u8 = b'='; // masmorra funda: poça rasa — MESMO glifo da água, mas rasa:
+                            // não é o habitat dela, e os pés dela não ganham maré
+const T_DEEP: u8 = 0xF7;   // esgoto: '÷' fundura — água demais até para ela: não se passa
 
 // ---- atributos (índice da paleta em JS) ----
 const A_FLOOR: u8 = 0;
@@ -390,7 +397,8 @@ fn opaque(x: i32, y: i32) -> bool {
 fn walkable(x: i32, y: i32) -> bool {
     if x < 0 || y < 0 || x >= W() as i32 || y >= H() as i32 { return false; }
     let t = tile_at(x as usize, y as usize);
-    t != T_WALL && t != T_PILLAR
+    // grades de cela e funduras de esgoto: como parede para os pés, como ar para a vista
+    t != T_WALL && t != T_PILLAR && t != T_BARS && t != T_DEEP
 }
 
 // caminhável PARA ELA: escombros entram na rota só quando há prova fresca
@@ -459,6 +467,7 @@ pub extern "C" fn pfb_pop_event() -> u32 {
 
 fn set_room(r: usize, x0: i32, y0: i32, x1: i32, y1: i32) {
     unsafe {
+        if r >= 16 { return; } // ROOMS: 16 salas no máximo — fora disso, dorme
         ROOMS[r * 4] = x0;
         ROOMS[r * 4 + 1] = y0;
         ROOMS[r * 4 + 2] = x1;
@@ -619,9 +628,10 @@ fn gen_floor(depth: u8, seed: u32) {
 }
 
 fn floor_dims(depth: u8) -> (usize, usize) {
-    // térreo e masmorras: o castelo de sempre. Esgotos: a rede imperial é
-    // consideravelmente maior — dois andares inteiros de cloaca para atravessar.
-    if depth >= 4 { (W_MAX, H_MAX) } else { (W0, H0) }
+    // térreo: o palácio de sempre. Masmorras: a ala de celas — maior que o
+    // palácio, menor que a cloaca. Esgotos: a rede imperial, consideravelmente
+    // maior — dois andares inteiros de cloaca para atravessar.
+    if depth >= 4 { (W_MAX, H_MAX) } else if depth >= 2 { (W_BANK, H_BANK) } else { (W0, H0) }
 }
 
 fn gen_once(depth: u8, seed: u32) {
@@ -636,37 +646,290 @@ fn gen_once(depth: u8, seed: u32) {
     }
 
     let th = theme(depth);
+
+    // esgoto: canais imperiais (1-2 rios verticais) — declarados aqui: o
+    // desenho do leito (desabamentos/funduras) vem depois do cave de salas
+    let mut canals: [(i32, i32, i32, i32); 2] = [(0, 0, 0, 0), (0, 0, 0, 0)]; // (leito esquerdo, água, margem esq., margem dir.)
+    let mut nc = 0usize;
     // ---- salas: cada tema tem seu caráter ----
     // castle: salões amplos de palácio · dungeon: celas pequenas e endurecidas
     // · sewer: bacias/cisternas grandes numa rede muito maior
     let (w_span, w_base, h_span, h_base, max_rooms, room_gap, door_pct, shadow_n,
          rub_quota, pil_min_w, pil_min_h, extra_loops, attempt_n) = match th {
-        TH_CASTLE  => (6, 5, 4, 4, 10, 1, 4, 55, 1, 6, 4, 2, 240),
+        TH_CASTLE  => (6, 5, 4, 4, 13, 1, 4, 55, 1, 6, 4, 2, 240),
         TH_DUNGEON => (4, 3, 3, 2, 16, 2, 5, 75, 3, 7, 5, 2, 420),
         _          => (5, 6, 3, 4, 14, 2, 1, 60, 2, 6, 4, 4, 420),
     };
-    for _ in 0..attempt_n {
-        if unsafe { RN } >= max_rooms { break; }
-        let w = (rndn(w_span) + w_base) as i32;
-        let h = (rndn(h_span) + h_base) as i32;
-        let x0 = (rndn(W() - w as usize - 2) + 1) as i32;
-        let y0 = (rndn(H() - h as usize - 2) + 1) as i32;
-        let x1 = x0 + w - 1;
-        let y1 = y0 + h - 1;
-        let mut ok = true;
-        let n = unsafe { RN };
-        for r in 0..n {
-            if x0 <= rget(r, 2) + room_gap && x1 + room_gap >= rget(r, 0) &&
-               y0 <= rget(r, 3) + room_gap && y1 + room_gap >= rget(r, 1) { ok = false; break; }
+    // ---- posicionamento das salas: o palácio tem fase própria, o resto
+    // mantém o sorteio de sempre ----
+    if th == TH_CASTLE {
+        // PALÁCIO: primeiro os GRANDES SALÕES (11-15 × 7-9, separados por um
+        // fio de parede >= 2) — é neles que a colunata interna vai morar.
+        // Depois, os CÔMODOS (3-6 × 3-4) nascem colados na parede de um salão,
+        // com exatamente 1 tile de parede entre cômodo e salão: aí os gargalos
+        // viram portas. Tudo o que vem depois (corredores de conexão, loops,
+        // portas) é genérico — são eles que cercam os salões.
+        let mut halls = 0usize;
+        for _ in 0..400 {
+            if halls >= 3 { break; }
+            let w = (rndn(5) + 11) as i32;
+            let h = (rndn(3) + 7) as i32;
+            let x0 = (rndn(W() - w as usize - 2) + 1) as i32;
+            let y0 = (rndn(H() - h as usize - 2) + 1) as i32;
+            let x1 = x0 + w - 1;
+            let y1 = y0 + h - 1;
+            let mut ok = true;
+            let n = unsafe { RN };
+            for r in 0..n {
+                if x0 <= rget(r, 2) + 2 && x1 + 2 >= rget(r, 0) &&
+                   y0 <= rget(r, 3) + 2 && y1 + 2 >= rget(r, 1) { ok = false; break; }
+            }
+            if !ok { continue; }
+            for y in y0..=y1 {
+                for x in x0..=x1 {
+                    unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; }
+                }
+            }
+            set_room(n, x0, y0, x1, y1);
+            unsafe { RN += 1; }
+            halls += 1;
         }
-        if !ok { continue; }
-        for y in y0..=y1 {
-            for x in x0..=x1 {
-                unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; }
+        // cômodos: pai sorteado SÓ ENTRE OS SALÕES (as primeiras `halls`
+        // salas) — cômodo pendurado em cômodo viraria vecindário, não palácio
+        for _ in 0..600 {
+            let n = unsafe { RN };
+            if n == 0 || n >= max_rooms { break; }
+            let hr = rndn(halls); // pai = um dos salões
+            let hw = (rget(hr, 2) - rget(hr, 0) + 1) as usize;
+            let hh = (rget(hr, 3) - rget(hr, 1) + 1) as usize;
+            let cw = rndn(4) + 3; // 3-6 de vão
+            let ch = rndn(2) + 3; // 3-4 de fundura
+            let mut ok = true;
+            let mut x0 = 0i32;
+            let mut y0 = 0i32;
+            if hw >= cw && hh >= ch {
+                match rndn(4) {
+                    0 => { // à direita do salão
+                        x0 = rget(hr, 2) + 2;
+                        y0 = rget(hr, 1) + rndn(hh - ch + 1) as i32;
+                        if x0 + cw as i32 - 1 > W() as i32 - 2 { ok = false; }
+                    }
+                    1 => { // à esquerda
+                        x0 = rget(hr, 0) - 1 - cw as i32;
+                        y0 = rget(hr, 1) + rndn(hh - ch + 1) as i32;
+                        if x0 < 1 { ok = false; }
+                    }
+                    2 => { // abaixo
+                        y0 = rget(hr, 3) + 2;
+                        x0 = rget(hr, 0) + rndn(hw - cw + 1) as i32;
+                        if y0 + ch as i32 - 1 > H() as i32 - 2 { ok = false; }
+                    }
+                    _ => { // acima
+                        y0 = rget(hr, 1) - 1 - ch as i32;
+                        x0 = rget(hr, 0) + rndn(hw - cw + 1) as i32;
+                        if y0 < 1 { ok = false; }
+                    }
+                }
+            } else { ok = false; }
+            let x1 = x0 + cw as i32 - 1;
+            let y1 = y0 + ch as i32 - 1;
+            if ok {
+                // qualquer sala já posta exige 1 parede de distância no mínimo;
+                // o salão pai fica a exatamente 2 (1 tile de parede entre eles)
+                for r in 0..n {
+                    if x0 <= rget(r, 2) + 1 && x1 + 1 >= rget(r, 0) &&
+                       y0 <= rget(r, 3) + 1 && y1 + 1 >= rget(r, 1) { ok = false; break; }
+                }
+            }
+            if !ok { continue; }
+            for y in y0..=y1 {
+                for x in x0..=x1 {
+                    unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; }
+                }
+            }
+            set_room(n, x0, y0, x1, y1);
+            unsafe { RN += 1; }
+        }
+    } else if th == TH_DUNGEON {
+        // ---- ALA DE CELAS: galerias de corredor largo (3 tiles) com celas de
+        // 2x2 dos dois lados, na planta das prisões antigas: o corredor
+        // central e as barras na altura dos olhos. Celas de quatro destinos:
+        // TRANCADA (grade integral), ABERTA (portas, com os ossos), MEIA
+        // (porta de um lado, barra do outro) ou LACRADA (maciço de rocha).
+        // O corredor de serviço atinge as galerias nos vãos de rocha. ----
+        // a ala (64x36) é MAIOR que o palácio (56x32), MENOR que a cloaca
+        // (80x44): grupos e passos se leem das dims do andar, nunca fixos
+
+        // vãos de rocha: grupos sem cela, 3-5 por andar (número SORTEADO) —
+        // é neles que os corredores de serviço ligam as três galerias; o
+        // quantas ligações e onde, nunca nasce duas vezes igual
+        let groups = (W() - 6) / 3; // grupos de 3 colunas, margem 3 de cada lado
+        let cend = 3 + groups as i32 * 3 - 2; // última coluna do corredor
+        let mut links: u32 = 0; // bit g aceso = o grupo g é um vão de serviço
+        let nl = 3 + rndn(3) as u32;
+        let mut used = 0u32;
+        let mut tries = 0u32;
+        while used < nl && tries < 40 {
+            tries += 1;
+            let bit = 1u32 << rndn(groups);
+            if links & bit == 0 { links |= bit; used += 1; }
+        }
+
+        // pass 1: os três corredores largos nasceram PRIMEIRO — as celas
+        // preenchem o resto da tabela de salas, nunca antes deles
+        for bi in 0..3usize {
+            let by = 2 + bi as i32 * 11; // a galeria ocupa 9 rows, passo 11: 2-10 · 13-21 · 24-32
+            let cy0 = by + 3;
+            for y in cy0..=cy0 + 2 {
+                for x in 3..=cend {
+                    unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; }
+                }
+            }
+            set_room(unsafe { RN }, 3, cy0, cend, cy0 + 2);
+            unsafe { RN += 1; }
+        }
+        // pass 2: celas — grupos de 3 colunas (2 de cela + 1 de parede)
+        for bi in 0..3usize {
+            let by = 2 + bi as i32 * 11;
+            for gi in 0..groups {
+                let gx = 3 + gi as i32 * 3;
+                if links & (1u32 << gi) != 0 { continue; } // vão de rocha: corredor de serviço
+                for side in 0..2usize {
+                    let iy0 = if side == 0 { by } else { by + 7 };
+                    let iy1 = iy0 + 1;
+                    let frow = if side == 0 { by + 2 } else { by + 6 };
+                    // o destino da cela, sorteado antes de escavar
+                    let fate = rndn(20);
+                    // TRANCADA — grade integral: luz passa, pés não, sempre
+                    if fate < 9 {
+                        for x in gx..=gx + 1 { unsafe { MAP[idx(x as usize, frow as usize)] = T_BARS; } }
+                        for y in iy0..=iy1 { for x in gx..=gx + 1 { unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; } } }
+                    } else if fate < 17 {
+                        // ABERTA (fate 9-13): portas na frente; MEIA (14-16):
+                        // porta de um lado, barra do outro. As duas recebem
+                        // ossos às vezes e contam como sala dela (quando RN
+                        // cabe) — a patrulha entra nas celas abertas
+                        if fate >= 14 {
+                            unsafe {
+                                MAP[idx(gx as usize, frow as usize)] = T_DOOR;
+                                MAP[idx((gx + 1) as usize, frow as usize)] = T_BARS;
+                            }
+                        } else {
+                            for x in gx..=gx + 1 { unsafe { MAP[idx(x as usize, frow as usize)] = T_DOOR; } }
+                        }
+                        for y in iy0..=iy1 { for x in gx..=gx + 1 { unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; } } }
+                        // os ossos de um infeliz anterior (abertas: 50%; meias: 1/3)
+                        if rndn(2) == 0 || (fate >= 14 && rndn(3) == 0) {
+                            let sx2 = gx + rndn(2) as i32;
+                            let sy2 = iy0 + rndn(2) as i32;
+                            let pi = idx(sx2 as usize, sy2 as usize);
+                            if unsafe { MAP[pi] == T_FLOOR } { unsafe { MAP[pi] = T_SKULL; } }
+                        }
+                        if unsafe { RN } < 16 {
+                            set_room(unsafe { RN }, gx, iy0, gx + 1, iy1);
+                            unsafe { RN += 1; }
+                        }
+                    } // fate >= 17: LACRADA — nada: maciço de rocha na frente
+                }
             }
         }
-        set_room(n, x0, y0, x1, y1);
-        unsafe { RN += 1; }
+        // corredores de serviço: coluna vertical estreita atravessando os
+        // vãos de rocha entre as galerias (do corredor de uma à outra)
+        for g in 0..groups {
+            if links & (1u32 << g) == 0 { continue; }
+            let x = 3 + g as i32 * 3;
+            carve_v(x, 5, 18);
+            carve_v(x, 16, 29);
+        }
+    } else {
+        // ---- CANAIS IMPERIAIS: 1-2 rios verticais de '=' correndo o andar de
+        // cima a baixo — água de 1 (córrego fino) a 5 de largura, FLANQUEADA
+        // por margens secas de alvenaria (1-2 de cada lado), os lados do leito
+        // ondulando devagar (o rio não é régua). Posição à sorte, separados.
+        // desabamentos/funduras e as cavernas-bacia veem mais adiante. ----
+        nc = 1 + rndn(2) as usize;
+        canals[0] = (4 + rndn(24) as i32, 1 + rndn(5) as i32, 1 + rndn(3) as i32, 1 + rndn(3) as i32);
+        if nc == 2 { canals[1] = (45 + rndn(22) as i32, 1 + rndn(5) as i32, 1 + rndn(3) as i32, 1 + rndn(3) as i32); }
+        for ci in 0..nc {
+            let (sx, cw, bl, br) = canals[ci];
+            let span = bl + cw + br;
+            let mut d = 0i32; // a maré balança: margem de um lado engorda quando a do outro emagrece
+            for y in 1..H() as i32 - 1 {
+                if rndn(2) == 0 { d += if rndn(2) == 0 { 1 } else { -1 }; }
+                if d < 1 - bl { d = 1 - bl; }
+                if d > br - 1 { d = br - 1; }
+                let wx = sx + bl + d; // água da linha: começa aqui
+                for x in sx..sx + span {
+                    unsafe {
+                        MAP[idx(x as usize, y as usize)] =
+                            if x >= wx && x < wx + cw { T_WATER } else { T_FLOOR };
+                    }
+                }
+            }
+        }
+        // cavernas bizarras CORTANDO os canais: uma garantida por canal,
+        // escavada seca sobre a água E as margens — o vão é a ponte de pedra
+        for ci in 0..nc {
+            let (sx, cw, bl, br) = canals[ci];
+            if sx == 0 { continue; }
+            let span = bl + cw + br;
+            for _ in 0..8 {
+                let h = (4 + rndn(3)) as i32;
+                let mut x0 = sx - (1 + rndn(3) as i32);
+                if x0 < 1 { x0 = 1; }
+                let w = (sx + span - x0) + (2 + rndn(4) as i32); // cobre a galeria inteira + folga
+                if x0 + w - 1 > W() as i32 - 2 { continue; }
+                let y0 = 1 + rndn(H() as usize - 2 - h as usize) as i32;
+                let mut ok = true;
+                let n = unsafe { RN };
+                for r in 0..n {
+                    if x0 <= rget(r, 2) + 2 && x0 + w - 1 + 2 >= rget(r, 0) &&
+                       y0 <= rget(r, 3) + 2 && y0 + h - 1 + 2 >= rget(r, 1) { ok = false; break; }
+                }
+                if !ok { continue; }
+                for y in y0..y0 + h {
+                    for x in x0..x0 + w {
+                        unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; }
+                    }
+                }
+                set_room(unsafe { RN }, x0, y0, x0 + w - 1, y0 + h - 1);
+                unsafe { RN += 1; }
+                break; // um cortador por canal (o esgoto nunca fica sem ponte)
+            }
+        }
+        // as bacias/cisternas bizarras de sempre preenchem o resto do andar —
+        // mas FORA das galerias (margens incluídas): o rio não é cava de graça
+        for _ in 0..attempt_n {
+            if unsafe { RN } >= max_rooms { break; }
+            let w = (rndn(w_span) + w_base) as i32;
+            let h = (rndn(h_span) + h_base) as i32;
+            let x0 = (rndn(W() - w as usize - 2) + 1) as i32;
+            let y0 = (rndn(H() - h as usize - 2) + 1) as i32;
+            let x1 = x0 + w - 1;
+            let y1 = y0 + h - 1;
+            // sobrepõe alguma galeria? a caverna não cava dentro do rio de graça
+            let mut in_canal = false;
+            for ci in 0..nc {
+                let (cxs, cw, bl, br) = canals[ci];
+                if cxs == 0 { continue; }
+                if x0 <= cxs + cw + bl + br - 1 + room_gap && x1 + room_gap >= cxs { in_canal = true; break; }
+            }
+            if in_canal { continue; }
+            let mut ok = true;
+            let n = unsafe { RN };
+            for r in 0..n {
+                if x0 <= rget(r, 2) + room_gap && x1 + room_gap >= rget(r, 0) &&
+                   y0 <= rget(r, 3) + room_gap && y1 + room_gap >= rget(r, 1) { ok = false; break; }
+            }
+            if !ok { continue; }
+            for y in y0..=y1 {
+                for x in x0..=x1 {
+                    unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; }
+                }
+            }
+            set_room(n, x0, y0, x1, y1);
+            unsafe { RN += 1; }
+        }
     }
 
     let mut rn = unsafe { RN };
@@ -682,10 +945,12 @@ fn gen_once(depth: u8, seed: u32) {
         rn = 2;
     }
 
-    // ---- corredores: liga cada sala não-conectada à mais próxima conectada ----
+    // ---- corredores: liga cada sala não-conectada à mais próxima conectada
+    // (a ala de celas se liga sozinha pelas escalas de serviço: pular) ----
     let mut linked: [bool; 16] = [false; 16];
     linked[0] = true;
-    loop {
+    if th != TH_DUNGEON {
+        loop {
         let mut best: (i32, usize, usize) = (i32::MAX, 0, 0);
         for a in 0..rn {
             if linked[a] { continue; }
@@ -708,25 +973,30 @@ fn gen_once(depth: u8, seed: u32) {
             carve_h(by, ax, bx);
         }
         linked[best.1] = true;
-    }
-
-    // ---- corredores extras (loops de fuga) — o esgoto precisa de mais, é imenso ----
-    for _ in 0..extra_loops {
-        let a = rndn(rn);
-        let b = rndn(rn);
-        if a == b { continue; }
-        let (ax, ay) = rcenter(a);
-        let (bx, by) = rcenter(b);
-        if rnd() & 1 == 1 {
-            carve_h(ay, ax, bx);
-            carve_v(bx, ay, by);
-        } else {
-            carve_v(ax, ay, by);
-            carve_h(by, ax, bx);
         }
     }
 
-    // ---- portas nos gargalos de corredor ----
+    // ---- corredores extras (loops de fuga) — o esgoto precisa de mais, é imenso ----
+    if th != TH_DUNGEON {
+        for _ in 0..extra_loops {
+            let a = rndn(rn);
+            let b = rndn(rn);
+            if a == b { continue; }
+            let (ax, ay) = rcenter(a);
+            let (bx, by) = rcenter(b);
+            if rnd() & 1 == 1 {
+                carve_h(ay, ax, bx);
+                carve_v(bx, ay, by);
+            } else {
+                carve_v(ax, ay, by);
+                carve_h(by, ax, bx);
+            }
+        }
+    }
+
+    // ---- portas nos gargalos de corredor (a ala de celas tem as portas
+    // dela expostas nas frentes — sem pinch genérico por cima) ----
+    if th != TH_DUNGEON {
     for y in 1..H() - 1 {
         for x in 1..W() - 1 {
             let i = idx(x, y);
@@ -742,6 +1012,7 @@ fn gen_once(depth: u8, seed: u32) {
             }
         }
     }
+    }
 
     // ---- pilares nas salas grandes ----
     for r in 0..rn {
@@ -751,6 +1022,22 @@ fn gen_once(depth: u8, seed: u32) {
                 unsafe {
                     let i = idx(p.0 as usize, p.1 as usize);
                     if MAP[i] == T_FLOOR { MAP[i] = T_PILLAR; }
+                }
+            }
+            // palácio: nos salões, colunata interna — colunas a cada 3 tiles,
+            // vãos de 2 para a vista atravessar e o medo rondar entre elas
+            if th == TH_CASTLE {
+                let mut px = x0 + 3;
+                while px <= x1 - 3 {
+                    let mut py = y0 + 3;
+                    while py <= y1 - 3 {
+                        unsafe {
+                            let i = idx(px as usize, py as usize);
+                            if MAP[i] == T_FLOOR { MAP[i] = T_PILLAR; }
+                        }
+                        py += 3;
+                    }
+                    px += 3;
                 }
             }
         }
@@ -766,9 +1053,112 @@ fn gen_once(depth: u8, seed: u32) {
         }
     }
 
-    // ---- esgoto: canais de água sobre os corredores (o habitat dela) ----
-    if th == TH_SEWER {
-        seed_water();
+    // ---- esgoto: DESABAMENTOS E FUNDURAS nos canais imperiais — pedra
+    // derrubada fecha MARGEM E LEITO juntos (a galeria parte-se em pedaços,
+    // religados pelas cavernas) e uns vãos afundam todos ('÷'): não se
+    // passa. Só na galeria FORA de sala, para não comer cavernas ----
+    if th == TH_SEWER && nc > 0 {
+        for ci in 0..nc {
+            let (cxs, cw, bl, br) = canals[ci];
+            if cxs == 0 { continue; }
+            let span = cw + bl + br;
+            // desabamento: 0-2 por canal — a rocha cai em MONTINHO: bordas
+            // escalonadas linha a linha (cada linha sela o leito DELA com
+            // franjas a sorte) e cacos de '%' espalhados para fora
+            let npl = rndn(3) as i32;
+            for _ in 0..npl {
+                let h = 2 + rndn(3) as i32; // altura do montinho 2-4
+                let y0 = 2 + rndn(H() as usize - 3 - h as usize) as i32;
+                let mut ok = true;
+                for y in y0..y0 + h {
+                    for x in cxs..cxs + span {
+                        let t = unsafe { MAP[idx(x as usize, y as usize)] };
+                        if t != T_WATER && t != T_FLOOR { ok = false; }
+                        if room_of(x, y) >= 0 { ok = false; }
+                    }
+                }
+                if !ok { continue; }
+                // monte: cada linha sela o leito DELA (encontra a água que
+                // meandrou nessa linha) com franjas de largura à sorte
+                for k in 0..h {
+                    let y = y0 + k;
+                    let (mut a, mut b) = (i32::MAX, i32::MIN);
+                    for x in cxs..cxs + span {
+                        if unsafe { MAP[idx(x as usize, y as usize)] } == T_WATER {
+                            if x < a { a = x; }
+                            if x > b { b = x; }
+                        }
+                    }
+                    if a > b { continue; }
+                    let kL = 1 + rndn(3) as i32;
+                    let kR = 1 + rndn(3) as i32;
+                    for x in (a - kL)..=(b + kR) {
+                        if x <= 0 || x >= W() as i32 - 1 { continue; }
+                        unsafe { MAP[idx(x as usize, y as usize)] = T_WALL; }
+                    }
+                }
+                // cacos: o desabamento joga pedra além do monte
+                for _ in 0..(2 + rndn(4) as usize) {
+                    let x = cxs - 1 + rndn((span + 2) as usize) as i32;
+                    let y = y0 - 1 + rndn((h + 2) as usize) as i32;
+                    if x < 1 || y < 1 || x >= W() as i32 - 1 || y >= H() as i32 - 1 { continue; }
+                    let t = unsafe { MAP[idx(x as usize, y as usize)] };
+                    if t == T_WATER || t == T_FLOOR {
+                        unsafe { MAP[idx(x as usize, y as usize)] = T_RUBBLE; }
+                    }
+                }
+            }
+            // fundura: 1-2 trechos — a galeria INTEIRA afunda ('÷' na margem
+            // também: a seca não dá por cima)
+            let nd = 1 + rndn(2) as i32;
+            for _ in 0..nd {
+                let len = 2 + rndn(4) as i32; // 2-5 linhas fundas
+                let y0 = 2 + rndn(H() as usize - 4 - len as usize) as i32;
+                let mut ok = true;
+                for y in y0..y0 + len {
+                    for x in cxs..cxs + span {
+                        let t = unsafe { MAP[idx(x as usize, y as usize)] };
+                        if t != T_WATER && t != T_FLOOR { ok = false; }
+                        if room_of(x, y) >= 0 { ok = false; }
+                    }
+                }
+                if ok {
+                    for y in y0..y0 + len {
+                        for x in cxs..cxs + span {
+                            unsafe { MAP[idx(x as usize, y as usize)] = T_DEEP; }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- masmorra funda (andar 3): perto dos canais, POÇAS RASAS varrem o
+    // chão — o esgoto respira lá embaixo: encharcadas e frequentes, do
+    // corredor largo ao fundo das celas. Glifo igual ao da água imperial,
+    // mas rasa: maré nenhuma. Nascem em PISO, encharcam 3-8 tiles e acabam
+    // onde o chão acaba ----
+    if th == TH_DUNGEON && depth == 3 {
+        for _ in 0..34 {
+            let mut cx = (1 + rndn(W() - 2)) as i32;
+            let mut cy = (1 + rndn(H() - 2)) as i32;
+            let i0 = idx(cx as usize, cy as usize);
+            if unsafe { MAP[i0] != T_FLOOR } { continue; }
+            unsafe { MAP[i0] = T_SHALLOW; }
+            let mut len = 2 + rndn(6) as i32; // poça de 3-8 tiles: rasas, não rios
+            while len > 0 {
+                let ndx: i32 = match rndn(4) { 0 => 1, 1 => -1, _ => 0 };
+                let ndy = if ndx == 0 { if rndn(2) == 0 { 1 } else { -1 } } else { 0 };
+                cx += ndx;
+                cy += ndy;
+                if cx < 1 || cy < 1 || cx >= W() as i32 - 1 || cy >= H() as i32 - 1 { break; }
+                let i = idx(cx as usize, cy as usize);
+                if unsafe { MAP[i] == T_FLOOR } {
+                    unsafe { MAP[i] = T_SHALLOW; }
+                    len -= 1;
+                } else { break; } // a poça acaba onde o chão acaba
+            }
+        }
     }
 
     // ---- entrada '<' na sala 0 ----
@@ -777,8 +1167,15 @@ fn gen_once(depth: u8, seed: u32) {
 
     // ---- saída '>' (até o andar 4) ou coroa '§' com altar (andar 5: a Cloaca
     // Maxima profunda, onde o rei morto coroou-se a si mesmo) ----
-    let lr = rn - 1;
-    let (dx, dy) = rcenter(lr);
+    // ala de celas: a DESCIDA também é sorteada — galeria de 2º/3º andar à
+    // sorte, coluna aleatória do corredor dela: nunca na galeria do '<',
+    // nunca na mesma posição duas vezes
+    let (dx, dy) = if th == TH_DUNGEON {
+        let byl = 13 + (rndn(2) as i32) * 11; // galeria 2 (linhas 16-18) ou 3 (27-29)
+        (4 + rndn(W() - 9) as i32, byl + 4) // meio do corredor dela, x sorteado
+    } else {
+        rcenter(rn - 1)
+    };
     if depth < FLOORS as u8 {
         set_room_t(dx, dy, T_DOWN);
     } else {
@@ -798,36 +1195,6 @@ fn gen_once(depth: u8, seed: u32) {
     // ---- becos de escombro: esconderijos que ela não patrulha (por último:
     // escava só em parede, nunca conecta nem encolhe caminhos) ----
     dig_pockets(depth, rub_quota);
-}
-
-// ================= água (habitat do basilisco, só no esgoto) =================
-
-// córregos de '=' viajando pelos corredores: cume-de-onda com momentum.
-// Caminho-por-terra: só converte piso de CORREDOR (fora de sala), então rotas
-// de BFS/portais não mudam de grafo — é um jogo de chão, não de arquitetura.
-fn seed_water() {
-    unsafe {
-        for _ in 0..12 {
-            let mut cx = (1 + rndn(W() - 2)) as i32;
-            let mut cy = (1 + rndn(H() - 2)) as i32;
-            if room_of(cx, cy) >= 0 { continue; } // começa em CORREDOR
-            let mut len = 14 + rndn(40) as i32;
-            while len > 0 {
-                let i = idx(cx as usize, cy as usize);
-                let t = MAP[i];
-                if t == T_FLOOR || t == T_SHADOW {
-                    MAP[i] = T_WATER;
-                    len -= 1;
-                }
-                let dx: i32 = match rndn(4) { 0 => 1, 1 => -1, _ => 0 };
-                let dy: i32 = if dx == 0 { if rndn(2) == 0 { 1 } else { -1 } } else { 0 };
-                cx += dx;
-                cy += dy;
-                if cx < 1 || cy < 1 || cx >= W() as i32 - 1 || cy >= H() as i32 - 1 { break; }
-                if room_of(cx, cy) >= 0 && rndn(3) == 0 { break; } // entra pouco na bacia
-            }
-        }
-    }
 }
 
 fn set_room_t(x: i32, y: i32, t: u8) {
@@ -1794,7 +2161,7 @@ fn game_step(input: u32) {
                 let ny = ny as usize;
                 let ni = idx(nx, ny);
                 let t = MAP[ni];
-                if t == T_WALL || t == T_PILLAR { break; }
+                if t == T_WALL || t == T_PILLAR || t == T_BARS { break; }
                 if t == T_DOOR && !door_open(DEPTH as usize, ni) {
                     // a porta consome o passo — e o eco dela denuncia
                     set_door(DEPTH as usize, ni);
@@ -2035,7 +2402,9 @@ fn attr_of(t: u8) -> u8 {
         T_CROWN => A_CROWN,
         T_PILLAR => A_WALL,
         T_RUBBLE => A_RUBBLE,
-        T_WATER => A_WATER,
+        T_WATER | T_SHALLOW => A_WATER,
+        T_BARS => A_WALL,
+        T_SKULL => A_RUBBLE,
         _ => A_FLOOR,
     }
 }
@@ -2473,6 +2842,23 @@ pub extern "C" fn pfb_debug_place(px: u32, py: u32) {
             PY = py as usize;
             MOVED = false;
             compute_fov();
+            render();
+            sync_stats();
+        }
+    }
+}
+
+/// [DEBUG] reposiciona a besta: os cenários do smoke precisam ser donos da
+/// geometria (o palácio do térreo mudou o mapa da seed do gate e testes de
+/// IA/medo dependem de onde ELA está, não de onde o sorteio nasceu).
+#[no_mangle]
+pub extern "C" fn pfb_debug_bas_place(px: u32, py: u32) {
+    unsafe {
+        if (px as usize) < W() && (py as usize) < H() {
+            BX = px as usize;
+            BY = py as usize;
+            body_pass(); // rastro recomeça encostado na cabeça nova
+            compute_fov(); // a névoa que atualiza é a sua visão sobre ELA
             render();
             sync_stats();
         }

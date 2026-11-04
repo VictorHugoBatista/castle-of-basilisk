@@ -15,7 +15,7 @@ function ensureViews(d) {
 }
 ensureViews();
 
-const pass = (i) => [0x2E, 0x2C, 0x3E, 0x3C, 0x2B, 0xA7, 0x3D].includes(map[i]); // 0x3D = água '=' (esgoto)
+const pass = (i) => [0x2E, 0x2C, 0x3E, 0x3C, 0x2B, 0xA7, 0x3D, 0xA5].includes(map[i]); // 0x3D = água '=' · 0xA5 = caveira '¥' (masmorras)
 const findTile = (t) => { for (let i = 0; i < W * H; i++) if (map[i] === t) return i; return -1; };
 
 // zona de perigo: LOS da basilisco <= 9 OU distância <= 3 (junções cegas)
@@ -168,7 +168,8 @@ for (let attempts = 0; attempts < 40; attempts++) {
     let mvBit;
     if ((hunted && basDist <= 9) || stepDanger) {
       const dg = dodge();
-      mvBit = dg ? dirBit(dg) : dirTo(pos, nxt); // sem saída: segue plano
+      if (dg === null) continue; // sem saída: espera um tick — ela se move (celas são esconderijo legítimo)
+      mvBit = dirBit(dg);
     } else {
       mvBit = dirTo(pos, nxt);
     }
