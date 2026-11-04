@@ -8,8 +8,8 @@ ajuste nasce numa branch, passa pelo gate de testes e entra na `master` via PR.
 ## 1. o fluxo, sempre nessa ordem
 
 ```
-branch nova → ajuste → teste local → commit → review (automático +
-próprio) → push → PR → review do dono → merge
+branch nova → ajuste → teste local → commit → push → PR → review
+(automático + próprio) → correção volta no PR → review do dono → merge
 ```
 
 NENHUM ajuste direto na `master`. Sem exceções: nem fix miúdo, nem typo,
@@ -116,31 +116,37 @@ node scripts/smoke.mjs  # gate headless: mortes, IA, medo, coroa, bot BFS, fuzz
 - `./build.sh` também pode gerar mudança em `web/wasm/`: o `.wasm` atualizado
   entra NO MESMO commit que o `src/lib.rs` que o originou.
 
-## 6. push e PR
+## 6. push, PR e review
 
-**Nenhum PR nasce sem review automático do `/review`.** Antes de
-`git push -u origin`, com o diff da branch commitado:
+O `/review` roda SOBRE O PR — depois de o PR existir. Antes do push, só a
+leitura própria do diff:
 
 ```bash
-git diff master...HEAD        # conferir o que vai ser revisado
-/review                       # review automático do diff
+git diff master...HEAD        # conferir o que vai no PR
+git push -u origin <tipo>/<slug>
+gh pr create --base master --head <tipo>/<slug> [...]
+```
+
+PR criado (número N), rodar o review automático no diff DO PR:
+
+```bash
+/review N
 ```
 
 - **Passar tudo pelo `/review`** — é ele o primeiro par de olhos no diff,
   sempre, sem exceção ("só docs", "só uma linha" também passam).
 - Corrigir no MESMO commit (amend) TODO problema apontado — debug esquecido,
   comentário rascunho, mudança colateral que não pertence ao PR, docs/ABI
-  que ficaram pra trás do código (seção 3/5) — e rodar `/review` de novo
-  até não sobrar achado relevante.
+  que ficaram pra trás do código (seção 3/5) — e devolver com
+  `git push --force-with-lease` (o PR é atualizado na hora); rodar
+  `/review` de novo até não sobrar achado relevante.
+- Se o `/review` não estiver disponível no ambiente do agente, não é dispença
+  para pular: anotar no PR que ele ficou a dever, reler o diff manualmente
+  (finds de bug, colateral, docs/ABI) e deixar o `/review` para o dono.
 - O `/review` não substitui a leitura própria: reler o diff por cima
   procurando o que automação não pega (coerência com as seções 3 e 4,
   padrões respeitados, gate de testes rodado onde o commit descreve).
-- Só depois de `/review` limpo + diff relido: push e um PR que você
-  assinaria por baixo.
-
-```bash
-git push -u origin <tipo>/<slug>
-```
+- PR aberto precisa ser um PR que você assinaria por baixo.
 
 PR para `master` (`base: master ← compare: <tipo>/<slug>`):
 
