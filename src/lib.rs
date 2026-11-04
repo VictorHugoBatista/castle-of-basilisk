@@ -649,7 +649,7 @@ fn gen_once(depth: u8, seed: u32) {
 
     // esgoto: canais imperiais (1-2 rios verticais) — declarados aqui: o
     // desenho do leito (desabamentos/funduras) vem depois do cave de salas
-    let mut canals: [(i32, i32); 2] = [(0, 0), (0, 0)]; // (leito esquerdo, largura)
+    let mut canals: [(i32, i32, i32, i32); 2] = [(0, 0, 0, 0), (0, 0, 0, 0)]; // (leito esquerdo, água, margem esq., margem dir.)
     let mut nc = 0usize;
     // ---- salas: cada tema tem seu caráter ----
     // castle: salões amplos de palácio · dungeon: celas pequenas e endurecidas
@@ -843,30 +843,43 @@ fn gen_once(depth: u8, seed: u32) {
         }
     } else {
         // ---- CANAIS IMPERIAIS: 1-2 rios verticais de '=' correndo o andar de
-        // cima a baixo — posição e largura à sorte, sempre separados. As
-        // cavernas bizarras nascem dele mais adiante, CORTANDO o rio. ----
+        // cima a baixo — água de 1 (córrego fino) a 5 de largura, FLANQUEADA
+        // por margens secas de alvenaria (1-2 de cada lado), os lados do leito
+        // ondulando devagar (o rio não é régua). Posição à sorte, separados.
+        // desabamentos/funduras e as cavernas-bacia veem mais adiante. ----
         nc = 1 + rndn(2) as usize;
-        canals[0] = (6 + rndn(26) as i32, 2 + rndn(2) as i32); // faixa 6..31
-        if nc == 2 { canals[1] = (44 + rndn(26) as i32, 2 + rndn(2) as i32); } // faixa 44..69
+        canals[0] = (4 + rndn(26) as i32, 1 + rndn(5) as i32, 1 + rndn(2) as i32, 1 + rndn(2) as i32);
+        if nc == 2 { canals[1] = (44 + rndn(24) as i32, 1 + rndn(5) as i32, 1 + rndn(2) as i32, 1 + rndn(2) as i32); }
         for ci in 0..nc {
-            let (cxs, cw) = canals[ci];
+            let (sx, cw, bl, br) = canals[ci];
+            let span = bl + cw + br;
+            let mut d = 0i32; // a maré balança: margem de um lado engorda quando a do outro emagrece
             for y in 1..H() as i32 - 1 {
-                for x in cxs..cxs + cw {
-                    unsafe { MAP[idx(x as usize, y as usize)] = T_WATER; }
+                if rndn(3) == 0 { d += if rndn(2) == 0 { 1 } else { -1 }; }
+                if d < 1 - bl { d = 1 - bl; }
+                if d > br - 1 { d = br - 1; }
+                let wx = sx + bl + d; // água da linha: começa aqui
+                for x in sx..sx + span {
+                    unsafe {
+                        MAP[idx(x as usize, y as usize)] =
+                            if x >= wx && x < wx + cw { T_WATER } else { T_FLOOR };
+                    }
                 }
             }
         }
         // cavernas bizarras CORTANDO os canais: uma garantida por canal,
-        // escavada seca sobre a água — o vão da caverna é a ponte de pedra
+        // escavada seca sobre a água E as margens — o vão é a ponte de pedra
         for ci in 0..nc {
-            let (cxs, cw) = canals[ci];
+            let (sx, cw, bl, br) = canals[ci];
+            if sx == 0 { continue; }
+            let span = bl + cw + br;
             for _ in 0..8 {
-                let w = (6 + rndn(5)) as i32;
                 let h = (4 + rndn(3)) as i32;
-                let mut x0 = cxs - (1 + rndn((w - cw - 1) as usize) as i32);
+                let mut x0 = sx - (1 + rndn(3) as i32);
                 if x0 < 1 { x0 = 1; }
+                let w = (sx + span - x0) + (2 + rndn(4) as i32); // cobre a galeria inteira + folga
                 if x0 + w - 1 > W() as i32 - 2 { continue; }
-                let y0 = 1 + rndn((H() as usize - 2 - h as usize)) as i32;
+                let y0 = 1 + rndn(H() as usize - 2 - h as usize) as i32;
                 let mut ok = true;
                 let n = unsafe { RN };
                 for r in 0..n {
@@ -885,7 +898,7 @@ fn gen_once(depth: u8, seed: u32) {
             }
         }
         // as bacias/cisternas bizarras de sempre preenchem o resto do andar —
-        // mas FORA dos leitos: os canais são dos rios (e dos cortadores)
+        // mas FORA das galerias (margens incluídas): o rio não é cava de graça
         for _ in 0..attempt_n {
             if unsafe { RN } >= max_rooms { break; }
             let w = (rndn(w_span) + w_base) as i32;
@@ -894,12 +907,12 @@ fn gen_once(depth: u8, seed: u32) {
             let y0 = (rndn(H() - h as usize - 2) + 1) as i32;
             let x1 = x0 + w - 1;
             let y1 = y0 + h - 1;
-            // sobrepõe algum canal? a caverna não cava dentro do rio de graça
+            // sobrepõe alguma galeria? a caverna não cava dentro do rio de graça
             let mut in_canal = false;
             for ci in 0..nc {
-                let (cxs, cw) = canals[ci];
+                let (cxs, cw, bl, br) = canals[ci];
                 if cxs == 0 { continue; }
-                if x0 <= cxs + cw - 1 + room_gap && x1 + room_gap >= cxs { in_canal = true; break; }
+                if x0 <= cxs + cw + bl + br - 1 + room_gap && x1 + room_gap >= cxs { in_canal = true; break; }
             }
             if in_canal { continue; }
             let mut ok = true;
@@ -1040,49 +1053,53 @@ fn gen_once(depth: u8, seed: u32) {
         }
     }
 
-    // ---- esgoto: DESABAMENTOS E FUNDURAS nos canais imperiais — o leito
-    // parte-se em pedaços (pedra fechando a água) e uns vãos são profundos
-    // demais ('÷'): não se passa. Só na água FORA de sala, para não
-    // ajuizar cavernas ----
+    // ---- esgoto: DESABAMENTOS E FUNDURAS nos canais imperiais — pedra
+    // derrubada fecha MARGEM E LEITO juntos (a galeria parte-se em pedaços,
+    // religados pelas cavernas) e uns vãos afundam todos ('÷'): não se
+    // passa. Só na galeria FORA de sala, para não comer cavernas ----
     if th == TH_SEWER && nc > 0 {
         for ci in 0..nc {
-            let (cxs, cw) = canals[ci];
+            let (cxs, cw, bl, br) = canals[ci];
             if cxs == 0 { continue; }
-            // desabamento: 0-2 por canal — a rocha caiu no leito e fechou
+            let span = cw + bl + br;
+            // desabamento: 0-2 por canal — a rocha caiu e fechou a galeria
             let npl = rndn(3) as i32;
             for _ in 0..npl {
                 let len = 2 + rndn(3) as i32; // 2-4 linhas de rocha
-                let y0 = 2 + rndn((H() as usize - 4 - len as usize)) as i32;
+                let y0 = 2 + rndn(H() as usize - 4 - len as usize) as i32;
                 let mut ok = true;
                 for y in y0..y0 + len {
-                    for x in cxs..cxs + cw {
-                        if unsafe { MAP[idx(x as usize, y as usize)] } != T_WATER { ok = false; }
+                    for x in cxs..cxs + span {
+                        let t = unsafe { MAP[idx(x as usize, y as usize)] };
+                        if t != T_WATER && t != T_FLOOR { ok = false; }
                         if room_of(x, y) >= 0 { ok = false; }
                     }
                 }
                 if ok {
                     for y in y0..y0 + len {
-                        for x in cxs..cxs + cw {
+                        for x in cxs..cxs + span {
                             unsafe { MAP[idx(x as usize, y as usize)] = T_WALL; }
                         }
                     }
                 }
             }
-            // fundura: 1-2 trechos de água demais — '÷' sem leito
+            // fundura: 1-2 trechos — a galeria INTEIRA afunda ('÷' na margem
+            // também: a seca não dá por cima)
             let nd = 1 + rndn(2) as i32;
             for _ in 0..nd {
                 let len = 2 + rndn(4) as i32; // 2-5 linhas fundas
-                let y0 = 2 + rndn((H() as usize - 4 - len as usize)) as i32;
+                let y0 = 2 + rndn(H() as usize - 4 - len as usize) as i32;
                 let mut ok = true;
                 for y in y0..y0 + len {
-                    for x in cxs..cxs + cw {
-                        if unsafe { MAP[idx(x as usize, y as usize)] } != T_WATER { ok = false; }
+                    for x in cxs..cxs + span {
+                        let t = unsafe { MAP[idx(x as usize, y as usize)] };
+                        if t != T_WATER && t != T_FLOOR { ok = false; }
                         if room_of(x, y) >= 0 { ok = false; }
                     }
                 }
                 if ok {
                     for y in y0..y0 + len {
-                        for x in cxs..cxs + cw {
+                        for x in cxs..cxs + span {
                             unsafe { MAP[idx(x as usize, y as usize)] = T_DEEP; }
                         }
                     }

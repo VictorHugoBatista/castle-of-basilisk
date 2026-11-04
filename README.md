@@ -60,11 +60,14 @@ ESC volta ao menu.
   Anda na sombra? 4 tiles. No claro? Ele te vê a 8.
 - **`=` = água do esgoto** (só andares 4-5). Caminhável por você — mas é o meio
   nativo dela: **na água ela apressa o passo**. Sob os pés, o passo respinga.
-  Os **canais imperiais** correm de cima a baixo (1-2, largura e posição à
-  sorte), muitas vezes interrompidos: **desabamentos** fecham o leito de pedra e
-  cavernas secas cortam o rio (o vão da cisterna é a ponte).
-- **`÷` = fundura**: água demais nos canais — não se passa, nem para ela.
-  Águas abertas: vê-se através, afogamento não. Contorna ou usa a caverna.
+  Os **canais imperiais** correm de cima a baixo (1–2, leito de 1 córrego fino
+  a 5 de largura, flanqueado por **margens secas de alvenaria** — dá para
+  andar na beira sem molhar o pé — e os lados ondulam), muitas vezes
+  interrompidos: **desabamentos** fecham margem e leito de pedra de uma vez,
+  e cavernas secas cortam o rio (o vão da cisterna é a ponte).
+- **`÷` = fundura**: a galeira inteira afunda nesse trecho (margem e leito) —
+  água demais: não se passa, nem para ela. Vê-se através. Contorna pelo alto,
+  pelo fundo ou pela caverna-ponte.
 - **`|` = grade de cela** (masmorras): bloqueia passagem, MAS a luz passa —
   de através dela você vê o que vem (e ela vê você; o olhar segue valendo).
   Nas masmorras, portas de cela viram grade: "celas trancadas" para sempre.
