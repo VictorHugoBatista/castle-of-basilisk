@@ -490,6 +490,61 @@ const renderDiff = scenario('diff de render: bitmap nasce no RT, zera no ack', (
   return any && cleared && camOk;
 });
 
+// ---------- 2l. contrato do diff: bitmap == byte-a-byte real ----------
+// A PINTURA em canvas vive no navegador (não há teste headless dela), mas o
+// CONTRATO do glue sim: emulação do "prevGrid" que morreu — a máscara do
+// Rust tem que ser EXATAMENTE as células de TELA cujo [ch,attr] mudou desde
+// o último consumo, e bit0 tem que significar janela/andar/tela mudou.
+// 120 passos por tentativa (movimento, porta, rastro dela, escada);
+// teleporte nenhum aqui — o teste come HONESTO o passeio natural.
+const diffContract = scenario('contrato do diff: bitmap == byte-a-byte real (120 passos)', () => {
+  const VWX = 56, VHX = 32;
+  for (let attempt = 1; attempt <= 8; attempt++) {
+    w.pfb_new_game(987654 + attempt * 7919);
+    ensureViews();
+    w.pfb_diff_ack(); // baseline limpo: acompanha só o que vier a partir daqui
+    const dp = new Uint8Array(w.memory.buffer, w.pfb_diff_ptr(), 227);
+    // snapshot inicial: o viewport JÁ composição pelo new_game (o diff dele
+    // tinha que caber no ack acima)
+    let snap = null;
+    snap = { camX: dp[1], camY: dp[2], w: Wd, h: Hd, depth: stats[2], b: new Uint8Array(VWX * VHX * 2) };
+    const read = (sx, x, y, b) => { // copia células [ch,attr] do viewport para o snapshot
+      const wi = (b.camY + ((sx / VWX) | 0)) * b.w + b.camX + (sx % VWX);
+      b.b[sx * 2] = grid[wi * 2]; b.b[sx * 2 + 1] = grid[wi * 2 + 1];
+    };
+    for (let sx = 0; sx < VWX * VHX; sx++) read(sx, 0, 0, snap);
+    let steps = 0, bad = 0, bits = 0;
+    for (let k = 0; k < 120; k++) {
+      w.pfb_step([0, 16, 1, 2, 4, 8][k % 6]); pump();
+      if (stats[0] !== 1) break;
+      ensureViews();
+      steps++;
+      const full = (dp[0] & 1) !== 0;
+      const changedWin = snap.camX !== dp[1] || snap.camY !== dp[2]
+        || snap.w !== Wd || snap.h !== Hd || snap.depth !== stats[2];
+      // bit0 <=> janela/andar mudou (a telha de estado acompanha DEPTH aqui:
+      // STATE sai do jogo = break acima)
+      if (full !== changedWin) bad++;
+      if (!full) {
+        for (let si = 0; si < VWX * VHX; si++) {
+          const wi = (dp[2] + ((si / VWX) | 0)) * Wd + dp[1] + (si % VWX);
+          const same = grid[wi * 2] === snap.b[si * 2] && grid[wi * 2 + 1] === snap.b[si * 2 + 1];
+          const bit = (dp[3 + (si >> 3)] & (1 << (si & 7))) !== 0;
+          if (bit) bits++;
+          if (bit === same) { bad++; break; }
+        }
+      }
+      // confirma o consumo EXATAMENTE como o glue pintaria: snapshot do frame
+      const fresh = { camX: dp[1], camY: dp[2], w: Wd, h: Hd, depth: stats[2], b: new Uint8Array(VWX * VHX * 2) };
+      for (let sx = 0; sx < VWX * VHX; sx++) read(sx, 0, 0, fresh);
+      snap = fresh;
+      w.pfb_diff_ack();
+    }
+    if (steps >= 60 && bad === 0 && bits > 0) return true;
+  }
+  return false;
+});
+
 // ---------- 3. playthrough com bot v2 ----------
 // Bot "surdo" (pior caso: humano tem o coração/áudio como aviso prévio).
 // Estratégia: rota BFS que evita a zona de perigo (LOS ≤9 ou dist ≤3),
@@ -814,6 +869,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);
