@@ -15,7 +15,7 @@
 | **Qual o ano atual?** | **Ano 100 da Regência** — a única contagem que ainda existe | Dentro dos muros é sempre Ano 100: não sobrou ninguém para virar o número. Fora deles, ninguém usa essa régua desde o massacre |
 | **Há quanto tempo é ruína?** | ~100 anos — mas "ruína" é a palavra errada | O castelo não desabou: foi **abandonado de uma vez e nunca mais tocado**. Há salões onde a pedra está inexplicavelmente limpa (por onde ela passa) e onde os objetos da fuga continuam no chão do primeiro dia. E a periferia do entorno **nunca desocupou** — só se muda quando a maré dela manda |
 | **O que aconteceu?** | O **Massacre Silencioso** | Não houve grito, fogo ou exército: morreram parados os que viram o olhar, e o resto saiu antes do amanhecer, sem encostar mais. E o pior: **a tragédia veio anunciada** — em pesadelos — e os grandes ignoraram placidamente. Da coroa: dizem que desceu ao fundo junto do rei morto e de todos à volta — todos contam, nenhum provou |
-| **O que é o basilisco?** | **O Guardião** — o terceiro signatário do Contrato Úmido | "Basilisco" é palavra emprestada dos livros de fora; o nome verdadeiro, ninguém tem. Os esgotos do castelo são o lar dela; as pálpebras jamais abriram; e ela não sabe que guarda um morto. O "olhar" que mata não sai dos olhos dela — sai do SEU. De onde veio: lacuna 13 |
+| **O que é o basilisco?** | A coisa da bacia — sem nome verdadeiro, sem acordo com ninguém | "Basilisco" é palavra emprestada dos livros de fora; o nome verdadeiro, ninguém tem. Ninguém a firmou, a convidou nem a temeu a tempo: quando ela subiu, não havia regimento nenhum a atender. Os esgotos do castelo são o lar dela; as pálpebras jamais abriram; o "olhar" que mata não sai dos olhos dela — sai do SEU. De onde veio e por que caça o Ferro: lacunas 13 e 15 |
 | **Quem é o player?** | Um ladrão pago adiantado pela **Liga das Beiras**; sem nome no canon | Não é a primeira vez dele ali — a cicatriz do medo (o terço do pico que nunca decai) é a prova, e ele não se lembra da primeira visita. E nem ele nem a Liga sabem o que a coroa DE FATO faz |
 
 ---
@@ -26,13 +26,13 @@
 |---|---|---|
 | antes do ano 0 | A bacia já tem gente de beira — e a coisa do leito já tem maré: povos de palafita convivem com ela por protocolo sem nome (a água para de pingar, o peixe muda de toca, a mochila levanta). Não há registro: é hábito de corpo | não |
 | ano 0 do Império | A capital é fundada **em cima da água doce** sobre uma coisa que dorme no leito. Os engenheiros acreditam ter fundado uma cidade; fundaram uma **tampa** | nunca — só como tagarelice de pescadores fora dos muros |
-| ~ano 280 | O edital de pedra: **"NÃO OLHE A ÁGUA."** Sem explicação, sem assinatura. Gente morre "de olhar" nos canais e a corte resolve dar nome à coisa — **Guardião** — e assinar com ela. Na beira, ninguém precisa de edital: já existe a régua da maré | nunca (a placa é pílula candidata, §7) |
+| ~ano 280 | A placa de pedra: **"NÃO OLHE A ÁGUA."** Sem explicação, sem assinatura — a única concessão da corte: gente morria "de olhar" nos canais, e a corte NÃO nomeia a coisa (nomear é confirmar); manda não olhar e volta para a guerra. Na beira, ninguém precisa de placa: já existe a régua da maré | nunca (a placa é pílula candidata, §7) |
 | anos ~200–311 | **A Guerra por Pouco**: o Império e o reino vizinho sangram décadas por três ilhotas de sal e uma divisa que nenhum mapa respeita. Leva, imposto de guerra e canal alargado a bico de pá — a logística naval atravessa o berço dela: **a guerra alarga a porta do lar dela** | não |
 | anos ~230–311 | **A Guerra dos Tronos** (interna): os ramos da casa real se acossam — noivado como tratado, veneno como governo. Cada herdeiro da casa é aposta e, depois, alvo; é dela que o ano 311 herda um trono sem vivos à mesa | não |
 | anos 300–312 | **Os Pesadelos**: um sonho único, grande demais para cabeça alguma, repartido em fatias por quem dorme NA água — palafitas e beiras de rio se arrumam desde criança; o tribunal manda prender por "semear o medo" quem aponta; os grandes ignoram placidamente. A beira, que já sabia SAIR, aprende a saber QUANDO sair | não (uma pílula na §7 alude) |
-| ano 311 | O rei **Ansel III** morre sem herdeiro vivo. A corte esconde o corpo: a coroa da vitrine era ouro de festa; a coroa que o Guardião conhece é **a coroa pequena, de ferro velo** — a do juramento original de cada rei | nunca |
+| ano 311 | O rei **Ansel III** morre sem herdeiro vivo. A corte esconde o corpo: a coroa da vitrine era ouro de festa; a que desceu é **a coroa pequena, de ferro velo** — a do juramento original de cada rei | nunca |
 | ano 312 | **A Descida** — a conta de toda boca: a coroa de ferro foi para o fundo **junto do cadáver de Ansel e de todos à volta**. Sem testemunha, sem registro, sem hora própria. Quem desceu não voltou para confirmar nem corrigir; quem ficou em cima conta pelo acordo de todos. É conhecimento compartilhado quase superstição — o mais perto que uma verdade chega de se tornar lenda | a coroa em tela é a única meia-prova em cem anos |
-| ano 312, à noite | **O Massacre Silencioso.** O endereço novo da coroa puxou o Guardião: pela primeira vez em séculos ela atravessa o palácio — inteira, de cima a baixo — e a rota dela é, quase linha a linha, a planta da riqueza: termas, cisternas, salões. Na mesma noite, os três ramos da casa assinavam a **Partilha** — o tratado que acabaria com a guerra dos tronos — e morreram entre uma assinatura e a seguinte. Quem cruzou o caminho dela morreu parado; quem dormia em madeira já estava na estrada há anos. "O olhar que comeu uma era" é frisa jogada: a era não foi comida por fora | não |
+| ano 312, à noite | **O Massacre Silencioso.** Ela subiu de vez — sem aviso dado, sem ninguém vivo preocupado com ela — e atravessou o palácio, inteira: a rota, quase linha a linha, é a planta da riqueza (termas, cisternas, salões), e **esvaziou tudo entre as muralhas internas**. Morreram parados os que viram o olhar; os que restaram saltaram para fora antes do amanhecer. Na mesma noite, os três ramos da casa assinavam a **Partilha** — o tratado que acabaria com a guerra dos tronos — e morreram entre uma assinatura e a seguinte. "O olhar que comeu uma era" é frisa jogada: a era não foi comida por fora | não |
 | ano 1 da Regência | A última lei da última corte: a coroa regente — **o morto rege a si mesmo, a besta executa**. Não sobrou escrivão para escrever o ano 2. O calendário de dentro congela em **Ano 100** e ali fica. Fora da pedra, outro calendário corre: de agora em diante, maré é tabela — saída e volta datadas, de geração em geração | não |
 | anos 1–10 da Regência | A pedra fica vazia e tabu — e o nome da cidade se apaga da pedra do portão. Fora, o anel de beira fecha e não se abre: sair da rota nunca é sair da terra | não |
 | anos 1–100 da Regência | **A periferia nunca desocupou**: mora no mesmo anel, muda-se de vale quando a maré manda — e os caminhos de mudança (vales de espera, poços, abrigos) tornam-se DIREITO, de tanto se repetirem. Forasteiro constrói longe e lê a região como perdida. Ninguém entra na pedra. **Quase ninguém** | a lenda do ladrão, sim |
@@ -47,7 +47,7 @@
 
 ---
 
-## 3. o basilisco (O Guardião)
+## 3. a coisa da bacia (o "basilisco")
 
 **O que ela é.** A coisa da bacia. O canon NÃO fecha a origem: a pergunta
 tem o tamanho da origem da própria humanidade, e as versões vivem na
@@ -55,19 +55,24 @@ lacuna 13 — sempre esteve lá esperando; foi ovo e chocou no leito;
 cresceu dos efluentes de um império; acordou com o trânsito de guerra;
 desceu o rio; veio de fenda do inferno; caiu das estrelas. Em todas,
 pálpebras **nunca abriram**. Em todas, o império acreditou fundar sobre
-ela uma cidade; na prática, fundou um contrato: **o Contrato Úmido**.
+ela uma cidade — e a cidade levantou-se **sem saber**: não houve acordo,
+nome verdadeiro, nem preocupação com a coisa até a noite em que ela veio
+pedir contas.
 
 **O nome emprestado.** "Basilisco" não é o nome dela: é a palavra de fora,
 tirada da mitologia de livro — o "reizinho" das serpentes dos bestiários —
-por quem precisava escrever alguma coisa no lugar do vazio. O edital a
-chama de Guardião; a beira a chama de maré; a tela a chama de `B`. Todas
+por quem precisava escrever alguma coisa no lugar do vazio. Ninguém a
+nomeia de verdade: a beira a chama de maré; a tela a chama de `B`; o resto
+é palavra de livro. Todas
 são aproximações. A coisa viva embaixo é completamente real — e não pode
 ser completamente compreendida. (Ninguém notou a piada do nome: o único
 rei que aquelas terras ainda têm nunca pôs coroa na cabeça.)
 
-**O Contrato Úmido.** Três signatários: a dinastia, a coroa de ferro, ela.
-Das cláusulas, nenhum escrivão viveu para ler inteiras — mas duas sobrevivem
-em ditado: *a coroa fica dentro do alcance; quem tira, traz — ou é trazido.*
+**Sem acordo.** Não houve pacto: ninguém a convidou, nada lhe foi firmado,
+e a corte das duas guerras nem a tinha na agenda. As frases que sobrevivem
+(*a coroa fica no alcance dela; quem tira, traz — ou é trazido*) não são
+cláusula: são a leitura que a beira fez do comportamento dela — dita até
+virar régua, provada jamais.
 
 **Como mata sem olhos.** Ela não vê. O "olhar" é o SEU olhar, devolvido:
 cruzar a atenção dela é **ver o próprio rosto no escuro** — e perguntar por
@@ -89,8 +94,9 @@ muda de toca, e o levantamento da mochila é decreto. A beira muda de vale,
 deixa o rio respirar — e volta, ou manda os filhos voltarem, quando a maré
 baixa. Não é fuga: é calendário.
 
-**O silêncio.** O sibilo dela é a voz do dever; calar 1 em 3 é o Contrato
-falando: *o Guardião não conversa com quem não paga.* Leituras alternativas
+**O silêncio.** O sibilo é o único som dela; calar 1 sopro em 3 não
+combina com nada — não existe contrato que instrua, e o silêncio dela
+obedece régua nenhuma conhecida. Leituras alternativas
 vivem na §8, de propósito.
 
 **O que ela come.** Nada que se possa provar. A hipótese maldita: o medo que
@@ -98,9 +104,11 @@ ela causa é o sustento — e o castelo é armadilha e pastagem ao mesmo tempo.
 Ninguém confirmou; ninguém que pudesse confirmar voltou.
 
 **Por que patrulha um palácio morto.** Ela não sabe que o rei morreu; não
-sabe que o rei alguma vez viveu. Sabe que a coroa está no fundo e que ALGO
-anda por cima dela. Há cem anos, de dia e de noite. **Paciente é o ofício
-dela — não é escolha.**
+sabe que o rei alguma vez viveu; não sabe o que é coroa. E, ainda assim,
+cerca a coroa como quem guarda — sem acordo nenhum que explique (não
+existe Contrato: é a lacuna 15). Há cem anos, de dia e de noite.
+**Paciente é o ofício dela — ou a natureza dela? Ninguém combinou nada,
+então ninguém distingue.**
 
 ---
 
@@ -136,9 +144,11 @@ que o aviso deixou de precisar de intérprete.
 ### a noite
 
 A coroa, dizem, desceu junto do cadáver e da casa de perto dele — nem hora,
-nem testemunha: a conta é a mesma em toda boca. À noite, o Guardião seguiu
-o endereço novo: pela primeira vez em séculos ela atravessa o palácio,
-inteira, de cima a baixo. A rota atravessou salões, celas, canais.
+nem testemunha: a conta é a mesma em toda boca. À noite, a coisa subiu de
+vez — sem aviso dado, sem ninguém vivo preocupado com ela: atravessou o
+palácio, inteira, de cima a baixo, e **esvaziou tudo entre as muralhas
+internas**. Entre os muros de pedra ninguém carregava régua; a beira de
+fora tinha a régua da maré — e por isso a beira nunca esteve dentro.
 
 O que morreu naquela noite **morreu parado**. Alguns no meio de um passo; um
 na beira de um sorriso — todos com a mesma pergunta no rosto: *fui eu?*
@@ -207,15 +217,16 @@ Acabou de vergonha. E vergonha é muda.
 
 ## 5. a coroa (o `§`, o altar, a caçada eterna)
 
-- O ouro do tesouro foi saqueado nos primeiros dias. A coroa que resta é a
-  **coroa pequena de ferro velo** — o objeto com que cada rei jurou. É o
-  Contrato em forma de objeto.
+- O ouro do tesouro foi saqueado nos primeiros dias. A coroa que reste é a
+  **coroa pequena de ferro velo** — o objeto com que cada rei jurou. É
+  isso e nada mais: a coisa não firmou nada; o que ela quer com o Ferro é
+  mistério (lacuna 15).
 - Como a coroa chegou lá: **ninguém provou**. A conta de toda boca é a
   mesma: a coroa de ferro desceu **junto do cadáver de Ansel e de todos à
   volta** — e quem desceu não voltou para conferir. Sem testemunha, sem
   registro, sem corpo à vista: conhecimento compartilhado do jeito que
-  superstição compartilha. A aritmética da beira explica o endereço: o
-  Guardião não sobe — a coroa tem de ficar no alcance dela. A frase do
+  superstição compartilha. A aritmética da beira explica o endereço: a
+  coisa não sobe — a coroa tem de ficar no alcance dela. A frase do
   altar ("onde o rei morto coroou-se a si mesmo", no código de geração) é
   a única marca em tela — e até ela é conta, nunca leitura: ninguém pôs
   olho lá com vida para vir contar.
@@ -226,11 +237,11 @@ Acabou de vergonha. E vergonha é muda.
   fundo nele são desenho de eco, não de olho. O jogo desce o jogador
   exatamente onde ninguém jamais confirmou: o andar 5 é a primeira
   meia-prova em cem anos de que a conta de toda boca era boa.
-- Quando o ladrão a tira, o **grito do Guardião** (os 15 ticks de
+- Quando o ladrão a tira, o **grito** (os 15 ticks de
   atordoamento) é a única vez em um século em que ela faz som de fera: o
-  contrato ROMPEU e o corpo dela não sabe o que fazer sem o mando.
-- Depois disso, caça eterna pelo cheiro. Ela não protege o ouro: protege
-  **a ordem** — e a ordem acabou pendurada na mão de um ladrão. A tela
+  Ferro sai da água e o corpo dela não responde a régua conhecida.
+- Depois disso, caça eterna pelo cheiro — sem que o canon saiba dizer
+  por quê (lacuna 15). A tela
   final (*"a besta continua, paciente, no escuro"*) é sobre isso: o destino
   dela não mudou. O do castelo, sim — ficou **órfão de reis**.
 - Quem ganha com a coroa fora dos muros: no papel, **a Liga das Beiras** —
@@ -352,20 +363,21 @@ o que é mecânica e o que é narrativa.
 
 | # | lacuna | o que o jogo mostra | leituras possíveis (todas de pé) |
 |---|---|---|---|
-| 1 | Como uma criatura **cega** mata "de olhar"? | Só o título abre a contradição; nada resolve | (a) maldição do Contrato, devolvida pelo olho da vítima; (b) ela não é cega — a cegueira é o mito que os editais inventaram; (c) os "olhos" que contam são os de quem entra |
+| 1 | Como uma criatura **cega** mata "de olhar"? | Só o título abre a contradição; nada resolve | (a) maldição sem autor: ser visto por ela liga o seu próprio olho contra você; (b) ela não é cega — a cegueira é a lenda que a pedra inventou para não nomear; (c) os "olhos" que contam são os de quem entra |
 | 2 | Quem **coroou o rei morto**? | Só a frase do altar | a besta ergueu a coroa com os anéis; o corpo ficou em pé sozinho na água; a ladrã cega desceu uma vez e o fez — e voltou cega do que viu |
 | 3 | De onde vêm os **sussurros** ("fui eu?") | Mecânica de medo, nível 0+ | (a) as últimas palavras recicladas dos mortos do massacre; (b) a mente do ladrão; (c) a voz do rei cadáver, que regenta a si mesmo; (d) o eco do sonho que anunciou tudo — a memória da água, repetindo o aviso que já não serve |
 | 4 | Por que ela **cala 1 sopro em 3**? | Mecânica do sibilo | (a) sopro que decide calar; (b) ela respira como a água, não como fera; (c) existe ALGUMA coisa dentro dela que decide |
 | 5 | A **água canta** (`=`) e **para** de pingar quando ela caça | Mecânica de áudio | (a) o canal é o corpo dela prolongado; (b) ela bebe os sons do caminho; (c) a água também tem medo dela |
 | 6 | As **alucinações** existem no render e nunca na lógica | Nota mecânica do README | (a) o castelo é narrador não confiável; (b) o medo do ladrão é o narrador; (c) a besta aprendeu a imitar o que o ladrão quer ouvir |
-| 7 | A **coroa-fantasma** que chama de longe | Mecânica de medo (nv 2+) | (a) ilusão do pânico; (b) o Contrato rompido começa a mandar iscas; (c) a coroa verdadeira já foi trocada uma vez e ninguém notou |
-| 8 | **Por que a besta nunca come?** | O toque mata, sempre; mas ela "abre" menos de vez | (a) os mortos viram outra coisa que não comida; (b) ela come o medo — o toque é só a colher; (c) o Contrato proíbe: guardar não é comer |
-| 9 | O que a **Liga das Beiras** quer de fato com o Ferro | A moeda velha e o talho no portão (`L.B.`) — de resto, nada | (a) símbolo: plantar a coroa velha no centro novo e matar a Regência por fora; (b) isca: sabem que *quem tira, é trazido* — e querem arrastar o Guardião para longe dos muros... ou para cima de alguém; (c) nome: o Ferro vale direito sobre o nome apagado da cidade — e a Liga quer o nome |
+| 7 | A **coroa-fantasma** que chama de longe | Mecânica de medo (nv 2+) | (a) ilusão do pânico; (b) a coroa embaixo chama de volta pelos modos do medo — e o medo traduz; (c) a coroa verdadeira já foi trocada uma vez e ninguém notou |
+| 8 | **Por que a besta nunca come?** | O toque mata, sempre; mas ela "abre" menos de vez | (a) os mortos viram outra coisa que não comida; (b) ela come o medo — o toque é só a colher; (c) ninguém viu ela mastigar: o toque mata mais rápido que a fome explica |
+| 9 | O que a **Liga das Beiras** quer de fato com o Ferro | A moeda velha e o talho no portão (`L.B.`) — de resto, nada | (a) símbolo: plantar a coroa velha no centro novo e matar a Regência por fora; (b) isca: aposta na leitura da beira (*quem tira, traz — ou é trazido*) — e querem arrastar a coisa para longe dos muros... ou para cima de alguém; (c) nome: o Ferro vale direito sobre o nome apagado da cidade — e a Liga quer o nome |
 | 10 | **Quem entrou antes dele?** | A cicatriz de medo; o caderno da ladrã; ossadas `¥` | toda ossada do castelo tem chance na teoria de fã de ter sido um ladrão |
-| 11 | O que acontece ao **mundo** quando a coroa sai da Cloaca? | *"...a besta continua, paciente, no escuro"* | o Contrato sem endereço; a coroa chamando por cima da terra; a Regência enfim rompida — e o jogo NUNCA mostra o dia seguinte. Era para ninguém ver |
-| 12 | **Para onde vai a maré dela?** | Só o sinal: a água para de pingar | (a) o Contrato cobre a bacia, não o castelo: ela patrulha o domínio inteiro; (b) ela caça onde o medo acaba — e a beira a alimenta de longe sem saber; (c) há um leito mais fundo, rio abaixo, e o castelo é só a sala da frente |
-| 13 | **De onde veio — e o que é de fato?** | Só nomes emprestados: "Guardião" no edital, "basilisco" nos livros de fora, `B` na tela | versões que toda boca reparte, e nenhuma tem prova: sempre esteve lá esperando; foi ovo e chocou no leito; cresceu dos efluentes de um império inteiro; acordou com o trânsito de guerra; desceu o rio; saiu de fenda do inferno; caiu das estrelas; ou ainda está se transformando — e TODAS podem ser a mesma história. Mistério do calibre da origem da própria humanidade: o edital existe porque a versão não se pôde escrever |
+| 11 | O que acontece ao **mundo** quando a coroa sai da Cloaca? | *"...a besta continua, paciente, no escuro"* | a besta sem função provada nenhuma; a coroa chamando por cima da terra; a Regência enfim rompida — e o jogo NUNCA mostra o dia seguinte. Era para ninguém ver |
+| 12 | **Para onde vai a maré dela?** | Só o sinal: a água para de pingar | (a) o alcance dela cobre a bacia, não o castelo: ela patrulha região inteira; (b) ela caça onde o medo acaba — e a beira a alimenta de longe sem saber; (c) há um leito mais fundo, rio abaixo, e o castelo é só a sala da frente |
+| 13 | **De onde veio — e o que é de fato?** | Só nomes emprestados: "basilisco" nos livros, "maré" na beira, `B` na tela — e nenhum é dela | versões que toda boca reparte, e nenhuma tem prova: sempre esteve lá esperando; foi ovo e chocou no leito; cresceu dos efluentes de um império inteiro; acordou com o trânsito de guerra; desceu o rio; saiu de fenda do inferno; caiu das estrelas; ou ainda está se transformando — e TODAS podem ser a mesma história. Mistério do calibre da origem da própria humanidade: o edital existe porque a versão não se pôde escrever |
 | 14 | O que aconteceu com a **casa que desceu com o rei**? | Só a conta: "desceu junto, todos à volta" — sem prova | (a) morreram todos no fundo, em pé ao lado do cadáver — ossada é promessa; (b) os que sobraram saíram pela beira na mesma noite e sumiram no anel da periferia de vez; (c) ninguém desceu jamais: a coroa sempre esteve no fundo, e a Descida é a história que se conta para explicá-la |
+| 15 | Por que ela **subiu naquela noite** — e por que **caça o Ferro** até hoje? | Só o fato: subiu de vez, e a caça dura desde o Ferro sair da água | (a) a Descida a chamou — endereço, cheiro: a conta da beira empurra as duas ocorrências para uma mesma história; (b) o século de guerra e trânsito a despertou de vez; (c) motivo nenhum humano — ela decidiu; e é a posse inédita do Ferro (primeira vez em um milênio fora da água) o único estímulo que a caça explica |
 
 ---
 
@@ -378,7 +390,9 @@ o que é mecânica e o que é narrativa.
    é o silêncio dele.
 3. **Tabu em tela:** texto mostrado ao jogador jamais usa "Império",
    "Regência", "Massacre Silencioso" (nem o eufemismo morto da corte,
-   "Noite Úmida"), "Contrato", o nome de guerra alguma ou o nome da casa
+   "Noite Úmida"), "Contrato" ou "Guardião" — palavras que o canon recusa,
+   porque os pactos e os cargos são invenções de depois —, o nome de guerra
+   alguma ou o nome da casa
    real — e o pagante aparece
    só por sigla (`L.B.`), jamais por nome. Pílula
    fala de **pedra, água, fome e pergunta** — nunca de história.
