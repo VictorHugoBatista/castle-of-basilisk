@@ -14,7 +14,7 @@
 |---|---|---|
 | **Qual o ano atual?** | **Ano 100 da Regência** — a única contagem que ainda existe | Dentro dos muros é sempre Ano 100: não sobrou ninguém para virar o número. Fora deles, ninguém usa essa régua desde o massacre |
 | **Há quanto tempo é ruína?** | ~100 anos — mas "ruína" é a palavra errada | O castelo não desabou: foi **abandonado de uma vez e nunca mais tocado**. Há salões onde a pedra está inexplicavelmente limpa (por onde ela passa) e onde os objetos da fuga continuam no chão do primeiro dia. E a periferia do entorno **nunca desocupou** — só se muda quando a maré dela manda |
-| **O que aconteceu?** | O **Massacre Silencioso** | Não houve grito, fogo ou exército: morreram parados os que viram o olhar, e o resto saiu antes do amanhecer, sem encostar mais. E o pior: **a tragédia veio anunciada** — em pesadelos — e os grandes ignoraram placidamente |
+| **O que aconteceu?** | O **Massacre Silencioso** | Não houve grito, fogo ou exército: morreram parados os que viram o olhar, e o resto saiu antes do amanhecer, sem encostar mais. E o pior: **a tragédia veio anunciada** — em pesadelos — e os grandes ignoraram placidamente. Da coroa: dizem que desceu ao fundo junto do rei morto e de todos à volta — todos contam, nenhum provou |
 | **O que é o basilisco?** | **O Guardião** — o terceiro signatário do Contrato Úmido | "Basilisco" é palavra emprestada dos livros de fora; o nome verdadeiro, ninguém tem. Os esgotos do castelo são o lar dela; as pálpebras jamais abriram; e ela não sabe que guarda um morto. O "olhar" que mata não sai dos olhos dela — sai do SEU. De onde veio: lacuna 13 |
 | **Quem é o player?** | Um ladrão pago adiantado pela **Liga das Beiras**; sem nome no canon | Não é a primeira vez dele ali — a cicatriz do medo (o terço do pico que nunca decai) é a prova, e ele não se lembra da primeira visita. E nem ele nem a Liga sabem o que a coroa DE FATO faz |
 
@@ -31,8 +31,8 @@
 | anos ~230–311 | **A Guerra dos Tronos** (interna): os ramos da casa real se acossam — noivado como tratado, veneno como governo. Cada herdeiro da casa é aposta e, depois, alvo; é dela que o ano 311 herda um trono sem vivos à mesa | não |
 | anos 300–312 | **Os Pesadelos**: um sonho único, grande demais para cabeça alguma, repartido em fatias por quem dorme NA água — palafitas e beiras de rio se arrumam desde criança; o tribunal manda prender por "semear o medo" quem aponta; os grandes ignoram placidamente. A beira, que já sabia SAIR, aprende a saber QUANDO sair | não (uma pílula na §7 alude) |
 | ano 311 | O rei **Ansel III** morre sem herdeiro vivo. A corte esconde o corpo: a coroa da vitrine era ouro de festa; a coroa que o Guardião conhece é **a coroa pequena, de ferro velo** — a do juramento original de cada rei | nunca |
-| ano 312, pela manhã | **A Coroação Póstuma**: o cadáver desce pela coluna do luto até o fundo dos canais — a Cloaca Maxima profunda — e é coroado no altar de pedra. Por que ali? Porque a coroa precisa ficar **dentro do alcance do Guardião**, e o Guardião não sobe | não |
-| ano 312, à noite | **O Massacre Silencioso.** A coroa desceu; o Guardião seguiu — pela primeira vez em séculos ela atravessa o palácio, inteira, de cima a baixo — e a rota dela é, quase linha a linha, a planta da riqueza: termas, cisternas, salões. Na mesma noite, os três ramos da casa assinavam a **Partilha** — o tratado que acabaria com a guerra dos tronos — e morreram entre uma assinatura e a seguinte. Quem cruzou o caminho dela morreu parado; quem dormia em madeira já estava na estrada há anos. "O olhar que comeu uma era" é frisa jogada: a era não foi comida por fora | não |
+| ano 312 | **A Descida** — a conta de toda boca: a coroa de ferro foi para o fundo **junto do cadáver de Ansel e de todos à volta**. Sem testemunha, sem registro, sem hora própria. Quem desceu não voltou para confirmar nem corrigir; quem ficou em cima conta pelo acordo de todos. É conhecimento compartilhado quase superstição — o mais perto que uma verdade chega de se tornar lenda | a coroa em tela é a única meia-prova em cem anos |
+| ano 312, à noite | **O Massacre Silencioso.** O endereço novo da coroa puxou o Guardião: pela primeira vez em séculos ela atravessa o palácio — inteira, de cima a baixo — e a rota dela é, quase linha a linha, a planta da riqueza: termas, cisternas, salões. Na mesma noite, os três ramos da casa assinavam a **Partilha** — o tratado que acabaria com a guerra dos tronos — e morreram entre uma assinatura e a seguinte. Quem cruzou o caminho dela morreu parado; quem dormia em madeira já estava na estrada há anos. "O olhar que comeu uma era" é frisa jogada: a era não foi comida por fora | não |
 | ano 1 da Regência | A última lei da última corte: a coroa regente — **o morto rege a si mesmo, a besta executa**. Não sobrou escrivão para escrever o ano 2. O calendário de dentro congela em **Ano 100** e ali fica. Fora da pedra, outro calendário corre: de agora em diante, maré é tabela — saída e volta datadas, de geração em geração | não |
 | anos 1–10 da Regência | A pedra fica vazia e tabu — e o nome da cidade se apaga da pedra do portão. Fora, o anel de beira fecha e não se abre: sair da rota nunca é sair da terra | não |
 | anos 1–100 da Regência | **A periferia nunca desocupou**: mora no mesmo anel, muda-se de vale quando a maré manda — e os caminhos de mudança (vales de espera, poços, abrigos) tornam-se DIREITO, de tanto se repetirem. Forasteiro constrói longe e lê a região como perdida. Ninguém entra na pedra. **Quase ninguém** | a lenda do ladrão, sim |
@@ -135,9 +135,10 @@ que o aviso deixou de precisar de intérprete.
 
 ### a noite
 
-Uma noite — a mesma da Coroação Póstuma — a coroa de ferro desceu de trono
-a altar: fundo demais, através de tudo. O Guardião seguiu. A rota dela de
-cima a baixo atravessou salões, celas, canais.
+A coroa, dizem, desceu junto do cadáver e da casa de perto dele — nem hora,
+nem testemunha: a conta é a mesma em toda boca. À noite, o Guardião seguiu
+o endereço novo: pela primeira vez em séculos ela atravessa o palácio,
+inteira, de cima a baixo. A rota atravessou salões, celas, canais.
 
 O que morreu naquela noite **morreu parado**. Alguns no meio de um passo; um
 na beira de um sorriso — todos com a mesma pergunta no rosto: *fui eu?*
@@ -209,10 +210,22 @@ Acabou de vergonha. E vergonha é muda.
 - O ouro do tesouro foi saqueado nos primeiros dias. A coroa que resta é a
   **coroa pequena de ferro velo** — o objeto com que cada rei jurou. É o
   Contrato em forma de objeto.
-- Foi deixada sobre o altar fundo no dia do cadáver: **"onde o rei morto
-  coroou-se a si mesmo"** (a pista maldita, já no código de geração). Ele se
-  coroa porque não havia mão viva que o coroasse — nem digna, nem testemunha
-  que restasse.
+- Como a coroa chegou lá: **ninguém provou**. A conta de toda boca é a
+  mesma: a coroa de ferro desceu **junto do cadáver de Ansel e de todos à
+  volta** — e quem desceu não voltou para conferir. Sem testemunha, sem
+  registro, sem corpo à vista: conhecimento compartilhado do jeito que
+  superstição compartilha. A aritmética da beira explica o endereço: o
+  Guardião não sobe — a coroa tem de ficar no alcance dela. A frase do
+  altar ("onde o rei morto coroou-se a si mesmo", no código de geração) é
+  a única marca em tela — e até ela é conta, nunca leitura: ninguém pôs
+  olho lá com vida para vir contar.
+- **O fundo é conversa, não terreno.** Em cem anos, os que tocaram o
+  castelo pararam nas masmorras — e lá já é bruto demais para mais: grade,
+  ossada, o corpo de sempre. Abaixo delas, o castelo deixa de ser lugar e
+  vira conversa. O caderno da ladrã é o único documento — e os andares do
+  fundo nele são desenho de eco, não de olho. O jogo desce o jogador
+  exatamente onde ninguém jamais confirmou: o andar 5 é a primeira
+  meia-prova em cem anos de que a conta de toda boca era boa.
 - Quando o ladrão a tira, o **grito do Guardião** (os 15 ticks de
   atordoamento) é a única vez em um século em que ela faz som de fera: o
   contrato ROMPEU e o corpo dela não sabe o que fazer sem o mando.
@@ -268,10 +281,12 @@ lacuna nº 9 da §8, e o canon não fecha.
 
 **A lenda que abriu a rota.** Um caderno circula — discretamente — nos
 conselhos da Liga: a ladrã que voltou há décadas dos castelos, **cega,
-redesenhando o castelo por
-som**. Toda a rota do jogo é uma página dela. O que ela ensinou, em uma
-frase, o jogador repete todas as noites: *quem entra no castelo não pode
-ter um reflexo à mão.*
+redesenhando o castelo por som**. Toda a rota do jogo é uma página dela.
+Os dois andares do fundo são as páginas de eco: ela nunca viu os canais —
+ninguém foi tão fundo; as masmorras foram o limite do século, e lá embaixo
+o caderno é desenho de som que sobe, sustentado pela conta que todos
+contam. O que ela ensinou, em uma frase, o jogador repete todas as noites:
+*quem entra no castelo não pode ter um reflexo à mão.*
 
 ---
 
@@ -302,8 +317,10 @@ implementar sem branch + smoke + PR):
    `fui eu?` — a mesma frase do sussurro de medo. O sussurro do jogo é
    frase **deles**, não do basilisco: este é o elo que o jogador pode fazer
    sozinho, e é TUDO o que se entrega do massacre.
-4. **Ossada sentada perto do altar, a mão no alto da cabeça:** o único que
-   coroa uma coroação — e curiosamente o único que assistiu sem olhar.
+4. **Ossada sentada perto do altar, a mão no alto da cabeça:** a conta de
+   todos promete corpos ao redor do rei (a casa que desceu junto) — esta é
+   a primeira em pé. A mão no alto da cabeça é o gesto de coroar, feito de
+   osso.
 5. **Marco de pedra no portão:** só resta `...··· DO..A...` — a cidade sem
    nome: o nome se apagou antes de qualquer mapa copiá-lo.
 6. **Agulha do tutorial** (uma linha escondida de texto na tela de fôlego ou
@@ -348,6 +365,7 @@ o que é mecânica e o que é narrativa.
 | 11 | O que acontece ao **mundo** quando a coroa sai da Cloaca? | *"...a besta continua, paciente, no escuro"* | o Contrato sem endereço; a coroa chamando por cima da terra; a Regência enfim rompida — e o jogo NUNCA mostra o dia seguinte. Era para ninguém ver |
 | 12 | **Para onde vai a maré dela?** | Só o sinal: a água para de pingar | (a) o Contrato cobre a bacia, não o castelo: ela patrulha o domínio inteiro; (b) ela caça onde o medo acaba — e a beira a alimenta de longe sem saber; (c) há um leito mais fundo, rio abaixo, e o castelo é só a sala da frente |
 | 13 | **De onde veio — e o que é de fato?** | Só nomes emprestados: "Guardião" no edital, "basilisco" nos livros de fora, `B` na tela | versões que toda boca reparte, e nenhuma tem prova: sempre esteve lá esperando; foi ovo e chocou no leito; cresceu dos efluentes de um império inteiro; acordou com o trânsito de guerra; desceu o rio; saiu de fenda do inferno; caiu das estrelas; ou ainda está se transformando — e TODAS podem ser a mesma história. Mistério do calibre da origem da própria humanidade: o edital existe porque a versão não se pôde escrever |
+| 14 | O que aconteceu com a **casa que desceu com o rei**? | Só a conta: "desceu junto, todos à volta" — sem prova | (a) morreram todos no fundo, em pé ao lado do cadáver — ossada é promessa; (b) os que sobraram saíram pela beira na mesma noite e sumiram no anel da periferia de vez; (c) ninguém desceu jamais: a coroa sempre esteve no fundo, e a Descida é a história que se conta para explicá-la |
 
 ---
 
