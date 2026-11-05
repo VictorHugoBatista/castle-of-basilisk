@@ -504,9 +504,10 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
         // ACERVO: caveiras '¥' e corpos '¶' — a DENSIDADE é a pista não
         // contada. Nos andares 6-7 só "um pouco mais" que hoje (núcleos
         // 42-53, chão ~15%). No andar 8 (o fundo do fundo, a coroa)
-        // gradients VERDADE: cada piso tem chance de virar osso/carne que
-        // CRESCE rumo à sala da coroa — longe ~14%, perto até ~70% de
-        // chance — os caminhos se contam em corpos e ninguém ditou nada.
+        // o gradiente é verdade: cada piso tem chance de virar osso/carne
+        // que CRESCE rumo à sala da coroa — longe ~12%, perto até ~58-70%
+        // de chance (a cama do monte fecha os últimos tiles) — os caminhos
+        // se contam em corpos e ninguém ditou nada.
         // (corpo nasce 1 em 3 e só em PISO: água fica úmida de por si)
         let deep8 = depth == 8;
         let (tx, ty, _) = centers[used - 1]; // âncora da DESCIDA/COROA de gen_once
