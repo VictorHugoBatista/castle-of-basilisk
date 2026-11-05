@@ -16,6 +16,55 @@ cima do Y**: os muros abraçam a goela por cima, o castelo dentro, as
 palafitas ao longo dos três, os povoados longe de toda margem.
 
 ```
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttt    x    x    x      x      x      x      x    x    x       ttttt
+ttt        x      x       x    x     x       x      x        tttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttt        ~~~~                    ~~~~                ttttttttttt
+tttttttt           ~~~~                ~~~~             tttttttttttt
+tttttt                 ~~~              ~~~                ttttttttt
+ttttttt                   ~~~          ~~~                  tttttttt
+ttttttttt                    ~~~      ~~~                  ttttttttt
+ttttttttttt                     ~~~~ ~~~~               ttttttttttt
+ttttttttttttt          y      ~===*===~     y           ttttttttttt
+tttttttttttttttt   y   ##################   y         ttttttttttttt
+ttttttttttttttttt   ##=################=##         tttttttttttttt
+ttttttttttttttttt   #  p   p      C   p  p  #       tttttttttttttt
+tttttttttttttttt    #     p    C  C   p     #       tttttttttttttt
+ttttttttttttttttt   #  p   p      C   p  p  #       tttttttttttttt
+ttttttttttttttttt   #########======#########       ttttttttttttttt
+tttttttttttttt     m    m     m     m     m       ttttttttttttttt
+tttttttttttttttt      ~~~~~~~~~~~~~~~~~~           tttttttttttttt
+tttttttt     y   y         ~~~~~~~~~~      y    y      ttttttttt
+tttttttttttttt  y    y      ~~~~~~~~   y     y   ttttttttttttttt
+ttt     x     x       x       x      x      x       x      ttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+```
+
+| símbolo | o que é |
+|---|---|
+| `t` | floresta cerrada — o anel que fecha o reino |
+| `~` | o Y de rio: **Manso** (braço oeste), **Fundo** (braço leste), **o Cala** (stem, sul) |
+| `*` | a goela — a junção, o ponto onde a cidade senta |
+| `=` | os canais imperiais — a veia do castelo (por fora e por dentro do traço) |
+| `#` | as muralhas internas — a pedra da cidade morta |
+| `p` | a cidade interna — **dizimada**, dentro dos muros |
+| `C` | o castelo — o mapa do jogo (5 andares; o porão no corte abaixo) |
+| `m` | a cidade média — **esvaziada**, fora dos muros |
+| `y` | palafitas — ao longo dos três; cada aldeia uma orelha |
+| `x` | povoados distantes — as clareiras, longe de toda margem |
+
+Como ler: norte é o topo; os braços descem do norte e se juntam; o stem
+sai para o sul. O traço não leva nome nenhum — os nomes estão nas seções
+de baixo e no mapa anotado, que entra a seguir. Distância mede-se **por
+trilha**, nunca em linha reta — a cerrada não se atravessa sem caminho
+herdado: cada coluna do mapa vale dias. As trilhas vivas: as margens
+(palafita a palafita, água acima e abaixo), o ramo dos povoados (clareira
+a clareira) e a estrada morta até o castelo.
+
+## o mapa anotado (com nomes — para conferência)
+
+```
             . . . N O R T E  (upstream — os braços nascem na cerrada) . . .
 
 tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
@@ -60,25 +109,6 @@ o `andar 6` é pendente):
      andar 4–5 — canais envenenados (o altar, a coroa `§`)
      andar 6 — PENDENTE: a caverna (o acervo, as pinturas, o meio)
 ```
-
-| símbolo | o que é |
-|---|---|
-| `t` | floresta cerrada — o anel que fecha o reino |
-| `~` | o Y de rio: **Manso** (braço oeste), **Fundo** (braço leste), **o Cala** (stem, sul) |
-| `=` | os canais imperiais — a veia que costura os braços por cima dos muros |
-| `goela` | a junção — o ponto onde a cidade senta |
-| `#` | as muralhas internas — a pedra da cidade morta |
-| cidade interna | dentro dos muros — **dizimada** |
-| cidade média | fora dos muros — **esvaziada** na mesma noite |
-| `y` | palafitas — ao longo dos três; cada aldeia uma orelha |
-| `x` | povoados distantes — as clareiras, longe de toda margem |
-
-Como ler: norte é o topo; os braços descem do norte e se juntam; o stem
-sai para o sul. Distância mede-se **por trilha**, nunca em linha reta — a
-cerrada não se atravessa sem caminho herdado: cada coluna do mapa vale
-dias. As trilhas vivas: as margens (palafita a palafita, água acima e
-abaixo), o ramo dos povoados (clareira a clareira) e a estrada morta até
-o castelo.
 
 ---
 
