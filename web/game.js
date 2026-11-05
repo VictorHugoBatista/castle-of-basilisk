@@ -712,7 +712,8 @@ const RUN_CODES = ['KeyX', 'KeyK'];
 const runHeld = new Set(); // por tecla: soltar uma não derruba a corrida da outra
 
 // bits de input das telas de menu (mesmos números do WASM):
-// 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 CONFIRMAR, 64 VOLTAR
+// 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 CONFIRMAR, 64 VOLTAR — o A das letras
+// do KONAMI fica no detector próprio (abaixo), fora deste codec
 const MENU_CODES = {
   KeyW: 1, ArrowUp: 1,
   KeyS: 2, ArrowDown: 2,
@@ -721,6 +722,27 @@ const MENU_CODES = {
   Enter: 16, Space: 16,
   Escape: 64,
 };
+
+// ---- o KONAMI: ↑↑↓↓←→←→B A NA TELA DE CONTROLES abre a ESCOLHA DE ANDAR ----
+// Detector local do glue (o keymap já é camada de browser): a RT abre a
+// tela de escolha via pfb_konami_open. Nada acende na tela até o A final —
+// quem não conhece o código digita às cegas. Progresso morre fora das
+// CONTROLES (o código só existe naquela tela).
+const KONAMI_SEQ = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+  'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
+let konamiI = 0;
+function konamiStep(e) {
+  if (stats[0] !== 4) { konamiI = 0; return; }
+  if (e.code === KONAMI_SEQ[konamiI]) {
+    konamiI += 1;
+    if (konamiI >= KONAMI_SEQ.length) {
+      konamiI = 0;
+      w.pfb_konami_open();
+    }
+  } else {
+    konamiI = e.code === KONAMI_SEQ[0] ? 1 : 0;
+  }
+}
 
 function startGame() {
   held.clear();
@@ -741,8 +763,9 @@ function menuStep(e) {
 window.addEventListener('keydown', (e) => {
   audioOn();
   if (AC && AC.state === 'suspended') AC.resume();
-  // telas de menu (titulo 0 e controles 4): as teclas vao direto pro WASM
-  if (stats[0] === 0 || stats[0] === 4) {
+  konamiStep(e); // o código às cegas: rastreia sempre, consome nada
+  // telas de menu (titulo 0, controles 4 e escolha 5): as teclas vao direto pro WASM
+  if (stats[0] === 0 || stats[0] === 4 || stats[0] === 5) {
     if (menuStep(e)) return;
   }
   // morte/vitória: ENTER reinicia (como sempre)

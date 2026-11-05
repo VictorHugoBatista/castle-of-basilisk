@@ -32,6 +32,9 @@ pub(crate) static mut MENU_SEL: u8 = 0; // cursor: 0 = INICIAR, 1 = CONTROLES
 pub(crate) static mut SCHEME: u8 = 0;   // modo de teclas: 0 = WASD, 1 = SETAS
 pub(crate) static mut START_REQ: u8 = 0; // menu pediu "Iniciar": o JS semeia o novo jogo
 
+// ---- escolha de andar (o konami das controles, aberta pelo glue) ----
+pub(crate) static mut KONSEL: u8 = 0; // cursor da tela de escolha (0..7 = andar 1..8)
+
 pub(crate) static mut SEEDS: [u32; FLOORS] = [0; FLOORS];
 pub(crate) static mut MAP: [u8; N_MAX] = [0; N_MAX];
 pub(crate) static mut SEEN: [u8; N_MAX * FLOORS] = [0; N_MAX * FLOORS];

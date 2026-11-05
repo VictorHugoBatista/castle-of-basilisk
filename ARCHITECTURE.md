@@ -94,7 +94,8 @@ Exports (contrato publico — nao quebrar):
 | `pfb_new_game`  | `(seed: u32)`                | novo jogo deterministico |
 | `pfb_step`      | `(input: u32)`               | um tick (bits: 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 WAIT, 32 SNEAK, 64 RUN) |
 | `pfb_menu`      | `(input: u32)`               | teclado dos menus (bits: 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 OK, 64 BACK) |
-| `pfb_state`     | `() u32`                     | 0 titulo, 1 jogo, 2 morte, 3 vitoria, 4 controles |
+| `pfb_konami_open` | `()`                       | [CHEAT] abre ST_SELECT, a ESCOLHA DE ANDAR (o glue completa o código nas CONTROLES e chama aqui; fora das CONTROLES, ignora) |
+| `pfb_state`     | `() u32`                     | 0 titulo, 1 jogo, 2 morte, 3 vitoria, 4 controles, 5 escolha de andar |
 | `pfb_grid_ptr`  | `() u32`                     | ponteiro do grid de render (dims atuais em STATS[16]/[17]) |
 | `pfb_max_n`     | `() u32`                     | tamanho MAXIMO do grid (W_MAX*H_MAX = 3520): o JS dimensiona as views |
 | `pfb_ui_ptr`    | `() u32`                     | barra de UI fabricada (W0 celulas x [char,attr]): dica contextual / nome do andar |
@@ -579,5 +580,11 @@ Ultima atualizacao: 2026-11-04
 - **UIROW**: barra de UI fabricada pelo WASM (W0 celulas x [char,attr], via
   `pfb_ui_ptr`): dica contextual e nome do andar, fixa na ULTIMA LINHA DA
   TELA (seguem a camera, nao o mapa).
+- **ESCOLHA DE ANDAR (ST_SELECT, estado 5)**: o konami (glue lê
+  ↑↑↓↓←→←→B A NAS CONTROLES e chama `pfb_konami_open`) — menu com os 8
+  andares; CONFIRMAR salta por `jump_floor(N)` (o MESMO caminho de
+  `pfb_debug_floor`): seeds por andar, GRACE e o CRACO do medo valem
+  (pousar no 8 nasce em COLAPSO). Cursor em `KONSEL`, envolve (8 -> 1);
+  ESC volta às CONTROLES. Fora das CONTROLES a abertura ignora.
 - **ARRIV**: tick da chegada no andar; os primeiros 18 ticks exibem
   `floor_name` ("MASMORRA ASSOMBRADA", "CANAIS ENVENENADOS") na barra de UI.

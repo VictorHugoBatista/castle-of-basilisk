@@ -45,6 +45,8 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         ARRIV = 0;
         DEATH_R = 0;
         START_REQ = 0;
+        MENU_SEL = 0;
+        KONSEL = 0;
         DOORS = [0; N_MAX * FLOORS / 64];
         SEEN = [0; N_MAX * FLOORS];
         SEEDS = [0; FLOORS];
@@ -145,7 +147,34 @@ pub extern "C" fn pfb_menu(input: u32) {
                 }
                 _ => {}
             }
+        } else if STATE == ST_SELECT {
+            // escolha de andar: cursor 0..7 (o 8 dá a volta ao 1);
+            // CONFIRMAR salta direto para o andar; ESC volta às CONTROLES
+            match input {
+                IN_UP => { KONSEL = (KONSEL + 7) % 8; render(); }
+                IN_DOWN => { KONSEL = (KONSEL + 1) % 8; render(); }
+                IN_CONFIRM => {
+                    jump_floor(KONSEL + 1);
+                }
+                IN_MENU_BACK => { STATE = ST_CONTROLS; render(); }
+                _ => {}
+            }
         }
+        sync_stats();
+    }
+}
+
+/// [CHEAT] o KONAMI completado no glue (↑↑↓↓←→←→B A digitado NA tela de
+/// CONTROLES) abre a ESCOLHA DE ANDAR: a RT fornece a tela; o detector do
+/// código é camada de browser — os bits de menu da RT não distinguem o 'A'
+/// do código do A do esquema de teclas. Fora das CONTROLES: ignora.
+#[no_mangle]
+pub extern "C" fn pfb_konami_open() {
+    unsafe {
+        if STATE != ST_CONTROLS { return; }
+        KONSEL = 0;
+        STATE = ST_SELECT;
+        render();
         sync_stats();
     }
 }

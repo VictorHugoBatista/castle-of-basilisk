@@ -138,6 +138,7 @@ pub const ST_PLAY: u8 = 1;
 pub const ST_DEAD: u8 = 2;
 pub const ST_WIN: u8 = 3;
 pub const ST_CONTROLS: u8 = 4; // tela de controles (menu inicial)
+pub const ST_SELECT: u8 = 5;   // tela de ESCOLHA DE ANDAR (o konami, nas controles)
 
 // estados da IA do basilisco
 pub const B_PATROL: u8 = 0;
@@ -165,6 +166,8 @@ pub const IN_LEFT: u32 = 4;
 pub const IN_RIGHT: u32 = 8;
 pub const IN_CONFIRM: u32 = 16; // ENTER/ESPACO: confirmar a opcao
 pub const IN_MENU_BACK: u32 = 64; // ESC: voltar para o menu
+// (o KONAMI ↑↑↓↓←→←→B A vive no glue do JS — detector de teclado; a RT
+// só abre a tela via pfb_konami_open, sem bit novo de menu)
 
 // ---- ruído: o eco do castelo vazio ----
 pub(crate) const RUN_NOISE: i32 = 15;   // correr: ouvida de quase todo o andar

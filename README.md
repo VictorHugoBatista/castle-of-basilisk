@@ -52,6 +52,12 @@ esquemas de mover e as duas teclas de correr funcionam sempre: o modo é só
 sua preferência guardada.
 ESC volta ao menu.
 
+E, nas CONTROLES, o código de sempre — **↑ ↑ ↓ ↓ ← → ← → B A** — abre a
+**ESCOLHA DE ANDAR**: as oito fases num menu com cursor; **ENTER** nasce na
+entrada do andar escolhido (as regras valem — descer ao acervo crava o medo
+na entrada), **ESC** volta. Nada na tela anuncia o código: descoberta de quem
+conhece a casa.
+
 ## como jogar (e sobreviver)
 
 - **`B` = a cabeça do basilisco.** Se ele *puder ver você* a até 4–6 tiles (linha de
@@ -202,6 +208,12 @@ Nada de wasm-bindgen: o módulo expõe funções `#[no_mangle] extern "C"`:
 - `pfb_menu(input)` — teclado das telas de menu (bits: 1↑ 2↓ 4← 8→
   16 confirmar/ENTER·ESPAÇO 64 voltar/ESC). "Iniciar" publica `STATS[13]=1`
   e o JS semeia `pfb_new_game`
+- `pfb_konami_open()` — [CHEAT] o código ↑↑↓↓←→←→B A digitado NA tela de
+  CONTROLES (o detector é camada de browser: `game.js` chama isto no A
+  final) abre a **ESCOLHA DE ANDAR**: as 8 fases do jogo num menu com
+  cursor (o 8 dá a volta ao 1); ENTER nasce na entrada do andar (as regras
+  da descida valem — no acervo, o medo crava no início); ESC volta às
+  controles. Fora das CONTROLES, a exportação ignora
 - `pfb_grid_ptr()` / `pfb_stats_ptr()` — ponteiros para o grid (2 bytes por
   célula: `[char][attr]`) e para o bloco de status
 - `pfb_max_n()` — tamanho máximo do grid (88×48, Bocarra): o JS dimensiona as views
@@ -211,7 +223,8 @@ Nada de wasm-bindgen: o módulo expõe funções `#[no_mangle] extern "C"`:
   `[0]` flags (bit0 = repinte integral), `[1]` camX, `[2]` camY,
   `[3..227]` bitmap de células de TELA mudadas; o JS pinta o marcado e
   confirma com o ack
-- `pfb_state()` — 0 título, 1 jogando, 2 morto, 3 vitória, 4 controles
+- `pfb_state()` — 0 título, 1 jogando, 2 morto, 3 vitória, 4 controles,
+  5 escolha de andar (o konami)
 - `pfb_debug_*` — ferramentas dos testes (place/bas_place/map/probe/give_crown)
 
 O WASM nunca aloca: as views JS são criadas uma vez e ficam válidas.
@@ -238,7 +251,8 @@ node scripts/smoke.mjs
 ```
 
 Valida: morte por olhar (com CONE de visão dela), morte por toque, IA investigando
-ruído, **o rastro de escamas existindo** (via `pfb_debug_body_ptr`) e **o corpo
+ruído, **o KONAMI abrindo a ESCOLHA DE ANDAR (o cursor, o salto, o cravo do
+medo ao pousar no 8 e o ESC de volta)**, **o rastro de escamas existindo** (via `pfb_debug_body_ptr`) e **o corpo
 ficando visível em tela em algum momento**, **o MEDO subindo com exposição e
 caindo LONGE dela, a CICATRIZ do pico (nunca cai de metade), o PAVOR AMBIENTE
 rastejando sozinho, o FREIO DO LIMIAR (perto do 100 a subida cansa e susto

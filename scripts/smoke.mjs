@@ -83,6 +83,39 @@ const startReq = stats[13] === 1 && stats[0] === 0;   // pedido publicado
     : 'FAIL - menu do título');
 }
 
+// ---------- 1c. o KONAMI abre a ESCOLHA DE ANDAR ----------
+// O detector do código é camada de browser (a tecla-tela do keymap); o smoke
+// headless chama pfb_konami_open na hora do A final e valida a TELA + o
+// salto: cursor, wrap, ESC de volta e o cravo do medo ao pousar no 8.
+const km = { up: 1, down: 2, left: 4, right: 8, ok: 16, back: 64 };
+const konami = scenario('konami: escolha de andar abre, salta, crava e volta', () => {
+  w.pfb_init(); // título (o cenário anterior re-semeou o jogo: ST_PLAY)
+  w.pfb_menu(km.down); w.pfb_menu(km.ok); // CONTROLES
+  if (stats[0] !== 4) return false;
+  w.pfb_konami_open(); // o "A" final do detector (glue)
+  if (stats[0] !== 5) return false;
+  ensureViews(); // tela de menu = viewport 56x32
+  // cursor desce 7 e envolve (o 8 dá a volta ao 1): down x9 = sel 1 (y=10)
+  for (let k = 0; k < 9; k++) w.pfb_menu(km.down);
+  if (grid[(10 * Wd + 9) * 2] !== 0x3E) return false; // '>' do sel 1 acendeu
+  // cursor sel 3 = andar 4 (2 downs a mais): '>' na linha y=12; ENTER salta
+  for (let k = 0; k < 2; k++) w.pfb_menu(km.down);
+  if (grid[(12 * Wd + 9) * 2] !== 0x3E) return false;
+  w.pfb_menu(km.ok);
+  if (stats[0] !== 1 || stats[2] !== 4 || stats[18] >= 100) return false;
+  // de novo: reabre e POUSA NO 8 — o cravo do medo (as regras da descida)
+  w.pfb_init();
+  w.pfb_menu(km.down); w.pfb_menu(km.ok);
+  w.pfb_konami_open();
+  if (stats[0] !== 5) return false;
+  w.pfb_menu(km.back); // ESC volta às CONTROLES
+  if (stats[0] !== 4) return false;
+  w.pfb_konami_open();
+  for (let k = 0; k < 7; k++) w.pfb_menu(km.down); // cursor de volta ao 8
+  w.pfb_menu(km.ok);
+  return stats[0] === 1 && stats[2] === 8 && stats[18] === 100;
+});
+
 // ---------- 2. cenários de morte/alerta ----------
 function findCell(pred) {
   for (let y = 1; y < Hd - 1; y++)
@@ -913,6 +946,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, caveDecor, pista, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, caveDecor, pista, deadUi, bodyProof, traps === 0, menuOk, konami, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

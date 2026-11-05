@@ -89,6 +89,20 @@ pub(crate) fn descend() { unsafe { enter_floor(DEPTH + 1, EV_DOWN, false); } }
 // andar até o '<' dele. A vitória é pisar no portão '<' do térreo com a coroa.
 pub(crate) fn ascend() { unsafe { enter_floor(DEPTH - 1, EV_UP, true); } }
 
+// SALTO de andar (o dev tool pfb_debug_floor e a ESCOLHA via konami): sair
+// da tela e nascer na entrada do andar N com as regras do jogo inteiro —
+// seeds por andar, GRACE, place_basilisk e o CRACO do medo (enter_floor)
+pub(crate) fn jump_floor(depth: u8) {
+    unsafe {
+        STATE = ST_PLAY;
+        enter_floor(depth, EV_DOWN, false);
+        compute_fov();
+        body_pass();
+        render();
+        sync_stats();
+    }
+}
+
 pub(crate) fn death(reason: u8) {
     unsafe {
         if STATE != ST_PLAY { return; }
