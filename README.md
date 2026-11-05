@@ -5,18 +5,24 @@ compilado para **WebAssembly**. Sem itens, sem vida, sem curas: **um toque mata 
 um olhar mata**. A única defesa é **se esconder**.
 
 Você é um ladrão. O rei morreu há cem anos e o castelo apodrece, mas o guardião
-continua rondando: um **basilisco** cego, gigante, paciente. Cinco andares separam
-você do saque: o **térreo do castelo**, a **Masmorra Assombrada** e os
+continua rondando: um **basilisco** cego, gigante, paciente. Oito andares
+separam você do saque: o **térreo do castelo**, a **Masmorra Assombrada**, os
 **Canais Envenenados** —
-a rede de esgoto imperial, o lar dela. Lá embaixo a besta se move a cada passo,
-o escuro é úmido e a água `=` canta em ecos. Roube **a coroa do rei morto**
-(andar 5, fundo da cloaca) e **fuja pelo portão** do térreo trinta metros acima —
-e ela continuará de caça até o fim.
+a rede de esgoto imperial, a sala da frente do lar dela — e, por último, a
+**Bocarra Diabólica**: o sistema bizarro de cavernas abaixo dos rios, um pouco
+maior que os canais, de passagens completamente irregulares, úmida de 30 m de
+leito por cima e repleta de **caveiras `¥` e corpos `¶`** trazidos pela
+criatura. É a casa da casa: lá embaixo o medo está **sempre no máximo, com todas
+as alucinações**, e ela é ainda mais perigosa. Roube **a coroa do rei morto**
+(andar 8, no fundo do acervo, dormindo em **cama de corpo**) e **fuja pelo
+portão** do térreo trinta metros acima — e ela continuará de caça até o fim.
 
 Cada andar tem seu habitat e seu temperamento para ela: no térreo (fora do
 habitat) quase dorme; nas masmorras é a caça paciente de sempre; nos esgotos é
-um deus gargarejando nos canais. E cada lugar soa: vento no salão, silêncio
-perturbador na masmorra, goteiras nas catacumbas molhadas.
+um deus gargarejando nos canais; na Bocarra é o ofício dela a cada tick. E cada
+lugar soa: vento no salão, silêncio
+perturbador na masmorra, goteiras nas catacumbas molhadas — e na Bocarra o ping
+gordo do fundo, com a respiração do acervo.
 
 ## como rodar
 
@@ -46,10 +52,17 @@ esquemas de mover e as duas teclas de correr funcionam sempre: o modo é só
 sua preferência guardada.
 ESC volta ao menu.
 
+E, nas CONTROLES, o código de sempre — **↑ ↑ ↓ ↓ ← → ← → B A** — abre a
+**ESCOLHA DE ANDAR**: as oito fases num menu com cursor; **ENTER** nasce na
+entrada do andar escolhido (as regras valem — descer ao acervo crava o medo
+na entrada), **ESC** volta. Nada na tela anuncia o código: descoberta de quem
+conhece a casa.
+
 ## como jogar (e sobreviver)
 
-- **`B` = a cabeça do basilisco.** Se ele *puder ver você* a até 4–5 tiles (linha de visão
-  aberta, raios de pilar/porta bloqueiam), o olhar mata — no esgoto, a 5 (`GAZE_R + 1`).
+- **`B` = a cabeça do basilisco.** Se ele *puder ver você* a até 4–6 tiles (linha de
+  visão aberta, raios de pilar/porta bloqueiam), o olhar mata — no esgoto, a 5
+  (`GAZE_R + 1`); na Bocarra, o acervo dela, a 6 (`+ 2`).
 - **`~` = o corpo dela.** Escamas do rastro que a serpente deixa ao andar — ~24 anéis
   que avançam com a cabeça. Ver o corpo é verlumbre, não morte: **o olhar que mata é
   o da cabeça**. Corpo em tela ganha sombra 3D, halo vermelho e um arrasto grave
@@ -58,28 +71,44 @@ ESC volta ao menu.
 - Se ele **tocar** você, as escamas matam. Não existe vida.
 - `,` = **sombra**. Imóvel dentro dela, você é quase invisível (visão 2 tiles).
   Anda na sombra? 4 tiles. No claro? Ele te vê a 8.
-- **`=` = água do esgoto** (só andares 4-5). Caminhável por você — mas é o meio
+- **`=` = água** (esgoto 4-5 e Bocarra 6-8). Caminhável por você — mas é o meio
   nativo dela: **na água ela apressa o passo**. Sob os pés, o passo respinga.
-  Os **canais imperiais** correm de cima a baixo (1–2, leito de 1 córrego fino
+  Nos **canais imperiais** do esgoto, a água corre de cima a baixo (1–2,
+  leito de 1 córrego fino
   a 5 de largura, flanqueado por **margens secas de alvenaria** — dá para
   andar na beira sem molhar o pé — e os lados ondulam), muitas vezes
   interrompidas: **desabamentos em montinho irregular** (bordas escalonadas
   linha a linha, cacos de `%` espalhados para fora) fecham margem e leito de
   uma vez, e cavernas secas cortam o rio (o vão da cisterna é a ponte).
+  Na **Bocarra**, a água é a umidade do fundo: poças e línguas de `=` no chão
+  da caverna — e são o meio dela nativo: o pé molhado acelera a besta.
 - **`÷` = fundura**: a galeira inteira afunda nesse trecho (margem e leito) —
   água demais: não se passa, nem para ela. Vê-se através. Contorna pelo alto,
   pelo fundo ou pela caverna-ponte.
 - **`|` = grade de cela** (masmorras): bloqueia passagem, MAS a luz passa —
   de através dela você vê o que vem (e ela vê você; o olhar segue valendo).
   Nas masmorras, portas de cela viram grade: "celas trancadas" para sempre.
-- **`¥` = caveira**: ossos nas celas abertas — só resto dos que não saíram.
-  Caminhável, decorada.
+- **`¥` = caveira** / **`¶` = corpo**: ossos e corpos que a criatura trouxe.
+  Celas abertas da masmorra guardam os primeiros; a **Bocarra é o acervo
+  INTEIRO** — e o chão conta a descida: nos andares 6-7 o osso ronda o chão
+  a um-ro-quatro; no andar 8 a densidade CRESCE rumo à coroa até o monte —
+  **a pista não contada** (a cama de corpos ao redor de `§` é a resposta).
+  Caminháveis, decorados — e com voz: **cada passo sobre caveira `crack`**
+  (o osso cede e rola) e **cada passo sobre corpo é um `mush` molhado e
+  nojento** (a carne cede, o grude estopa). CORRER nesse chão é entrega:
+  o craque e o mush gritam mais que a bota — coordenada exata para ela.
 - Masmorra funda (andar 3): **poças rasas `=`** — mesmo glifo da água, MAS
   rasas: raso não é habitat, e a maré não acelera ela lá.
 - Ele **ouve**: passos no claro (raio 5), na sombra (raio 3), portas abertas
   (raio 12 — cuidado ao se esconder atrás delas). Ouvidos por andar: no térreo
   ela demora a acordar; nos esgotos desperta na hora.
-- Ao pegar a **coroa** (`§` no altar, andar 5), ele **grita** (15 ticks de
+- **`§` = a coroa**: brilha FORTE (duas ondas de brilho que tocam perto do
+  branco + halo ambar ao redor) — no monte de osso do acervo ela não se
+  perde: o `¶` é estático e baixo, a coroa guarda a luz. A
+  **coroa-fantasma** das alucinações desenha com o MESMO brilho (mesmo
+  attr): a mentira segue o padrão — indistinguível do real, como sempre.
+- Ao pegar a **coroa** (`§` no acervo, andar 8, em cama de corpo), ele **grita**
+  (15 ticks de
   atordoamento — sua chance de arrancar) e entra em caça eterna pelo cheiro.
   Anda em sombra = farol. **Fica imóvel em sombra = você volta a ser só um
   cheiro fraco** — ela procura sua última posição, não a sua.
@@ -89,8 +118,17 @@ ESC volta ao menu.
   não sai — o silêncio dela também te avisa. Na caça com coroa, ela nunca cala.
 - Ouça o **lugar**: vento lento no térreo; na masmorra quase nada (e qualquer
   som soa abafado); goteiras com eco no esgoto — que param de pingar quando
-  ela está de caça perto. A paleta da tela veste a cor do andar (âmbar de
-  castelo / âmbar seco / verde-lodo).
+  ela está de caça perto; na Bocarra, o **ar de teto alto**: vento grave
+  constante dentro de um eco de caverna que não acha parede nenhuma, a
+  respiração do acervo a cada 8-20 s (que também prende quando ela caça) e
+  uma **dissonância miúda e constante** (dois pares de senoides desafinadas,
+  o batimento é o desconforto — perceptível, jamais forte). Por cima de
+  tudo, **o vento grande**: rajadas irregulares no nível do vento do térreo,
+  e cada onda devolve eco de 0.38 s — é o tamanho da caverna falando (o
+  rumble e a dissonância continuam audíveis por baixo; ELA caçando, a
+  rajada não sai). A paleta da tela
+  veste a cor do andar (âmbar de
+  castelo / âmbar seco / verde-lodo / pedra-úmida de caverna).
 
 ## o medo (o terror que não mata)
 
@@ -100,12 +138,15 @@ de você: **sobe rápido com a exposição** (vê-la de perto sobe muito; ela TE
 dispara um pico) e **desce devagar longe dela** — quanto mais alto o nível,
 mais lenta a queda. As regras que seguram tudo:
 
-- **o trauma fica**: um terço do pico de medo da run **não decai** — uma caçada
-  que te levou a 60 te deixa assombrado (20) até o fim, mas sobreviver a ela
+- **o trauma fica**: METADE do pico de medo da run **não decai** — uma caçada
+  que te levou a 60 te deixa assombrado (30) até o fim, mas sobreviver a ela
   não é sentença: cicatriz, não condenação;
 - **o lugar respira**: mesmo sem vê-la, o medo rasteja sozinho até um teto por
   andar — no esgoto, o habitat dela, o teto é 30: você não fica são por muito
-  tempo por lá;
+  tempo por lá. E a Bocarra CRACA: pisar no acervo (6-8) marca o medidor
+  direto em 100 (**colapso** — teatro, não morte) e o medidor não decai mais
+  lá embaixo; o pico de 100 vira cicatriz (50 — metade do pico) que acompanha
+  a volta toda;
 - **o topo só sobe pelo que você VÊ**: perto de 100 cada susto rende menos
   (72+: metade, 86+: um quarto) e os sustos miúdos não empurram nada — o
   sopro atrás da parede e as escamas do rastro alimentam o pavor, os gritos
@@ -161,7 +202,10 @@ scripts/debug6.mjs         bancada do bot playthrough
 | 2 | Masmorra Assombrada | 64×36 | a caça paciente de sempre |
 | 3 | Masmorra Assombrada | 64×36 | caça paciente + rastro forte |
 | 4 | Canais Envenenados | 80×44 | casa dela: veloz, olho a 5, ouvido fino |
-| 5 | Canais Envenenados (coroa) | 80×44 | idem, com canais de água a escoar |
+| 5 | Canais Envenenados | 80×44 | idem, mesmo destino |
+| 6 | Bocarra Diabólica | 88×48 | **acervo**: lenta de nunca dormir, olho a 6, **medo cravado no máximo** |
+| 7 | Bocarra Diabólica | 88×48 | idem — os corpos rondam mais o chão |
+| 8 | Bocarra Diabólica (coroa) | 88×48 | idem — os corpos se empilham rumo à coroa; a cama (`§`) é o monte |
 
 ### WASM ABI
 
@@ -171,18 +215,24 @@ Nada de wasm-bindgen: o módulo expõe funções `#[no_mangle] extern "C"`:
 - `pfb_new_game(seed)` — novo jogo
 - `pfb_step(input)` — um tick (bits: 1↑ 2↓ 4← 8→ 16 espera 32 furtivo 64 correr)
 - `pfb_menu(input)` — teclado das telas de menu (bits: 1↑ 2↓ 4← 8→
-  16 confirmar/ENTER·ESPAÇO 64 voltar/ESC). "Iniciar" publica `STATS[13]=1`
+  16 confirmar/ENTER·ESPAÇO 64 voltar/ESC **32 B 512 A** — as letras do
+  KONAMI). O rastreio do código **↑↑↓↓←→←→B A** vive na RT, NA tela de
+  CONTROLES: os passos certos são consumidos (as setas do código não
+  alternam o esquema de teclas) e o final abre a **ESCOLHA DE ANDAR**; o
+  **A solto** fora do código segue alternando o esquema (WASD), como
+  sempre. "Iniciar" publica `STATS[13]=1`
   e o JS semeia `pfb_new_game`
 - `pfb_grid_ptr()` / `pfb_stats_ptr()` — ponteiros para o grid (2 bytes por
   célula: `[char][attr]`) e para o bloco de status
-- `pfb_max_n()` — tamanho máximo do grid (80×44, esgoto): o JS dimensiona as views
+- `pfb_max_n()` — tamanho máximo do grid (88×48, Bocarra): o JS dimensiona as views
 - `pfb_ui_ptr()` — barra de UI fabricada (dica contextual / nome do andar)
 - `pfb_pop_event()` — fila de eventos de áudio
 - `pfb_diff_ptr()` / `pfb_diff_ack()` — diff de render produzido no WASM:
   `[0]` flags (bit0 = repinte integral), `[1]` camX, `[2]` camY,
   `[3..227]` bitmap de células de TELA mudadas; o JS pinta o marcado e
   confirma com o ack
-- `pfb_state()` — 0 título, 1 jogando, 2 morto, 3 vitória, 4 controles
+- `pfb_state()` — 0 título, 1 jogando, 2 morto, 3 vitória, 4 controles,
+  5 escolha de andar (o konami)
 - `pfb_debug_*` — ferramentas dos testes (place/bas_place/map/probe/give_crown)
 
 O WASM nunca aloca: as views JS são criadas uma vez e ficam válidas.
@@ -209,29 +259,41 @@ node scripts/smoke.mjs
 ```
 
 Valida: morte por olhar (com CONE de visão dela), morte por toque, IA investigando
-ruído, **o rastro de escamas existindo** (via `pfb_debug_body_ptr`) e **o corpo
+ruído, **o KONAMI abrindo a ESCOLHA DE ANDAR (o cursor, o salto, o cravo do
+medo ao pousar no 8 e o ESC de volta)**, **o rastro de escamas existindo** (via `pfb_debug_body_ptr`) e **o corpo
 ficando visível em tela em algum momento**, **o MEDO subindo com exposição e
-caindo LONGE dela, a CICATRIZ do pico (nunca cai de um terço), o PAVOR AMBIENTE
+caindo LONGE dela, a CICATRIZ do pico (nunca cai de metade), o PAVOR AMBIENTE
 rastejando sozinho, o FREIO DO LIMIAR (perto do 100 a subida cansa e susto
 miúdo não empurra o topo), alucinações nascendo no pânico (fantasma + falso
 `B`), a COROA-FANTASMA nascendo longe e evaporando ao chegar perto,
-o COLAPSO em 100 QUE NUNCA MATA (segura o caos, decai devagar e continua
-vivo)**, **um playthrough completo por bot BFS**
-(desce os 5 andares na ordem, pega a coroa na Cloaca, escapa pelo portão —
-rotas que evitam a zona de gaze, esquiva geométrica, caminha na água do esgoto),
-**a MORTE NA CLOACA — tela de morte compõe 56x32, não o stride 80 do esgoto**
+o **medo NUNCA MATA: 100 sustenta o caos, sem morte (e decai)** — e na descida
+para a BOCARRA o medidor CRACA em 100 (colapso permanente enquanto o acervo
+te sustenta)**, pico marcado como cicatriz para o resto da run**,
+**um playthrough completo por bot BFS**
+(desce os 8 andares na ordem, pega a coroa no acervo da Bocarra, escapa pelo
+portão —
+rotas que evitam a zona de gaze, esquiva geométrica, caminha na água e nos
+corpos), **a BOCARRA DECORADA — corpos `¶`, caveiras `¥` e água úmida `=`
+presentes
+em massa nos andares 6-8** e **A PISTA NÃO CONTADA — a densidade do acervo
+provada a crescer rumo à coroa (d<=10 vs d>=25, 1.8x), `pfb_debug_floor` de
+frente**, **a MORTE NO ESGOTO
+— tela de morte compõe 56x32, não o stride 80 do esgoto**
 e fuzz de 6000 ticks sem estados impossíveis.
 
 ## status do conceito
 
-Escopo *proof of concept*: 5 andares temáticos e procedurais — térreo do
+Escopo *proof of concept*: 8 andares temáticos e procedurais — térreo do
 palácio: grandes salões com colunata interna cercados por corredores e
 cômodos pendurados nas paredes deles (portas nos gargalos), masmorras de
 celas com grades (a luz atravessa, o corpo não), caveiras nas celas abertas
 e poças rasas no andar fundo, esgoto imperial 80×44 com **canais imperiais
 verticais** (1–2 rios `=` de cima a baixo, largura e posição à sorte,
 interrompidos por desabamentos de pedra, funduras `÷` atravessáveis por
-ninguém e cavernas-bacia que cortam o rio a seco) — IA em 3 estados
+ninguém e cavernas-bacia que cortam o rio a seco) — e a **BOCARRA DIABÓLICA**
+88×48, o acervo dela: câmaras nascidas de blob, túneis tortos de random-walk,
+umidade em poças de `=`, caveiras `¥` e corpos `¶` em pilha, a coroa no andar 8
+em cama de corpo e o medo cravado no teto lá embaixo. IA em 3 estados
 (patrulha/invest/caça) com BFS real e temperamento por tema, FOV por raycast,
 um toque mata / Um olhar mata. Cada tema tem o próprio caráter de geração.
 Para o jogo grande: itens de "ruído falso", basilisco aprendendo padrões de

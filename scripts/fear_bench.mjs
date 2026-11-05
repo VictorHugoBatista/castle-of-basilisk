@@ -22,7 +22,7 @@ function ensureViews() {
 }
 ensureViews();
 
-const pass = (i) => [0x2E, 0x2C, 0x3E, 0x3C, 0x2B, 0xA7, 0x3D, 0xA5].includes(map[i]); // 0x3D = água '=' · 0xA5 = caveira '¥'
+const pass = (i) => [0x2E, 0x2C, 0x3E, 0x3C, 0x2B, 0xA7, 0x3D, 0xA5, 0xB6].includes(map[i]); // 0x3D = água '=' · 0xA5 = caveira '¥' · 0xB6 = corpo '¶' (bocarra)
 const findTile = (t) => { for (let i = 0; i < W * H; i++) if (map[i] === t) return i; return -1; };
 
 let dangerMemo = null;
@@ -114,8 +114,8 @@ for (let g = 0; g < N; g++) {
     ensureViews();
     let target;
     if (stats[8] === 1) target = findTile(0x3C);
-    else if (stats[2] < 5) target = findTile(0x3E);
-    else target = findTile(0xA7);
+    else if (stats[2] < 8) target = findTile(0x3E); // desce os 8 andares
+    else target = findTile(0xA7); // andar 8: a coroa no acervo
     if (target < 0) break;
 
     const pos0 = stats[3] + stats[4] * W;

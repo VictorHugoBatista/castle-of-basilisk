@@ -169,7 +169,7 @@ pub(crate) fn attr_of(t: u8) -> u8 {
         T_RUBBLE => A_RUBBLE,
         T_WATER | T_SHALLOW => A_WATER,
         T_BARS => A_WALL,
-        T_SKULL => A_RUBBLE,
+        T_SKULL | T_CORPSE => A_RUBBLE, // '¥'/'¶': osso e carne do acervo, cor de osso
         _ => A_FLOOR,
     }
 }
@@ -250,6 +250,8 @@ pub(crate) fn render() {
             render_title();
         } else if st == ST_CONTROLS {
             render_controls();
+        } else if st == ST_SELECT {
+            render_select();
         } else if st == ST_DEAD {
             render_dead();
         } else {
@@ -398,6 +400,55 @@ pub(crate) fn cmd_row(y: usize, label: &str, val: &str) {
         put(x, y, b'.', A_UI);
     }
     write_str(31, y, val, A_UI);
+}
+
+// a ESCOLHA DE ANDAR (o konami, nas controles): quem conhece a casa escolhe
+// por onde entrar. Mesma moldura/linguagem do título; nada na tela de
+// controles anuncia o código — a escolha é segredo de quem o sabe
+pub(crate) fn render_select() {
+    // moldura (igual ao titulo, em ambar)
+    for x in 0..W() {
+        put(x, 0, b'-', A_TITLE);
+        put(x, H() - 2, b'-', A_TITLE);
+    }
+    for y in 0..H() {
+        put(0, y, b'|', A_TITLE);
+        put(W() - 1, y, b'|', A_TITLE);
+    }
+    put(0, 0, b'+', A_TITLE);
+    put(W() - 1, 0, b'+', A_TITLE);
+    put(0, H() - 2, b'+', A_TITLE);
+    put(W() - 1, H() - 2, b'+', A_TITLE);
+
+    // respiro: o big-font nasce UMA LINHA abaixo da moldura (o topo respira)
+    // e solta mais uma antes do subtítulo (os glifos grandes moram em y 2..6)
+    write_big_center(2, "ANDARES", A_TITLE);
+    write_center(8, "escolha por onde entrar:", A_UI);
+
+    // cursor 0..7 (andar 1..8): a linha escolhida ambar (A_TITLE); ESC volta
+    unsafe {
+        let depths: [u8; 8] = [1, 2, 3, 4, 5, 6, 7, 8];
+        let mut names: [&str; 8] = [""; 8];
+        for (k, d) in depths.iter().enumerate() {
+            names[k] = floor_name(*d);
+        }
+        for k in 0..8usize {
+            let y = 10 + k;
+            let sel = KONSEL == k as u8;
+            let a = if sel { A_TITLE } else { A_UI };
+            let num: u8 = b'1' + k as u8;
+            if sel { write_str(9, y, ">", A_TITLE); }
+            put(11, y, num, a);
+            write_str(14, y, names[k], a);
+            if k == 7 {
+                // o último andar carrega o prêmio: anotação na própria linha
+                write_str(14 + names[7].chars().count() + 2, y, "a coroa", A_CROWN);
+            }
+        }
+    }
+
+    write_center(20, "W/S - escolher  ·  ENTER - comecar la", A_UI);
+    write_center(21, "ESC - voltar", A_UI);
 }
 
 

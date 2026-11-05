@@ -168,10 +168,13 @@ pub(crate) fn gen_floor(depth: u8, seed: u32) {
 }
 
 pub(crate) fn floor_dims(depth: u8) -> (usize, usize) {
-    // térreo: o palácio de sempre. Masmorras: a ala de celas — maior que o
-    // palácio, menor que a cloaca. Esgotos: a rede imperial, consideravelmente
-    // maior — dois andares inteiros de cloaca para atravessar.
-    if depth >= 4 { (W_MAX, H_MAX) } else if depth >= 2 { (W_BANK, H_BANK) } else { (W0, H0) }
+    // térreo: o palácio de sempre. Masmorras: a ala de celas. Esgotos: a rede
+    // imperial. BOCARRA (6-8): a caverna dela, abaixo dos rios — o mapa maior
+    // do jogo, 88x48, com todos os buffers dimensionados por (W_MAX, H_MAX)
+    if depth >= 6 { (W_MAX, H_MAX) }
+    else if depth >= 4 { (W_SEWER, H_SEWER) }
+    else if depth >= 2 { (W_BANK, H_BANK) }
+    else { (W0, H0) }
 }
 
 pub(crate) fn gen_once(depth: u8, seed: u32) {
@@ -198,6 +201,7 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
          rub_quota, pil_min_w, pil_min_h, extra_loops, attempt_n) = match th {
         TH_CASTLE  => (6, 5, 4, 4, 13, 1, 4, 55, 1, 6, 4, 2, 240),
         TH_DUNGEON => (4, 3, 3, 2, 16, 2, 5, 75, 3, 7, 5, 2, 420),
+        TH_CAVE    => (5, 6, 3, 4, 12, 2, 0, 25, 2, 99, 99, 0, 0),
         _          => (5, 6, 3, 4, 14, 2, 1, 60, 2, 6, 4, 4, 420),
     };
     // ---- posicionamento das salas: o palácio tem fase própria, o resto
@@ -381,6 +385,162 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
             carve_v(x, 5, 18);
             carve_v(x, 16, 29);
         }
+    } else if th == TH_CAVE {
+        // ---- BOCARRA DIABOLICA: o acervo dela, abaixo dos rios, um pouco
+        // maior que a cloaca. Sistema bizarro de cavernas: camaras nascidas
+        // de BLOB (circulo desdentado a sorte — passagem estreita, teto baixo,
+        // nunca régua), ligadas por TUNEIS TORTOS de random-walk (o passeio
+        // prefere o alvo mas vaga — o corredor vira meandro). Umida: pocas e
+        // linguas de '=' no chao (na casa dela a agua e o meio nativo: 1/1
+        // tick e o passo seu respinga). E o ACERVO: caveiras '¥' e corpos '¶'
+        // trazidos pela criatura — no andar mais fundo, a coroa dorme em
+        // CAMA DE CORPO (a cama nasce junto da coroa, no fim de gen_once).
+        // Zero alocação: âncoras fixas, 12 camaras no máximo. ----
+        let nch = 9 + rndn(4); // 9-12 camaras (RN = 16 no máximo)
+        let mut centers: [(i32, i32, i32); 12] = [(0, 0, 0); 12]; // (cx, cy, raio)
+        let mut used = 0usize;
+        for _ in 0..600 {
+            if used >= nch { break; }
+            let r = (3 + rndn(4)) as i32; // raio 3-6
+            let cx = (r as usize + 1 + rndn(W() - r as usize * 2 - 3)) as i32;
+            let cy = (r as usize + 1 + rndn(H() - r as usize * 2 - 3)) as i32;
+            let mut ok = true;
+            for k in 0..used {
+                let (ox, oy, orr) = centers[k];
+                if (cx - ox).abs() + (cy - oy).abs() < r + orr + 4 { ok = false; break; }
+            }
+            if !ok { continue; }
+            centers[used] = (cx, cy, r);
+            // blob irregular: círculo + dentes a sorte
+            for dy in -r..=r {
+                for dx in -r..=r {
+                    if dx * dx + dy * dy > r * r + rndn(3) as i32 { continue; } // borda mastigada
+                    let x = cx + dx;
+                    let y = cy + dy;
+                    if x <= 0 || x >= W() as i32 - 1 || y <= 0 || y >= H() as i32 - 1 { continue; }
+                    unsafe { MAP[idx(x as usize, y as usize)] = T_FLOOR; }
+                }
+            }
+            // o CENTRO da camara JAMAIS vira parede: sala-ponto da patrulha
+            unsafe { MAP[idx(cx as usize, cy as usize)] = T_FLOOR; }
+            // sala = bounding box (farejada como sala: a patrulha por camaras)
+            set_room(used, cx - r, cy - r, cx + r, cy + r);
+            unsafe { RN += 1; }
+            used += 1;
+        }
+        // tuneis tortos: cada camara gruda na mais proxima JA ligada (a
+        // mesma leitura dos corredores de hoje). O caminho é um passeio que
+        // prefere o alvo (70%) e vaga (30%); guard largo — e se o passeio
+        // vagar demais, carve reto de emergência (o grafo fecha, sempre)
+        let mut linked: [bool; 12] = [false; 12];
+        linked[0] = true;
+        loop {
+            let mut best: (i32, usize, usize) = (i32::MAX, 0, 0);
+            for a in 0..used {
+                if linked[a] { continue; }
+                for b in 0..used {
+                    if !linked[b] { continue; }
+                    let c = (centers[a].0 - centers[b].0).abs() + (centers[a].1 - centers[b].1).abs();
+                    if c < best.0 { best = (c, a, b); }
+                }
+            }
+            if best.0 == i32::MAX { break; }
+            let (mut x, mut y) = (centers[best.1].0, centers[best.1].1);
+            let (tx, ty) = (centers[best.2].0, centers[best.2].1);
+            let mut guard = 0i32;
+            while (x != tx || y != ty) && guard < 2400 {
+                guard += 1;
+                let (dx, dy) = if rndn(10) < 7 {
+                    let (ddx, ddy) = (tx - x, ty - y);
+                    if ddx.abs() > ddy.abs() { (ddx.signum(), 0) } else { (0, ddy.signum()) }
+                } else {
+                    match rndn(4) {
+                        0 => (1, 0),
+                        1 => (-1, 0),
+                        2 => (0, 1),
+                        _ => (0, -1),
+                    }
+                };
+                x = (x + dx).clamp(1, W() as i32 - 2);
+                y = (y + dy).clamp(1, H() as i32 - 2);
+                unsafe {
+                    let i = idx(x as usize, y as usize);
+                    if MAP[i] == T_WALL { MAP[i] = T_FLOOR; }
+                }
+            }
+            if x != tx || y != ty {
+                // emergencia (o passeio vagou demais): caminho reto fecha o grafo
+                carve_h(y, x, tx);
+                carve_v(tx, y, ty);
+            }
+            linked[best.1] = true;
+        }
+        // UMIDADE: poças e línguas de '=' no chão — nascem em PISO e acabam
+        // onde o chão acaba (antes das pilhas de ossos: corpo não fica na água)
+        for _ in 0..(14 + rndn(6)) {
+            let mut cx = rndn(W()) as i32;
+            let mut cy = rndn(H()) as i32;
+            let i0 = idx(cx as usize, cy as usize);
+            if unsafe { MAP[i0] != T_FLOOR } { continue; }
+            unsafe { MAP[i0] = T_WATER; }
+            let mut len = 6 + rndn(14) as i32; // língua 7..=19
+            while len > 0 {
+                let (ndx, ndy) = match rndn(4) {
+                    0 => (1, 0),
+                    1 => (-1, 0),
+                    2 => (0, 1),
+                    _ => (0, -1),
+                };
+                cx += ndx;
+                cy += ndy;
+                if cx < 1 || cy < 1 || cx >= W() as i32 - 1 || cy >= H() as i32 - 1 { break; }
+                let i = idx(cx as usize, cy as usize);
+                if unsafe { MAP[i] == T_FLOOR } {
+                    unsafe { MAP[i] = T_WATER; }
+                    len -= 1;
+                } else { break; }
+            }
+        }
+        // ACERVO: caveiras '¥' e corpos '¶' — a DENSIDADE é a pista não
+        // contada. Nos andares 6-7 só "um pouco mais" que hoje (núcleos
+        // 42-53, chão ~15%). No andar 8 (o fundo do fundo, a coroa)
+        // o gradiente é verdade: cada piso tem chance de virar osso/carne
+        // que CRESCE rumo à sala da coroa — longe ~12%, perto até ~58-70%
+        // de chance (a cama do monte fecha os últimos tiles) — os caminhos
+        // se contam em corpos e ninguém ditou nada.
+        // (corpo nasce 1 em 3 e só em PISO: água fica úmida de por si)
+        let deep8 = depth == 8;
+        let (tx, ty, _) = centers[used - 1]; // âncora da DESCIDA/COROA de gen_once
+        for i in 0..N_MAX {
+            if unsafe { MAP[i] != T_FLOOR } { continue; }
+            let x = (i % W()) as i32;
+            let y = (i / W()) as i32;
+            let pct = if deep8 {
+                ((12 + (60 - ((x - tx).abs() + (y - ty).abs())).clamp(0, 60) * 7 / 9) as i32).clamp(12, 70)
+            } else { 15 };
+            if rndn(100) as i32 >= pct { continue; }
+            unsafe { MAP[i] = if rndn(3) == 0 { T_CORPSE } else { T_SKULL }; }
+        }
+        let ncl = if deep8 { 20 + rndn(12) } else { 42 + rndn(12) };
+        for _ in 0..ncl {
+            let cx = rndn(W()) as i32;
+            let cy = rndn(H()) as i32;
+            let i0 = idx(cx as usize, cy as usize);
+            if unsafe { MAP[i0] != T_FLOOR } { continue; }
+            unsafe { MAP[i0] = T_SKULL; }
+            for _ in 0..(2 + rndn(4)) {
+                let dx: i32 = rndn(3) as i32 - 1;
+                let dy: i32 = rndn(3) as i32 - 1;
+                if dx == 0 && dy == 0 { continue; }
+                let x = cx + dx;
+                let y = cy + dy;
+                if x < 1 || y < 1 || x >= W() as i32 - 1 || y >= H() as i32 - 1 { continue; }
+                let i = idx(x as usize, y as usize);
+                if unsafe { MAP[i] == T_FLOOR } {
+                    unsafe { MAP[i] = if rndn(3) == 0 { T_CORPSE } else { T_SKULL }; }
+                }
+            }
+        }
     } else {
         // ---- CANAIS IMPERIAIS: 1-2 rios verticais de '=' correndo o andar de
         // cima a baixo — água de 1 (córrego fino) a 5 de largura, FLANQUEADA
@@ -474,22 +634,24 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
 
     let mut rn = unsafe { RN };
     if rn < 2 {
-        // fallback: sala única gigante
+        // fallback: sala única gigante (DOS centros distintos: '<' e '>' nunca
+        // caem no mesmo tile — a sala 0 é a entrada, a 1 é mais escondida)
         unsafe {
             MAP = [T_WALL; N_MAX];
             for y in 6..26 { for x in 8..48 { MAP[idx(x, y)] = T_FLOOR; } }
             set_room(0, 8, 6, 47, 25);
-            set_room(1, 14, 10, 41, 21);
+            set_room(1, 16, 12, 40, 20);
             RN = 2;
         }
         rn = 2;
     }
 
     // ---- corredores: liga cada sala não-conectada à mais próxima conectada
-    // (a ala de celas se liga sozinha pelas escalas de serviço: pular) ----
+    // (a ala de celas se liga sozinha pelas escalas de serviço: pular; a
+    // BOCARRA se liga sozinha pelos tuneis tortos dela: pular) ----
     let mut linked: [bool; 16] = [false; 16];
     linked[0] = true;
-    if th != TH_DUNGEON {
+    if th != TH_DUNGEON && th != TH_CAVE {
         loop {
         let mut best: (i32, usize, usize) = (i32::MAX, 0, 0);
         for a in 0..rn {
@@ -517,7 +679,7 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
     }
 
     // ---- corredores extras (loops de fuga) — o esgoto precisa de mais, é imenso ----
-    if th != TH_DUNGEON {
+    if th != TH_DUNGEON && th != TH_CAVE {
         for _ in 0..extra_loops {
             let a = rndn(rn);
             let b = rndn(rn);
@@ -535,8 +697,9 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
     }
 
     // ---- portas nos gargalos de corredor (a ala de celas tem as portas
-    // dela expostas nas frentes — sem pinch genérico por cima) ----
-    if th != TH_DUNGEON {
+    // dela expostas nas frentes — sem pinch genérico por cima; a BOCARRA não
+    // tem porta nenhuma: o acervo atravessa só por o que ela mesma cavou) ----
+    if th != TH_DUNGEON && th != TH_CAVE {
     for y in 1..H() - 1 {
         for x in 1..W() - 1 {
             let i = idx(x, y);
@@ -705,8 +868,8 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
     let (ex, ey) = rcenter(0);
     unsafe { MAP[idx(ex as usize, ey as usize)] = T_UP; }
 
-    // ---- saída '>' (até o andar 4) ou coroa '§' com altar (andar 5: a Cloaca
-    // Maxima profunda, onde o rei morto coroou-se a si mesmo) ----
+    // ---- saída '>' (até o andar 7) ou coroa '§' — na BOCARRA, o acervo
+    // profundo: a coroa dorme em cama de corpo (o fim de toda descida) ----
     // ala de celas: a DESCIDA também é sorteada — galeria de 2º/3º andar à
     // sorte, coluna aleatória do corredor dela: nunca na galeria do '<',
     // nunca na mesma posição duas vezes
@@ -720,13 +883,32 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
         set_room_t(dx, dy, T_DOWN);
     } else {
         set_room_t(dx, dy, T_CROWN);
-        for off in [(-2, 0i32), (2, 0), (0, -2), (0, 2), (-2, -2), (2, 2), (-2, 2), (2, -2)] {
-            let tx = dx + off.0;
-            let ty = dy + off.1;
-            if tx > 0 && tx < W() as i32 - 1 && ty > 0 && ty < H() as i32 - 1 {
-                unsafe {
-                    let i = idx(tx as usize, ty as usize);
-                    if MAP[i] == T_FLOOR { MAP[i] = T_PILLAR; }
+        if th == TH_CAVE {
+            // CAMA DE CORPO: a coroa dorme no MEIO DO MONTE — o quadrado 7x7
+            // ao redor de § vira corpo '¶' (o centro é a própria coroa, que
+            // fica de pé). O gradiente do acervo entrega o jogador aqui sem
+            // palavra alguma (a resposta do canon: "a coroa em cama de
+            // corpo", LORE §3/§5 — a cena inteira em terreno)
+            for gy in (dy - 3)..=(dy + 3) {
+                for gx in (dx - 3)..=(dx + 3) {
+                    if gx <= 0 || gx >= W() as i32 - 1 || gy <= 0 || gy >= H() as i32 - 1 { continue; }
+                    unsafe {
+                        let i = idx(gx as usize, gy as usize);
+                        if MAP[i] == T_FLOOR || MAP[i] == T_WATER {
+                            MAP[i] = T_CORPSE;
+                        }
+                    }
+                }
+            }
+        } else {
+            for off in [(-2, 0i32), (2, 0), (0, -2), (0, 2), (-2, -2), (2, 2), (-2, 2), (2, -2)] {
+                let tx = dx + off.0;
+                let ty = dy + off.1;
+                if tx > 0 && tx < W() as i32 - 1 && ty > 0 && ty < H() as i32 - 1 {
+                    unsafe {
+                        let i = idx(tx as usize, ty as usize);
+                        if MAP[i] == T_FLOOR { MAP[i] = T_PILLAR; }
+                    }
                 }
             }
         }

@@ -50,7 +50,24 @@ const PAL_SEWER = [
   '#4a6a3a', // 13 água '=' (waves próprias em colorFor)
   '#8a9a7a', '#030500', // 14 = fantasma (lodo pálido) · 15 vazio
 ];
-const PAL_BY_THEME = [PAL_CASTLE, PAL_DUNGEON, PAL_SEWER];
+const PAL_CAVE = [
+  '#3a2f26', // 0 piso (rocha úmida do acervo)
+  '#5c4a36', // 1 parede (pedra respirando água)
+  '#221b14', // 2 sombra
+  '#6f5738', // 3 porta (não existe na Bocarra, mas a paleta é uma)
+  '#d8caa0', // 4 escadas
+  '#ffe08a', // 5 coroa
+  '#cdbf9d', // 6 jogador (pálido acendido do acervo)
+  '#ff2e00', // 7 basilisco
+  '#4a3d2e', // 8 UI
+  '#ff5000', // 9 alerta
+  '#8a7a4a', // 10 título
+  '#bf1600', // 11 corpo
+  '#9a9178', // 12 osso: '¥' caveira e '¶' corpo do acervo
+  '#1f3a42', // 13 água '=' (escura e fria — a umidade de 30 m de rio por cima)
+  '#b0a890', '#060403', // 14 = fantasma · 15 vazio
+];
+const PAL_BY_THEME = [PAL_CASTLE, PAL_DUNGEON, PAL_SEWER, PAL_CAVE];
 let PAL = PAL_CASTLE;
 const WATER_ATTR = 13;
 const GHOST_ATTR = 14; // 'o': as mentiras do RT (alucinações do medo)
@@ -106,6 +123,12 @@ let ambGain = null; // bus da trilha ambiente contínua
 let ambNodes = [];
 let ambTimer = null;
 let ambTheme = -1;
+// Bocarra: corpo da "respiração do acervo" (os nós persistem só o tema
+// vigente — a troca de trilha zera junto com os ambNodes)
+let noiseCaveGain = null;
+let noiseCaveFilter = null;
+let noiseCaveBreath = -1;
+let caveGen = 0; // geração do corpo do ar: corrente de timer velha morre nela
 
 function audioOn() {
   if (AC) return;
@@ -137,10 +160,10 @@ function audioOn() {
   startDrone();
 }
 
-// tema derivado de DEPTH: 0 castelo · 1 masmorra · 2 esgoto
+// tema derivado de DEPTH: 0 castelo · 1 masmorra · 2 esgoto · 3 Bocarra (acervo)
 function ambientTheme() {
   const d = stats[2];
-  return d <= 1 ? 0 : (d <= 3 ? 1 : 2);
+  return d <= 1 ? 0 : (d <= 3 ? 1 : (d <= 5 ? 2 : 3));
 }
 
 // troca de trilha ao mudar de andar: fade das velhas, arranque das novas
@@ -156,6 +179,10 @@ function setAmbience(force) {
     setTimeout(() => { try { n.stop ? n.stop() : n.disconnect(); } catch (e) {} }, 1600);
   }
   ambNodes = [];
+  noiseCaveGain = null;
+  noiseCaveFilter = null;
+  noiseCaveBreath = -1; // a respiração re-agenda na PRÓXIMA visita ao acervo
+  caveGen++; // nova geração: qualquer corrente de timer da visita velha morre
   PAL = PAL_BY_THEME[th === -1 ? 0 : th]; // o CRT respira a cor do lugar
   needsFull = true;
   // SFX abafados na masmorra: o silêncio sepulcral contrasta qualquer som
@@ -241,6 +268,13 @@ function setAmbience(force) {
   } else if (th === 2) {
     // ---- ESCGOTO: GOTEIRAS — ping agudo com eco de cisterna, irregular
     schedDrips();
+  } else if (th === 3) {
+    // ---- BOCARRA: O ACERVO RESPONDENDO — goteira densa e funda (30 m de
+    // rio por cima: o ping chega gordo, com eco de lago) + a RESPIRAÇÃO do
+    // acervo: um rumor que sobe e desce a cada 8-20 s, sempre em scheduler
+    // irregular — nada de LFO de amplitude periódico (regra do glue). Tudo
+    // prende quando ELA caça perto: a caverna guarda o ar
+    schedCave();
   }
 }
 
@@ -276,6 +310,217 @@ function schedDrips() {
     }
     schedDrips();
   }, 320 + Math.random() * 2600);
+}
+
+// agendador da BOCARRA: ping gordo e denso (a caverna é úmida, 30 m abaixo
+// do leito) + a RESPIRAÇÃO do acervo — rumor grave que sobe e desce a cada
+// 8-20 s, sempre em scheduler irregular. Nada de LFO de amplitude periódico
+// (a regra de "ondas do mar" da seção 3 do AGENTS.md vale aqui por inteiro).
+// Quando ELA caça perto, tudo emudece: a caverna prende a respiração.
+function schedCave() {
+  if (ambTheme !== 3 || !AC) return;
+  ambTimer = setTimeout(() => {
+    const hunted = stats[0] === 1 && stats[7] === 2;
+    if (!hunted) {
+      // ping denso: 1-2 gotas, f0 mais grave que o do esgoto, eco de lago
+      blip({
+        type: 'sine',
+        f0: 900 + Math.random() * 300,
+        f1: 240,
+        dur: 0.09,
+        vol: 0.055,
+        out: echoIn,
+      });
+      if (Math.random() < 0.28) { // gota dupla escorrendo
+        blip({ type: 'sine', f0: 760, f1: 210, dur: 0.07, vol: 0.04, delay: 0.14, out: echoIn });
+      }
+      if (Math.random() < 0.18) { // gota numa caveira: quase estalo
+        noiseBurst({ dur: 0.05, vol: 0.02, f: 2200 + Math.random() * 900, q: 3, out: echoIn });
+      }
+    }
+    schedCave();
+  }, 240 + Math.random() * 1700);
+  // o corpo do ar (vento + eco + dissonância + a respiração): nasce UMA
+  // vez por visita; a troca de tema desliga tudo junto das trilhas velhas
+  if (!noiseCaveGain) buildCaveAir();
+  if (noiseCaveBreath !== ambTheme) {
+    noiseCaveBreath = ambTheme;
+    const gen = caveGen; // corrente presa à sua geração de corpo
+    const breath = () => {
+      if (ambTheme !== 3 || !AC) return;
+      setTimeout(() => {
+        if (ambTheme !== 3 || !AC || gen !== caveGen) return;
+        if (!(stats[0] === 1 && stats[7] === 2) && noiseCaveGain) {
+          const t = AC.currentTime;
+          const f0 = 130 + Math.random() * 70;
+          const peak = 0.020 + Math.random() * 0.014;
+          noiseCaveFilter.frequency.setTargetAtTime(f0, t, 1.8);
+          noiseCaveGain.gain.setTargetAtTime(peak, t, 1.8);          // inala
+          noiseCaveGain.gain.setTargetAtTime(0.004, t + 3.4 + Math.random() * 1.6, 2.6); // expira
+        }
+        breath(); // agenda a próxima — enquanto a Bocarra respirar, soa
+      }, 8000 + Math.random() * 12000);
+    };
+    breath();
+  }
+}
+
+// o AR DO ACERVO: construído UMA vez por visita ao tema 3 — o TETO ALTO é
+// a morada: (a) vento grave constante, sem LFO de ganho (o corpo do ruído
+// é fixo; o único movimento é a respiração, que agenda por si), (b) a boca
+// de eco de caverna (delay longo, feedback gordo — o som não acha parede
+// nenhuma perto) e (c) a DISSONÂNCIA: dois pares de senoides desafinadas
+// cujo BATIMENTO é o desconforto — gain fixo e discreto (a dissonância
+// vive da frequência, nunca de amplitude pulsante; mesma regra do vento).
+// Passa por caveIn: seco leve + wet do eco. Tudo entra em ambNodes, então
+// a troca de tema desfaz o corpo inteiro (o agendador re-monta na volta).
+function buildCaveAir() {
+  // bus local da caverna: seco + o eco de teto alto de volta ao master
+  const caveIn = AC.createGain();
+  caveIn.gain.value = 1;
+  caveIn.connect(ambGain);
+  const echo = AC.createDelay(0.7);
+  echo.delayTime.value = 0.38;
+  const echoFb = AC.createGain();
+  echoFb.gain.value = 0.45;
+  const echoWet = AC.createGain();
+  echoWet.gain.value = 0.5;
+  caveIn.connect(echo);
+  echo.connect(echoFb);
+  echoFb.connect(echo);
+  echo.connect(echoWet);
+  echoWet.connect(ambGain);
+  ambNodes.push(caveIn, echo, echoFb, echoWet);
+
+  // vento do teto: corpo de ruído constante em lowpass bem grave, com
+  // deriva lenta de afinação (o vento muda de calibre, como o do térreo)
+  const buf = AC.createBuffer(1, Math.floor(AC.sampleRate * 4), AC.sampleRate);
+  const ch = buf.getChannelData(0);
+  for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+  const wind = AC.createBufferSource();
+  wind.buffer = buf;
+  wind.loop = true;
+  const windLo = AC.createBiquadFilter();
+  windLo.type = 'lowpass';
+  windLo.frequency.value = 120;
+  windLo.Q.value = 0.4;
+  const windGain = AC.createGain();
+  windGain.gain.value = 0.011;
+  wind.connect(windLo);
+  windLo.connect(windGain);
+  windGain.connect(caveIn);
+  const drift = AC.createOscillator();
+  drift.frequency.value = 0.03;
+  const driftG = AC.createGain();
+  driftG.gain.value = 45;
+  drift.connect(driftG);
+  driftG.connect(windLo.frequency);
+  wind.start();
+  drift.start();
+  ambNodes.push(wind, windLo, windGain, drift, driftG);
+
+  // ---- O VENTO GRANDE (o tamanho das cavernas): corpo gustado à RÉGUA DO
+  // TÉRREO (ganho constante ~0.05 = o nível do vento da primeira fase) —
+  // sempre POR caveIn: cada onda devolve eco de 0.38 s (é o tamanho da
+  // boca que ele acha). Highpass embaixo para o rumble e a dissonância
+  // NUNCA ficarem embaixo da brisa; rajadas por scheduler sorteado (nada
+  // de LFO de ganho periódico) — o corpo abre até 460-740 Hz e o assobio
+  // fino cresce; ELA caçando: a rajada não sai (o corpo fica grave, a
+  // caverna prende o ar). Tudo morre com a troca de tema (ambNodes)
+  const windBig = AC.createBufferSource();
+  windBig.buffer = buf; // mesmo serviço de ruído fonte: leitura independente
+  windBig.loop = true;
+  const bigHp = AC.createBiquadFilter();
+  bigHp.type = 'highpass';
+  bigHp.frequency.value = 100;
+  const bigLo = AC.createBiquadFilter();
+  bigLo.type = 'lowpass';
+  bigLo.frequency.value = 260;
+  bigLo.Q.value = 0.4;
+  const bigGain = AC.createGain();
+  bigGain.gain.value = 0.05;
+  windBig.connect(bigHp);
+  bigHp.connect(bigLo);
+  bigLo.connect(bigGain);
+  bigGain.connect(caveIn);
+  // assobio da caverna: faixa média-fina, quase nada — cresce na rajada
+  const bigWhistle = AC.createBiquadFilter();
+  bigWhistle.type = 'bandpass';
+  bigWhistle.frequency.value = 720;
+  bigWhistle.Q.value = 6;
+  const bigWg = AC.createGain();
+  bigWg.gain.value = 0.004;
+  windBig.connect(bigWhistle);
+  bigWhistle.connect(bigWg);
+  bigWg.connect(caveIn);
+  // deriva lenta de afinação: o vento muda de calibre sozinho, entre rajadas
+  const drift2 = AC.createOscillator();
+  drift2.frequency.value = 0.05;
+  const drift2G = AC.createGain();
+  drift2G.gain.value = 55;
+  drift2.connect(drift2G);
+  drift2G.connect(bigLo.frequency);
+  windBig.start();
+  drift2.start();
+  ambNodes.push(windBig, bigHp, bigLo, bigGain, bigWhistle, bigWg, drift2, drift2G);
+  // rajadas do vento grande: 5-15 s, sobe/desce a sorte — igual ao vento do
+  // térreo (subida 1.0-2.8 s, descida 2.0-4.5 s), mas MAIS grave e sempre
+  // com o eco do teto por trás. A corrente carrega a GERAÇÃO do corpo: um
+  // vai-e-vem rápido de andar não ressuscita corrente velha (sem dobrar keu)
+  const gen = caveGen;
+  const gustBig = () => {
+    if (ambTheme !== 3 || !AC) return;
+    setTimeout(() => {
+      if (ambTheme !== 3 || !AC || gen !== caveGen) return;
+      if (noiseCaveGain === null) return; // corpo morto: remonta na volta
+      if (!(stats[0] === 1 && stats[7] === 2)) { // ELA caçando: sem rajada
+        const t = AC.currentTime;
+        const rise = 1.0 + Math.random() * 1.8;
+        const fall = 2.0 + Math.random() * 2.5;
+        const peak = 460 + Math.random() * 280;
+        bigLo.frequency.setTargetAtTime(peak, t, rise * 0.45);
+        bigLo.frequency.setTargetAtTime(260, t + rise + 0.5, fall * 0.5);
+        const wG = 0.009 + Math.random() * 0.007;
+        bigWg.gain.setTargetAtTime(wG, t, rise * 0.45);
+        bigWg.gain.setTargetAtTime(0.004, t + rise + 0.5, fall * 0.5);
+      }
+      gustBig();
+    }, 5000 + Math.random() * 10000);
+  };
+  gustBig();
+
+  // dissonância: o par grave bate devagar (~5/s — o ar "não afina"), o par
+  // agudo bate rápido (~18/s — o chiado que coça o ouvido). Ganhos ínfimos
+  for (const [f, v] of [[82, 0.006], [87.3, 0.006], [1740, 0.0022], [1758, 0.0022]]) {
+    const o = AC.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = f;
+    const dg = AC.createGain();
+    dg.gain.value = v;
+    o.connect(dg);
+    dg.connect(caveIn);
+    o.start();
+    ambNodes.push(o, dg);
+  }
+
+  // a respiração (que já existia) mora no bus da caverna agora: de lá ela
+  // ganha o eco do teto junto com todo o resto do ar
+  const buf2 = AC.createBuffer(1, Math.floor(AC.sampleRate * 4), AC.sampleRate);
+  const ch2 = buf2.getChannelData(0);
+  for (let i = 0; i < ch2.length; i++) ch2[i] = Math.random() * 2 - 1;
+  const src = AC.createBufferSource();
+  src.buffer = buf2;
+  src.loop = true;
+  noiseCaveFilter = AC.createBiquadFilter();
+  noiseCaveFilter.type = 'lowpass';
+  noiseCaveFilter.frequency.value = 150;
+  noiseCaveGain = AC.createGain();
+  noiseCaveGain.gain.value = 0.004;
+  src.connect(noiseCaveFilter);
+  noiseCaveFilter.connect(noiseCaveGain);
+  noiseCaveGain.connect(caveIn);
+  src.start();
+  ambNodes.push(src);
 }
 
 function startDrone() {
@@ -361,16 +606,35 @@ function noiseBurst({ dur = 0.3, vol = 0.15, f = 3000, q = 2, delay = 0, pan = 0
 // sons por evento (mesmos IDs do WASM)
 function playEvent(ev, pan) {
   switch (ev) {
-    case 1: { // passo: intensidade pelo medidor de ruído (stats[10]) + esgoto respinga
+    case 1: { // passo: intensidade pelo medidor (stats[10]); o chão decide o timbre:
+      // água respinga, ossuário do acervo estala (crack), carne do acervo
+      // aperta e esborracha (mush molhado), chão seco é o clique de sempre
       const lvl = stats[10];
-      const onWater = mapview[stats[3] + stats[4] * MWd] === 0x3D; // T_WATER sob os pés
+      const under = mapview[stats[3] + stats[4] * MWd];
+      const onWater = under === 0x3D;  // T_WATER sob os pés
+      const onBone = under === 0xA5;   // caveira '¥' do acervo
+      const onCorpse = under === 0xB6; // corpo '¶' do acervo
       if (lvl === 1) {
-        // silencioso: quase nada, um toque de dedo no chão
-        if (onWater) blip({ type: 'sine', f0: 640, f1: 260, dur: 0.05, vol: 0.03, out: echoIn });
+        // silencioso: quase nada — um toque de dedo no chão
+        if (onBone) blip({ type: 'square', f0: 520, f1: 300, dur: 0.02, vol: 0.014 });
+        else if (onCorpse) blip({ type: 'sine', f0: 150, f1: 90, dur: 0.04, vol: 0.02 });
+        else if (onWater) blip({ type: 'sine', f0: 640, f1: 260, dur: 0.05, vol: 0.03, out: echoIn });
         else blip({ type: 'square', f0: 460, dur: 0.02, vol: 0.018 });
       } else if (lvl === 3) {
-        // corrida: bota batendo + eco a preencher o corredor vazio
-        if (onWater) {
+        // corrida: bota batendo + eco a preencher o corredor vazio — e no
+        // acervo, o osso FRATURA e a carne ESBORRACHA alto (o ruído
+        // mecânico nasce já no WASM: correr nesses tiles entrega você)
+        if (onBone) {
+          // craque duplo: a costela cede e rola
+          blip({ type: 'square', f0: 700, f1: 200, dur: 0.04, vol: 0.13, out: echoIn });
+          noiseBurst({ dur: 0.05, vol: 0.11, f: 2800, q: 2.5, out: echoIn });
+          noiseBurst({ dur: 0.04, vol: 0.07, f: 2200 + Math.random() * 500, q: 3, delay: 0.07, out: echoIn });
+        } else if (onCorpse) {
+          // mush molhado: a massa cede, o grude estopa e escorre
+          blip({ type: 'sine', f0: 300, f1: 50, dur: 0.12, vol: 0.13, out: echoIn });
+          noiseBurst({ dur: 0.12, vol: 0.11, f: 480, q: 0.8, out: echoIn });
+          noiseBurst({ dur: 0.08, vol: 0.08, f: 320, q: 0.9, delay: 0.06, out: echoIn });
+        } else if (onWater) {
           noiseBurst({ dur: 0.12, vol: 0.12, f: 1100, q: 1.1, out: echoIn });
           blip({ type: 'sine', f0: 820, f1: 180, dur: 0.12, vol: 0.1, out: echoIn });
         } else {
@@ -378,8 +642,15 @@ function playEvent(ev, pan) {
           blip({ type: 'sine', f0: 120, f1: 70, dur: 0.1, vol: 0.11 });
         }
       } else {
-        // andar: clique seco, bem discreto (respingo curto na água)
-        if (onWater) {
+        // andar: clique seco, bem discreto (respingo curto na água;
+        // no acervo, o craque miudo e o grude molhado — sem exagero)
+        if (onBone) {
+          blip({ type: 'square', f0: 620, f1: 260, dur: 0.03, vol: 0.055, out: echoIn });
+          noiseBurst({ dur: 0.03, vol: 0.04, f: 2500 + Math.random() * 500, q: 3 });
+        } else if (onCorpse) {
+          blip({ type: 'sine', f0: 230, f1: 60, dur: 0.09, vol: 0.07 });
+          noiseBurst({ dur: 0.09, vol: 0.055, f: 430, q: 1.0 });
+        } else if (onWater) {
           noiseBurst({ dur: 0.06, vol: 0.055, f: 1500, q: 1.4 });
           blip({ type: 'sine', f0: 760, f1: 300, dur: 0.05, vol: 0.055 });
         } else {
@@ -514,14 +785,18 @@ const RUN_CODES = ['KeyX', 'KeyK'];
 const runHeld = new Set(); // por tecla: soltar uma não derruba a corrida da outra
 
 // bits de input das telas de menu (mesmos números do WASM):
-// 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 CONFIRMAR, 64 VOLTAR
+// 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 CONFIRMAR, 64 VOLTAR — e as letras do
+// KONAMI: B=32 e A=512. O rastreio do código ↑↑↓↓←→←→B A vive na RT
+// (pfb_menu consome os passos certos e abre a ESCOLHA DE ANDAR; o A solto
+// nas CONTROLES segue alternando o esquema — comportamento RT)
 const MENU_CODES = {
   KeyW: 1, ArrowUp: 1,
   KeyS: 2, ArrowDown: 2,
-  KeyA: 4, ArrowLeft: 4,
+  KeyA: 512, ArrowLeft: 4,
   KeyD: 8, ArrowRight: 8,
   Enter: 16, Space: 16,
   Escape: 64,
+  KeyB: 32,
 };
 
 function startGame() {
@@ -543,8 +818,9 @@ function menuStep(e) {
 window.addEventListener('keydown', (e) => {
   audioOn();
   if (AC && AC.state === 'suspended') AC.resume();
-  // telas de menu (titulo 0 e controles 4): as teclas vao direto pro WASM
-  if (stats[0] === 0 || stats[0] === 4) {
+  // telas de menu (titulo 0, controles 4 e escolha 5): as teclas vao direto pro WASM
+  // — nas CONTROLES, o próprio RT rastreia o KONAMI (B/A são bits de menu)
+  if (stats[0] === 0 || stats[0] === 4 || stats[0] === 5) {
     if (menuStep(e)) return;
   }
   // morte/vitória: ENTER reinicia (como sempre)
@@ -592,6 +868,14 @@ function colorFor(ch, attr, nowMs) {
     // fica sólido. Duas senoidas fora de fase: batimento irregular.
     const p = 0.62 + 0.25 * Math.sin(nowMs * 0.0021) + 0.13 * Math.sin(nowMs * 0.011);
     col = shade(col, Math.max(0.35, Math.min(1.0, p)));
+  } else if (a === 5) {
+    // a COROA brilha forte: duas ondas fora de fase, pico ~1.4 (o amarelo
+    // sangra até perto do branco) e vale MINIMO 0.6 — nunca apaga. No acervo
+    // o '¶' osso é estático e baixo (attr 12): é o contraste que salva §
+    // da cama de corpos. A coroa-fantasma desenha com o MESMO attr (o RT
+    // menti com a mesma criança): a mentira segue o padrão por construção
+    const p = 1.0 + 0.25 * Math.sin(nowMs * 0.0055) + 0.15 * Math.sin(nowMs * 0.0131);
+    col = shade(col, p);
   } else if (a === WATER_ATTR) {
     // ondulação lenta de lodo: cada célula corrói o brilho no tempo
     const p = 0.78 + 0.22 * Math.sin(nowMs * 0.0028);
@@ -631,8 +915,16 @@ function redrawWorldCell(si, wi, nowMs) {
   const ch = grid[wi * 2];
   const attr = grid[wi * 2 + 1];
   if (ch !== 0 && ch !== 32) {
+    // mesmo halo do loop principal: a coroa (real ou fantasma) nunca perde
+    // o brilho nem quando a serpente passa ao lado (repasse da vizinhança)
+    // — e tile LEMBRADO (DIM) não tem halo: a memória não ilumina
+    if ((attr & 0x7f) === 5 && (attr & DIM_FLAG) === 0) {
+      ctx.shadowColor = 'rgba(255,224,138,0.6)';
+      ctx.shadowBlur = 9;
+    }
     ctx.fillStyle = colorFor(ch, attr, nowMs);
     ctx.fillText(String.fromCharCode(ch), x + 1, y + CELL_H / 2 + 1);
+    ctx.shadowBlur = 0;
   }
 }
 
@@ -747,8 +1039,17 @@ function render(nowMs) {
     ctx.fillRect(x, y, CELL_W, CELL_H);
     const c = String.fromCharCode(ch);
     if (ch !== 0 && c !== ' ') {
+      // a COROA tem halo próprio (attr 5 real OU fantasma: a mentira brilha
+      // igual) — o osso '¶' ao redor não tem brilho nenhum: § não se perde.
+      // tile LEMBRADO (DIM) não tem halo: a névoa escurece e o glow não
+      // vaza além da célula (a memória não ilumina)
+      if ((attr & 0x7f) === 5 && (attr & DIM_FLAG) === 0) {
+        ctx.shadowColor = 'rgba(255,224,138,0.6)';
+        ctx.shadowBlur = 9;
+      }
       ctx.fillStyle = colorFor(ch, attr, nowMs);
       ctx.fillText(c, x + 1, y + CELL_H / 2 + 1);
+      ctx.shadowBlur = 0;
     }
   }
 

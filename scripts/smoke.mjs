@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 const bytes = readFileSync(new URL('../web/wasm/castle_of_basilisk.wasm', import.meta.url));
 const { instance } = await WebAssembly.instantiate(bytes, {});
 const w = instance.exports;
-const N_MAX = 80 * 44; // pior caso do grid (esgoto)
+const N_MAX = 88 * 48; // pior caso do grid (Bocarra Diabólica)
 let Wd = 56, Hd = 32;    // dims do andar atual (stats[16]/[17])
 
 let gview = null, mview = null, lastViewKey = -1;
@@ -82,6 +82,47 @@ const startReq = stats[13] === 1 && stats[0] === 0;   // pedido publicado
     ? 'PASS - menu do título (navegar/controles/voltar/iniciar)'
     : 'FAIL - menu do título');
 }
+
+// ---------- 1c. o KONAMI: o código digitado de frente na RT ----------
+// (pfb_menu com os bits 32/512: as setas CONSUMIDAS do código não trocam o
+// esquema de teclas, o A solto fora do código alterna e reseta, ENTER salta
+// com as regras da descida e um passo FORA do código reseta)
+const km = { up: 1, down: 2, left: 4, right: 8, ok: 16, back: 64, b: 32, a: 512 };
+const konami = scenario('konami na RT: o codigo abre, o A solto alterna, salta e crava', () => {
+  w.pfb_init(); // título (o cenário anterior re-semeou o jogo)
+  w.pfb_menu(km.down); w.pfb_menu(km.ok); // CONTROLES
+  if (stats[0] !== 4) return false;
+  // o A solto FORA do código: alterna o esquema (SETAS->WASD aqui) e não abre
+  w.pfb_menu(km.right);            // esquema = SETAS (1)
+  if (stats[15] !== 1) return false;
+  w.pfb_menu(km.a);                // A solto: volta a WASD (0), sem abrir
+  if (stats[15] !== 0 || stats[0] !== 4) return false;
+  // o código completo: ↑↑↓↓←→←→B A — as setas CONSUMIDAS não mexem no
+  // esquema (fica em WASD/0 apesar dos ←→ no meio) e o final abre a escolha
+  for (const b of [km.up, km.up, km.down, km.down, km.left, km.right, km.left, km.right, km.b, km.a]) {
+    w.pfb_menu(b);
+  }
+  if (stats[0] !== 5 || stats[15] !== 0) return false;
+  ensureViews(); // tela de menu = viewport 56x32
+  // cursor sel 3 (3 downs) = andar 4, na linha y=13 (a lista nasce na 10
+  // depois do respiro do título): '>' do sel acende no grid
+  for (let k = 0; k < 3; k++) w.pfb_menu(km.down);
+  if (grid[(13 * Wd + 9) * 2] !== 0x3E) return false;
+  w.pfb_menu(km.ok); // saltar ao andar 4 (sem coroa: medo não crava)
+  if (stats[0] !== 1 || stats[2] !== 4 || stats[18] >= 100) return false;
+  // de novo: 8 ANDARES — re-digitar o código, pousar no 8, o CRACO do medo
+  w.pfb_init();
+  w.pfb_menu(km.down); w.pfb_menu(km.ok);
+  w.pfb_menu(km.right); // passo FORA do código: reset + esquema vira SETAS
+  if (stats[15] !== 1) return false;
+  for (const b of [km.up, km.up, km.down, km.down, km.left, km.right, km.left, km.right, km.b, km.a]) {
+    w.pfb_menu(b);
+  }
+  if (stats[0] !== 5) return false;
+  for (let k = 0; k < 7; k++) w.pfb_menu(km.down); // cursor 8
+  w.pfb_menu(km.ok);
+  return stats[0] === 1 && stats[2] === 8 && stats[18] === 100;
+});
 
 // ---------- 2. cenários de morte/alerta ----------
 function findCell(pred) {
@@ -332,8 +373,9 @@ const collapse = scenario('o medo NUNCA mata: 100 sustenta o caos, sem morte (e 
   place(far.x, far.y);
   w.pfb_debug_fear(100); // o COLAPSO, forçado
   for (let k = 0; k < 240; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
-  // 240 ticks parado longe: do teto (98+) sangrou só até a cicatriz (~33),
-  // vivo todo instante — o drama mora no travessia, não na lápide
+  // 240 ticks parado longe: do teto (98+) sangrou só até a cicatriz (~50,
+  // metade do pico), vivo todo instante — o drama mora na travessia, não na
+  // lápide
   return stats[18] <= 100 && stats[18] >= 30 && stats[18] < 100;
 });
 
@@ -369,11 +411,11 @@ const brake = scenario('freio do limiar: perto do 100, a subida cansa', () => {
   return false;
 });
 
-// ---------- 2h. trauma: um TERÇO do pico NUNCA decai ----------
+// ---------- 2h. trauma: METADE do pico NUNCA decai ----------
 // O design diz "o susto fica preso no corpo": depois de um pico 60, o medo
-// desce até 20 e PARA — a cicatriz acompanha você até o fim da run (assombrado,
+// desce até 30 e PARA — a cicatriz acompanha você até o fim da run (assombrado,
 // não condenado: escapar de uma caçada não é sentença de morte).
-const trauma = scenario('medo: o pico deixa cicatriz (nunca cai de um terço)', () => {
+const trauma = scenario('medo: o pico deixa cicatriz (nunca cai de metade)', () => {
   w.pfb_new_game(1234567);
   for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
   const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
@@ -381,7 +423,7 @@ const trauma = scenario('medo: o pico deixa cicatriz (nunca cai de um terço)', 
   place(far.x, far.y);
   w.pfb_debug_fear(60); // um quase-morte: pico 60
   for (let k = 0; k < 200; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
-  return stats[18] >= 20; // 200 ticks calmo depois: ainda em 20 — ficou preso
+  return stats[18] >= 30; // 200 ticks calmo depois: em 30 — ficou preso
 });
 
 // ---------- 2h-bis. o topo só avança pelo que você VÊ ----------
@@ -552,7 +594,7 @@ const diffContract = scenario('contrato do diff: bitmap == byte-a-byte real (120
 // desvio do tile quando já está parado sobre o alvo.
 const pass = (i) => {
   const t = wmap[i];
-  return t === 0x2E || t === 0x2C || t === 0x3E || t === 0x3C || t === 0x2B || t === 0xA7 || t === 0x3D || t === 0xA5; // 0x3D = água '=' · 0xA5 = caveira '¥' (masmorras)
+  return t === 0x2E || t === 0x2C || t === 0x3E || t === 0x3C || t === 0x2B || t === 0xA7 || t === 0x3D || t === 0xA5 || t === 0xB6; // 0x3D = água '=' · 0xA5 = caveira '¥' · 0xB6 = corpo '¶' (bocarra)
 };
 // portais (>, <, §) são INTERAÇÕES: só pisável se é o alvo do plano —
 // senão o bot atravessa um '<' sem querer e sobe de andar
@@ -637,9 +679,10 @@ function dodge(target) {
 wmap = new Uint8Array(w.memory.buffer, wmap.byteOffset, wmap.length); // re-sincroniza
 
 let playthroughOK = false, attempts = 0, deathReasons = {};
-// decoração da masmorra: contada a cada andar que o bot visita — grades
-// (barras '|') e caveiras '¥' nas celas, poças rasas '=' no andar fundo
-const dec = { bars: 0, skull: 0, shallow3: 0, sawD3: false };
+// decoração por andar: masmorra (grades '|' e caveiras '¥', poças rasas no d3)
+// e BOCARRA (corpos '¶', caveiras '¥' e água '=' do acervo — contadas só a
+// partir do andar 6, pois a própria masmorra usa '¥' nas celas)
+const dec = { bars: 0, skull: 0, shallow3: 0, sawD3: false, corpse: 0, caveWater: 0, sawCave: false, caveSkull: 0 };
 let lastDepth = -1;
 while (attempts < 40 && !playthroughOK) {
   attempts++;
@@ -657,13 +700,17 @@ while (attempts < 40 && !playthroughOK) {
         if (ch === 0xA5) dec.skull++;          // caveira '¥'
         if (ch === 0x3D && stats[2] === 3) dec.shallow3++; // poça rasa no andar 3
         if (stats[2] === 3) dec.sawD3 = true;
+        if (ch === 0xB6 && stats[2] >= 6) dec.corpse++;   // corpo '¶' do acervo
+        if (ch === 0xA5 && stats[2] >= 6) dec.caveSkull++; // caveira '¥' do acervo
+        if (ch === 0x3D && stats[2] >= 6) dec.caveWater++; // água úmida da caverna
+        if (stats[2] >= 6) dec.sawCave = true;
       }
     }
     steps++;
     let target;
     if (stats[8] === 1) target = findTile(0x3C);       // com coroa: sempre '<'
-    else if (stats[2] < 5) target = findTile(0x3E);    // sem coroa: desce (5 andares)
-    else target = findTile(0xA7);                      // andar 5: a coroa
+    else if (stats[2] < 8) target = findTile(0x3E);    // sem coroa: desce (8 andares)
+    else target = findTile(0xA7);                      // andar 8: a coroa no acervo
     if (target < 0) break;
 
     const pos0 = stats[3] + stats[4] * Wd;
@@ -731,6 +778,44 @@ const dungeonDecor = playthroughOK && dec.bars > 0 && dec.skull > 0 && dec.sawD3
 console.log(dungeonDecor
   ? `PASS - masmorra decorada (grades=${dec.bars}, caveiras=${dec.skull}, poças d3=${dec.shallow3})`
   : `FAIL - masmorra decorada (grades=${dec.bars}, caveiras=${dec.skull}, poças d3=${dec.shallow3}, sawD3=${dec.sawD3})`);
+
+// ---------- 3b-bis. bocarra decorada: úmida e cheia do acervo ----------
+// A BOCARRA (6-8) tem que entregar o LUGAR: corpos '¶' trazidos pela criatura
+// em massa, caveiras em pilha, água '=' da umidade — e a passagem do bot de
+// verdade por lá (limiares generosos: a randagem varia por seed, a ESCALA é
+// reada — perto de 300 ossos/carne nos três andares somados)
+const caveDecor = playthroughOK && dec.sawCave && dec.corpse > 80 && dec.caveSkull > 120 && dec.caveWater > 0;
+console.log(caveDecor
+  ? `PASS - bocarra decorada (corpos ¶=${dec.corpse}, caveiras do acervo=${dec.caveSkull}, água=${dec.caveWater})`
+  : `FAIL - bocarra decorada (corpos ¶=${dec.corpse}, caveiras=${dec.caveSkull}, água=${dec.caveWater}, sawCave=${dec.sawCave})`);
+
+// ---------- 3b-ter. a pista não contada ----------
+// A DENSIDADE do acervo cresce rumo à coroa: no andar 8, longe do Ferro
+// (d>=25) o chão é mais osso que pedra não; a 10 tiles dela (d<=10) o monte
+// domina. A cerca entregue é IMAGEM — a mecânica nenhum a dita (regra das
+// pílulas). pfb_debug_floor pula o bot direto a fundo e a planta fala.
+const pista = scenario('a pista não contada: o acervo se empilha rumo à coroa', () => {
+  w.pfb_new_game(1234567);
+  w.pfb_debug_floor(8);
+  if (stats[0] !== 1) return false;
+  ensureViews();
+  let crown = -1;
+  for (let i = 0; i < Wd * Hd; i++) if (wmap[i] === 0xA7) { crown = i; break; }
+  if (crown < 0) return false;
+  const cx = crown % Wd, cy = (crown / Wd) | 0;
+  const acervo = (t) => t === 0xA5 || t === 0xB6;
+  const chao = (t) => t === 0x2E || acervo(t) || t === 0x3D; // candidatos do piso
+  let nearC = 0, nearT = 0, farC = 0, farT = 0;
+  for (let i = 0; i < Wd * Hd; i++) {
+    if (!chao(wmap[i])) continue;
+    const d = Math.abs((i % Wd) - cx) + Math.abs(((i / Wd) | 0) - cy);
+    if (d <= 10) { nearT++; if (acervo(wmap[i])) nearC++; }
+    else if (d >= 25) { farT++; if (acervo(wmap[i])) farC++; }
+  }
+  if (nearT < 30 || farT < 60) return false; // janela pequena demais: honesto
+  const nearD = nearC / nearT, farD = farC / farT;
+  return nearD >= 0.65 && farD <= 0.40 && nearD > farD * 1.8;
+});
 
 
 // ---------- 3a-bis. regressão: a tela de morte nos esgotos ----------
@@ -869,6 +954,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, caveDecor, pista, deadUi, bodyProof, traps === 0, menuOk, konami, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

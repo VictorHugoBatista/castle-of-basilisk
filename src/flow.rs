@@ -69,6 +69,16 @@ pub(crate) fn enter_floor(depth: u8, ev: u32, by_exit: bool) {
         clear_player_trail();
         if by_exit { place_player_at_exit(); } else { place_player_at_up(); }
         place_basilisk();
+        // ---- A BOCARRA CRACA O MEDO NO TETO: pisar no acervo (6-8) é o
+        // momento em que o corpo inteiro entende o lugar — o medidor nasce
+        // em 100 (COLAPSO, as MESMAS regras: não mata) e não decai lá embaixo
+        // (fear.rs crava o chão em FEAR_MAX por profundidade). O pico crava
+        // FEAR_PK também: ao subir de volta a cicatriz é METADE do pico (50)
+        // — a escada respira, mas nunca deixa de respirar errado
+        if depth >= 6 {
+            FEAR = FEAR_MAX;
+            FEAR_PK = FEAR_MAX;
+        }
         GRACE = 14;
         push_event(ev);
     }
@@ -78,6 +88,20 @@ pub(crate) fn descend() { unsafe { enter_floor(DEPTH + 1, EV_DOWN, false); } }
 // subir NÃO vence: te pousa no '>' do andar de cima, e você reatravessa o
 // andar até o '<' dele. A vitória é pisar no portão '<' do térreo com a coroa.
 pub(crate) fn ascend() { unsafe { enter_floor(DEPTH - 1, EV_UP, true); } }
+
+// SALTO de andar (o dev tool pfb_debug_floor e a ESCOLHA via konami): sair
+// da tela e nascer na entrada do andar N com as regras do jogo inteiro —
+// seeds por andar, GRACE, place_basilisk e o CRACO do medo (enter_floor)
+pub(crate) fn jump_floor(depth: u8) {
+    unsafe {
+        STATE = ST_PLAY;
+        enter_floor(depth, EV_DOWN, false);
+        compute_fov();
+        body_pass();
+        render();
+        sync_stats();
+    }
+}
 
 pub(crate) fn death(reason: u8) {
     unsafe {
@@ -155,6 +179,13 @@ pub(crate) fn game_step(input: u32) {
                 PX = nx;
                 PY = ny;
                 MOVED = true;
+                // o acervo delata quem corre: pisar duro no osso (craque) e
+                // na carne (mush molhado) grita MAIS que a bota — coordenada
+                // exata. Andar é só cenário; CORRER é prova dela
+                if can_run && (t == T_SKULL || t == T_CORPSE) {
+                    noise(PX, PY, if t == T_SKULL { BONE_CRACK_NOISE } else { CORPSE_MUSH_NOISE }, true);
+                    NOISEL = 3;
+                }
                 if k == 0 { push_event(EV_STEP); }
                 match t {
                     // SEM return cedo: o mapa mudou de andar, mas o tick termina

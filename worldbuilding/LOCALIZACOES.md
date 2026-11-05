@@ -36,10 +36,11 @@ porquê do berço dela respingar nos três: a maré sai pela goela e comanda
 contra Manso, contra Fundo e rio abaixo pelo Cala. A cidade não fica
 *entre os rios*: fica **na garganta do Y**.
 
-- Andares 1–5: o que o jogo renderiza hoje (térreo de ruínas, masmorras,
-  canais envenenados, o altar).
-- Andar 6 (pendente, LORE.md §5): **a caverna** — o acervo, as paredes
-  pintadas (lacuna 16), a coroa no meio.
+- Andares 1–5: o palácio (térreo de ruínas, masmorras, canais envenenados).
+- Andares 6–8: **a Bocarra Diabólica** — a caverna abaixo dos rios: o acervo,
+  as paredes pintadas que o canon lembra (lacuna 16), a densidade de corpos
+  crescendo rumo à coroa (a pista não contada — o caminho é contado em
+  corpos, LORE.md §5) e a coroa dormindo no meio do monte (LORE.md §5).
 - O portão (30 m acima do fundo dos canais) é a única saída do trajeto —
   e hoje leva o único talho novo da região: `L.B.` (pílula 9).
 
@@ -167,5 +168,5 @@ Regra comum do Y inteiro:
 - A periferia que nunca desocupou: LORE.md §4 (a periferia).
 - A maré dela e o destino da fome: LORE.md §3 (o lar e a maré) + lacuna 12.
 - O talho `L.B.` e a Liga: LORE.md §6-7; o empregador: lacuna 9.
-- O porão (`andar 6`): LORE.md §5 — nasce como doc junto do nível
-  (`ANDAR6-CAVERNA.md`, ver worldbuilding/README.md).
+- O porão (`andares 6–8`, a Bocarra Diabólica): LORE.md §5 — em tela desde o
+  PR da caverna.
