@@ -11,7 +11,7 @@
 | arquivo | status | o que é |
 |---|---|---|
 | [`LORE.md`](LORE.md) | canon | O canon inteiro: respostas rápidas, cronologia (Império→Regência), a coisa da bacia, o Massacre Silencioso (anúncio/noite/ironia/periferia), a Descida como superstição, o Ferro e o porão, o ladrão e a Liga das Beiras — com as **16 lacunas deliberadas** (§8, o combustível das teorias), as pílulas autorizadas (§7) e as regras de canon para devs (§9) |
-| [`LOCALIZACOES.md`](LOCALIZACOES.md) | canon | O reino no mapa: os dois rios (Manso e Fundo), a floresta cerrada (o anel), o castelo no cotovelo, a cidade interna **dizimada**, a cidade média **esvaziada**, as palafitas nas margens (nunca desocupadas) e os povoados de fora — longe dos rios por escolha, e por isso sem o aviso |
+| [`LOCALIZACOES.md`](LOCALIZACOES.md) | canon | O reino no mapa: um **Y de rio** (braços Manso e Fundo; o stem, o Cala), a floresta cerrada (o anel), o castelo **na goela** com a cidade interna **dizimada**, a cidade média **esvaziada**, as palafitas ao longo dos três e os povoados de fora — longe de toda margem, e por isso sem o aviso |
 
 ## planejados (criar nesta estrutura conforme o futuro demandar)
 

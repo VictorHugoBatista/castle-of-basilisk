@@ -9,64 +9,85 @@
 
 ## o mapa
 
+O reino inteiro cabe num Y: **Manso** (braço oeste) e **Fundo** (braço
+leste) descem do norte e se juntam num ponto único — a **goela** — de onde
+sai **o Cala**, o stem que desce para o sul. **A cidade senta na parte de
+cima do Y**: os muros abraçam a goela por cima, o castelo dentro, as
+palafitas ao longo dos três, os povoados longe de toda margem.
+
 ```
-              . . .  N O R T E   (upstream)  . . .
+            . . . N O R T E  (upstream — os braços nascem na cerrada) . . .
 
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-ttt         x  x  x   POVOADOS   x  x  x             ttttttttttt
-ttt          x  x  [longe das margens] x  x          ttttttttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttt      x  x  x   POVOADOS   x  x  x    POVOADOS   x  x  x      ttttt
+tttt        x  x  [entre os braços — dias e dias de trilha]  x    ttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
 
-tttttttt       ~~~~~~~~~                    ~~~~~~~~~    tttttt
-ttttttt      ~~~~ Manso ~~~                  ~~~ Fundo ~~~~ ttt
-tttttttttt    ~~~~~~                          ~~~~~~     ttttt
-ttttttttttt     ~~~~~   .................  ~~~~~      tttttttt
-ttt             ~~~     #  ==============  #  ~~~~    tttttttt
-ttt             ~~~     # | cidade interna | # ~~~~    ttttttt
-ttt   y         ~~~     # |  o CASTELO     | # ~~~~  y    tttt
-tttt. y         ~~~     # |  (5 andares)   | # ~~~~    y  .ttt
-tttt  y         ~~~     # ================  #  ~~~~    y  .ttt
-tttt. y         ~~~     ####################  ~~~~      y. ttt
-ttttttttt       ~~~       cidade média       ~~~~       ttttttt
-ttttttttt       ~~~       (esvaziada)        ~~~~       ttttttt
-ttt   y         ~~~~~~                    ~~~~~~      y    tttt
-ttt    yy        ~~~~~~                  ~~~~~~       yy    ttt
-tttttttttt....   ~~~~~~~~              ~~~~~~~~   ...tttttttttt
-ttttttt          ~~~~~~ MANSO ~~~  ~~~ FUNDO ~~~~~      ttttttt
+tttttt          x   ~~~~                     ~~~~    x           tttttt
+tttttt            ~~~~~~~                ~~~~~~~              tttttttt
+ttttt             ~~~~~~~~ Manso     Fundo ~~~~~~~~            ttttttt
+ttttt                ~~~~~~~            ~~~~~~~                  ttttt
+ttttttt                 ~~~~~          ~~~~~              tttttttttttt
+ttttttttttt                x                x           ttttttttttttt
+tttttttttttttt              ~~~~          ~~~~          tttttttttttttt
 
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-ttt         x  x  x   POVOADOS   x  x  x             ttttttttttt
-ttt           x  x  [de quem saiu de vez] x  x       ttttttttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+              ......==( canais imperiais )==......
+      y            ~~~~~~ a goela ~~~~~~            y   (palafitas de cima)
+tttttttttt    ######=================##########      tttttttttttttttttt
+tttttttttt    #  | cidade interna (dizimada) |  #     tttttttttttttttt
+ttttttttttt   #  |        o CASTELO (5)      |  #  ttttttttttttttttttt
+ttttttttttt   #  ==============================  #  ttttttttttttttttt
+tttttttttt    ###### cidade média (esvaziada) ######    ttttttttttttttt
+ttttttttttt        y            ~~~~~~           y       tttttttttttttt
 
-              . . .  S U L   (rio abaixo)  . . .
+    (o stem sai da goela para o sul — é aqui que tudo desce)
+                          ~~~~~~ o Cala ~~~~~~
+     y                ~~~~~~~~~~~~~~~~                y   (palafitas de baixo)
+tttttttttttttt          x   x   x   POVOADOS   x   x   x     ttttttt
+ttttttttttt      x  x  [de quem saiu de vez]  x  x      ttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+
+                  . . . S U L  (o Cala funda)  . . .
+```
+
+Corte vertical do castelo (de cima a baixo — o que o jogo mostra hoje;
+o `andar 6` é pendente):
+
+```
+  portão '<' (30 m acima do fundo dos canais)
+     andar 1 — térreo: ruínas do palácio (salões, vento)
+     andar 2–3 — masmorras (celas, `¥`, a exceção de corpos)
+     andar 4–5 — canais envenenados (o altar, a coroa `§`)
+     andar 6 — PENDENTE: a caverna (o acervo, as pinturas, o meio)
 ```
 
 | símbolo | o que é |
 |---|---|
 | `t` | floresta cerrada — o anel que fecha o reino |
-| `~` | os dois grandes rios (Manso, oeste; Fundo, leste) |
+| `~` | o Y de rio: **Manso** (braço oeste), **Fundo** (braço leste), **o Cala** (stem, sul) |
+| `=` | os canais imperiais — a veia que costura os braços por cima dos muros |
+| `goela` | a junção — o ponto onde a cidade senta |
 | `#` | as muralhas internas — a pedra da cidade morta |
-| `p` | cidade interna (dentro dos muros) — dizimada |
-| o block central | o castelo — o mapa do jogo: 5 andares + o porão (`andar 6`, pendente) |
-| cidade média (entre os rios) | fora dos muros — esvaziada na mesma noite |
-| `y` | palafitas — as aldeias da margem, vivo até hoje |
-| `x` | povoados distantes — os que saíram de vez, longe dos rios |
+| cidade interna | dentro dos muros — **dizimada** |
+| cidade média | fora dos muros — **esvaziada** na mesma noite |
+| `y` | palafitas — ao longo dos três; cada aldeia uma orelha |
+| `x` | povoados distantes — as clareiras, longe de toda margem |
 
-Como ler: norte é o topo da página; os rios correm de norte a sul.
-Distância mede-se **por trilha**, nunca em linha reta — a cerrada não se
-atravessa sem caminho herdado: cada coluna do mapa vale dias. As trilhas
-vivas são poucas: as margens (palafita a palafita, água acima), o ramo dos
-povoados (clareira a clareira) e a estrada morta até o castelo.
+Como ler: norte é o topo; os braços descem do norte e se juntam; o stem
+sai para o sul. Distância mede-se **por trilha**, nunca em linha reta — a
+cerrada não se atravessa sem caminho herdado: cada coluna do mapa vale
+dias. As trilhas vivas: as margens (palafita a palafita, água acima e
+abaixo), o ramo dos povoados (clareira a clareira) e a estrada morta até
+o castelo.
 
 ---
 
 ## o reino (a moldura)
 
 O reino não tem nome impresso — como a cidade: os documentos de pedra
-morreram com os escribas. O que existe é o que a cerrada segura: dois rios,
-uma pedra, margens e clareiras. Fora do anel de floresta, o mundo é outro
-país e não é assunto deste documento.
+morreram com os escribas. O que existe é o que a cerrada segura: um Y de
+rio, uma pedra na garganta, margens e clareiras. Fora do anel de floresta,
+o mundo é outro país e não é assunto deste documento.
 
 Estados que restam (ver LORE.md §2):
 
@@ -82,11 +103,13 @@ Estados que restam (ver LORE.md §2):
 
 ## o castelo (o mapa do jogo)
 
-A pedra forte no cotovelo dos rios — o ponto onde os dois chegam mais
-perto um do outro. Os **canais imperiais** escavam exatamente ali o
-caminho curto de um rio ao outro: é por isso que a capital existiu —
-controle de água entre Manso e Fundo. É também por isso que a maré dela
-toca os DOIS lados: o berço dela drena para os dois rios.
+A pedra forte **na goela** — o ponto onde os dois braços viram um só. Os
+**canais imperiais** costuram os braços por cima dos muros e caem na
+cavidade por dentro: quem segura a goela bebe os dois braços de cima e
+fecha o stem de baixo. É essa a razão de existir da capital — e é esse o
+porquê do berço dela respingar nos três: a maré sai pela goela e comanda
+contra Manso, contra Fundo e rio abaixo pelo Cala. A cidade não fica
+*entre os rios*: fica **na garganta do Y**.
 
 - Andares 1–5: o que o jogo renderiza hoje (térreo de ruínas, masmorras,
   canais envenenados, o altar).
@@ -128,13 +151,14 @@ foi para longe. Ninguém da média conta a história igual.
 
 ---
 
-## as palafitas (as margens dos dois rios)
+## as palafitas (as margens do Y)
 
 **Nunca desocupadas** — o único lugar da região que continua morando no
-mesmo chão há cem anos (LORE.md §4, a periferia). Aldeais de palafita
-sobre a água, espalhados nas margens dos DOIS rios — o protocolo da maré
-tem conta em cada linguagem local, mas a régua é uma: a água para de
-pingar, o peixe muda de toca, a mochila levanta.
+mesmo chão há cem anos (LORE.md §4, a periferia). Aldeias de palafita
+sobre a água, espalhadas **ao longo do Y inteiro**: margem do Manso,
+margem do Fundo e as beiras do Cala — o protocolo da maré tem sotaque em
+cada aldeia, mas a régua é uma: a água para de pingar, o peixe muda de
+tóca, a mochila levanta.
 
 É por aqui que dormem no nível dela — e por isso o sonho chegou primeiro e
 de graça. É a pátria da Liga das Beiras (o conselho), do caderno da ladrã
@@ -187,22 +211,26 @@ documento.
 
 ---
 
-## os dois rios (Manso e Fundo)
+## os rios em Y (Manso, Fundo, o Cala)
 
 Nomes de beira — a pedra nunca escreveu nome de rio (a corte não nomeava
-nada: LORE.md §2, o edital). **Manso** (oeste) nasce e corre calado;
-**Fundo** (leste) corre fundo e escuro — e é para o lado dele que a
-régua da beira aponta a maré (lacuna 12).
+nada: LORE.md §2, o edital). **Manso** (braço oeste) desce do norte calado;
+**Fundo** (braço leste) desce profundo e escuro — e é para o lado dele que
+a régua da beira aponta a maré. Os dois se juntam **na goela** — a cota da
+cidade — e dali em diante vira um só: **o Cala**, o stem que sai do pé do
+Y e funda para o sul (a leitura 12(c) do LORE.md: abaixo dela, o leito
+segue).
 
-Regra comum dos dois:
+Regra comum do Y inteiro:
 
-- o castelo entre eles: os canais costuram os dois no ponto mais próximo —
-  a razão de existir da capital, e a porta dupla da maré;
+- o castelo na goela: os canais costuram os braços por cima e caem na
+  cavidade — a razão de existir da capital, e a garganta por onde a maré
+  comanda contra os dois e desce pelo stem;
 - **ninguém navega**: quem dorme no meio do rio sonha colado na maré — os
   barcos do império apodreceram encostados até virar madeira morta;
-- o peixe muda de toca — e a mudança dele é a régua (o protocolo de beira
-  inteiro segura nisso);
-- as margens de ambos: só palafitas, e cada aldeia uma orelha — a rede de
+- o peixe muda de tóca — e a mudança dele é a régua (o protocolo de beira
+  inteiro segura nisso, dos três lados);
+- as margens do Y: só palafitas, e cada aldeia uma orelha — a rede de
   escuta da maré é a única infraestrutura que cresceu nos últimos cem
   anos.
 
