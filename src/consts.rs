@@ -179,6 +179,11 @@ pub(crate) const RUN_COST: i32 = 6;     // fôlego por passo corrido
 pub(crate) const STAM_REGEN: i32 = 2;   // recuperação por tick sem correr
 pub(crate) const PANT_AT: i32 = 25;     // abaixo disso: ofego audível e sem corrida
 pub(crate) const RUB_EVIDENCE: i32 = 30; // ticks de prova fresca para ela entrar no escombro
+// o acervo DELATA quem corre em cima dele: o craque do osso e o mush molhado
+// da carne gritam MAIS que a bota (coordenada exata — loud=true). Só no
+// acervo (tiles ¥/¶ da Bocarra); andar/sneak por lá é só cenário.
+pub(crate) const BONE_CRACK_NOISE: i32 = 16;
+pub(crate) const CORPSE_MUSH_NOISE: i32 = 17;
 pub(crate) const EAR_COOL: i32 = 42;     // após uma investigação, ela desconcentra (ticks)
 pub(crate) const TRAIL_SCENT: i32 = 260; // por quanto tempo uma sala visitada ainda "cheira"
 pub(crate) const TRAIL_W_RECENT: i32 = 14; // peso de sala visitada a 20..140 ticks (masmorra)

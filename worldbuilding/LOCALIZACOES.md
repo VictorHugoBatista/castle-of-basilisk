@@ -38,8 +38,9 @@ contra Manso, contra Fundo e rio abaixo pelo Cala. A cidade não fica
 
 - Andares 1–5: o palácio (térreo de ruínas, masmorras, canais envenenados).
 - Andares 6–8: **a Bocarra Diabólica** — a caverna abaixo dos rios: o acervo,
-  as paredes que o canon lembra (lacuna 16), caveiras e corpos trazidos, e a
-  coroa dormindo no meio (LORE.md §5).
+  as paredes pintadas que o canon lembra (lacuna 16), a densidade de corpos
+  crescendo rumo à coroa (a pista não contada — o caminho é contado em
+  corpos, LORE.md §5) e a coroa dormindo no meio do monte (LORE.md §5).
 - O portão (30 m acima do fundo dos canais) é a única saída do trajeto —
   e hoje leva o único talho novo da região: `L.B.` (pílula 9).
 

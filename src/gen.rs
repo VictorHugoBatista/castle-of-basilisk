@@ -501,11 +501,26 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
                 } else { break; }
             }
         }
-        // ACERVO: pilhas de caveiras e corpos trazidos pela criatura — 30-44
-        // nucleos que arrastam vizinhancas (corpo nasce 1 em 3: o acervo é
-        // PLANO de gente; a peça maior do acervo mora na CAMA DE CORPO ao
-        // redor da coroa)
-        let ncl = 30 + rndn(14);
+        // ACERVO: caveiras '¥' e corpos '¶' — a DENSIDADE é a pista não
+        // contada. Nos andares 6-7 só "um pouco mais" que hoje (núcleos
+        // 42-53, chão ~15%). No andar 8 (o fundo do fundo, a coroa)
+        // gradients VERDADE: cada piso tem chance de virar osso/carne que
+        // CRESCE rumo à sala da coroa — longe ~14%, perto até ~70% de
+        // chance — os caminhos se contam em corpos e ninguém ditou nada.
+        // (corpo nasce 1 em 3 e só em PISO: água fica úmida de por si)
+        let deep8 = depth == 8;
+        let (tx, ty, _) = centers[used - 1]; // âncora da DESCIDA/COROA de gen_once
+        for i in 0..N_MAX {
+            if unsafe { MAP[i] != T_FLOOR } { continue; }
+            let x = (i % W()) as i32;
+            let y = (i / W()) as i32;
+            let pct = if deep8 {
+                ((12 + (60 - ((x - tx).abs() + (y - ty).abs())).clamp(0, 60) * 7 / 9) as i32).clamp(12, 70)
+            } else { 15 };
+            if rndn(100) as i32 >= pct { continue; }
+            unsafe { MAP[i] = if rndn(3) == 0 { T_CORPSE } else { T_SKULL }; }
+        }
+        let ncl = if deep8 { 20 + rndn(12) } else { 42 + rndn(12) };
         for _ in 0..ncl {
             let cx = rndn(W()) as i32;
             let cy = rndn(H()) as i32;
@@ -868,19 +883,20 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
     } else {
         set_room_t(dx, dy, T_CROWN);
         if th == TH_CAVE {
-            // CAMA DE CORPO: a coroa dorme no meio do acervo — todo piso a 2
-            // tiles vira corpo '¶' (a resposta do canon: "a coroa em cama de
-            // corpo", LORE §3/§5 — o jogo finalmente entrega a cena)
-            for off in [(0i32, 0i32), (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1),
-                        (2, -2), (2, -1), (2, 0), (2, 1), (2, 2), (-2, -2), (-2, -1), (-2, 0), (-2, 1), (-2, 2),
-                        (-1, -2), (0, -2), (1, -2), (-1, 2), (0, 2), (1, 2)] {
-                let tx = dx + off.0;
-                let ty = dy + off.1;
-                if tx <= 0 || tx >= W() as i32 - 1 || ty <= 0 || ty >= H() as i32 - 1 { continue; }
-                unsafe {
-                    let i = idx(tx as usize, ty as usize);
-                    let t = MAP[i];
-                    if t == T_FLOOR || t == T_WATER { MAP[i] = T_CORPSE; }
+            // CAMA DE CORPO: a coroa dorme no MEIO DO MONTE — o quadrado 7x7
+            // ao redor de § vira corpo '¶' (o centro é a própria coroa, que
+            // fica de pé). O gradiente do acervo entrega o jogador aqui sem
+            // palavra alguma (a resposta do canon: "a coroa em cama de
+            // corpo", LORE §3/§5 — a cena inteira em terreno)
+            for gy in (dy - 3)..=(dy + 3) {
+                for gx in (dx - 3)..=(dx + 3) {
+                    if gx <= 0 || gx >= W() as i32 - 1 || gy <= 0 || gy >= H() as i32 - 1 { continue; }
+                    unsafe {
+                        let i = idx(gx as usize, gy as usize);
+                        if MAP[i] == T_FLOOR || MAP[i] == T_WATER {
+                            MAP[i] = T_CORPSE;
+                        }
+                    }
                 }
             }
         } else {

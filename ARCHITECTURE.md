@@ -203,10 +203,21 @@ Decisoes:
   (estalo de pedra a cada 16-40 s; SFX abafados a 0.7 no bus `sfxBus` — o
   silencio sepulcral contrasta com qualquer barulho). Esgoto: GOTEIRAS (ping
   agudo com eco de cisterna, gota dupla ocasional), que PARAM quando ela esta
-  de caca perto. BOCARRA: PING GORDO (gota grave e densa com eco de lago) +
-  RESPIRACAO DO ACERVO (rumor grave a cada 8-20 s em scheduler sorteado —
-  swell one-shot, nunca LFO de ganho periodico), que também prende quando ela
-  caça. Passos respingam na agua (`T_WATER` sob os pes).
+  de caca perto. BOCARRA: a morada do TETO ALTO (bus `buildCaveAir`, uma
+  vez por visita; tudo morre com a troca de tema) — ping gordo (gota grave
+  e densa com eco de lago), vento grave constante com deriva de afinacao
+  (lowpass 120 Hz, sem LFO de ganho algum), eco de caverna propria
+  (delay 0.38 s, feedback 0.45 — o som nao acha parede nenhuma), a
+  RESPIRACAO do acervo (rumor grave a cada 8-20 s em scheduler sorteado,
+  swell one-shot) e a DISSONANCIA: dois pares de senoides desafinadas
+  (82/87.3 Hz batendo ~5/s e 1740/1758 Hz batendo rapido) em ganho fixo e
+  discreto — o desconforto vive do batimento de frequencias, nunca de
+  amplitude pulsante (a mesma regra do vento). Gota/respiracao prendem
+  quando ela
+  caça. Passos respingam na agua (`T_WATER` sob os pes); no acervo, passo
+  em osso soa CRAQUE (o osso cede e rola) e passo em corpo soa MUSH
+  molhado (a carne cede, o grude estopa) — o tile sob os pes decide
+  (0xA5/0xB6 via mapview), e correndo o WASM delata em paralelo (r=16/17).
 - **Todos os sons sao sintetizados**: oscillator + gain envelope + StereoPanner.
   Zero samples (binario web leve). Coracao: intervalo/volume/pitch pela
   distancia chebyshev; pan pelo sinal de dx (direita/esquerda).
@@ -293,7 +304,12 @@ Pilares (constantes tunaveis no topo de `src/consts.rs`):
 - **Passada e folego**: SHIFT = sneak (anda a cada 2 ticks, ruido r=1);
   X/K = correr (dash de 2 tiles, ruido r=15, custo RUN_COST=6 por passo) com
   STAM (max 100) regenerando 2/tick; abaixo de PANT_AT=25: sem correr e
-  ofego involuntario (evento 17 EV_PANT, ruido r=8 a cada 5 ticks).
+  ofego involuntario (evento 17 EV_PANT, ruido r=8 a cada 5 ticks). E o
+  ACREVO DELATA: no acervo (tiles '¥'/'¶' da Bocarra), CORRER sobre osso
+  emite ruido `BONE_CRACK_NOISE` (r=16) e sobre carne `CORPSE_MUSH_NOISE`
+  (r=17), ambos `loud=true` — coordenada exata e alcance um tile alem da
+  bota (andar/sneak em osso/carne e SO CENARIO: som no playEvent 1, sem
+  noise() nenhum — o bot, que nunca corre, nao muda de jogo).
 - **HUD**: medidor de SOM (3 casas grossas em placa escura com moldura,
   stats[10] — calar discreto/andar ambar/correr laranja PISCANDO no nivel
   maximo) e barra de folego (stats[11]) desenhados no canvas (fundo do jogo,
@@ -322,7 +338,7 @@ terreo.
 | 1 | TH_CASTLE (Ruinas do castelo) | 56x32 | saloes amplos + pilares | quase adormecida: patrol 6/invest 4/hunt 3, ouvido 60, sibilo 1/90, rastro 7/2 |
 | 2-3 | TH_DUNGEON (Masmorras) | 64x36 | ala de celas: 3 galerias de corredor largo empilhadas, celas 2x2 dos lados (trancada/aberta/meia/lacrada), 3-5 corredores de servico sorteados, descida em galeria/coluna sorteadas, pocas rasas no andar 3 | a cacadora de sempre: 4/3/2, ouvido 42, sibilo 1/47, rastro 14/5 |
 | 4-5 | TH_SEWER (Canais Envenenados) | 80x44 | 1-2 canais imperiais verticais (teto a fundo, largura/posicao sorteadas) com desabamentos (0-2 pedras por canal) e funduras '÷' (1-2 trechos, nao atravesaveis nem por ela); cavernas-bacia cortando o rio (uma garantida por canal, seca sobre a agua) + bacias/cisternas fora dos leitos | CASA dela: 3/2/2, ouvido 30, sibilo 1/23, rastro 21/8, GAZE_R+1 |
-| 6-8 | TH_CAVE (Bocarra Diabolica) | 88x48 | BLOB: 9-12 camaras irregulares (circulo desdentado, centro garantido=piso) ligadas por TUNEIS TORTOS de random-walk (70% passo rumo ao alvo, 30% vaga; emergencia carve reto), pocas/linguas de agua '=' do fundo, 30-44 pilhas de caveiras '¥' e corpos '¶', coroa no 8 em CAMA DE CORPO (todo piso a 2 tiles = '¶') | A CASA DA CASA: 2/2/2, ouvido 20, sibilo 1/10, rastro 28/12, GAZE_R+2, ganho de medo x1.5, MEDO CRAVADO em 100 na entrada — e não decai lá embaixo |
+| 6-8 | TH_CAVE (Bocarra Diabolica) | 88x48 | BLOB: 9-12 camaras irregulares (circulo desdentado, centro garantido=piso) ligadas por TUNEIS TORTOS de random-walk (70% passo rumo ao alvo, 30% vaga; emergencia carve reto), pocas/linguas de agua '=' do fundo; o ACERVO tem gradiente: 6-7 ~15% do chao em '¥'/'¶' (nucleos 42-53), e no 8 a densidade por tile CRESCE rumo `a sala da coroa (14% longe -> ~70% perto, tambem passada por tile com zero alocacao), nucleos 20-31 — a coroa no 8 dorme no MEIO DO MONTE (quadrado 7x7 = 48 tiles de '¶') | A CASA DA CASA: 2/2/2, ouvido 20, sibilo 1/10, rastro 28/12, GAZE_R+2, ganho de medo x1.5, MEDO CRAVADO em 100 na entrada — e não decai lá embaixo |
 
 - **Mapas por tema** (`floor_dims`): castelo 56x32, masmorras 64x36, esgoto
   80x44, BOCARRA 88x48; todos os buffers
@@ -482,9 +498,13 @@ Build: `./build.sh`. Teste: `node scripts/smoke.mjs` (espera-se `SMOKE OK`).
 
 Cenarios cobertos: morte por gaze (exigindo o CONE de visao dela), morte por
 toque, IA investiga ruido, rastro de escamas do corpo, playthrough completo
-por bot (ATE OS 8 ANDARES: desce, pega a coroa no acervo da Bocarra e escapa;
-os bots
-incluem a agua `=` entre os tiles passaveis), fuzz de 6000 ticks contra
+por bot (ATE OS 8 ANDARES: desce, pega a coroa no acervo e escapa; os bots
+incluem a agua `=` e o acervo (`¥`/`¶`) entre os tiles passaveis),
+"BOCARRA DECORADA" (massa de corpos/caveiras/agua nos 6-8 presente) e
+"A PISTA NAO CONTADA" (`pfb_debug_floor(8)`: a densidade do acervo proxima
+da coroa d<=10 vs d>=25 tem que vencer a distante por 1.8x, com >65% de
+osso/carne perto e <=40% longe — o gradiente provado em gate),
+fuzz de 6000 ticks contra
 estados impossiveis.
 
 ## 9. Consideracoes Futuras / Roadmap

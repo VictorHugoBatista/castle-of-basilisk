@@ -639,8 +639,9 @@ wmap = new Uint8Array(w.memory.buffer, wmap.byteOffset, wmap.length); // re-sinc
 
 let playthroughOK = false, attempts = 0, deathReasons = {};
 // decoração por andar: masmorra (grades '|' e caveiras '¥', poças rasas no d3)
-// e BOCARRA (corpos '¶' e água '=' do acervo)
-const dec = { bars: 0, skull: 0, shallow3: 0, sawD3: false, corpse: 0, caveWater: 0, sawCave: false };
+// e BOCARRA (corpos '¶', caveiras '¥' e água '=' do acervo — contadas só a
+// partir do andar 6, pois a própria masmorra usa '¥' nas celas)
+const dec = { bars: 0, skull: 0, shallow3: 0, sawD3: false, corpse: 0, caveWater: 0, sawCave: false, caveSkull: 0 };
 let lastDepth = -1;
 while (attempts < 40 && !playthroughOK) {
   attempts++;
@@ -659,6 +660,7 @@ while (attempts < 40 && !playthroughOK) {
         if (ch === 0x3D && stats[2] === 3) dec.shallow3++; // poça rasa no andar 3
         if (stats[2] === 3) dec.sawD3 = true;
         if (ch === 0xB6 && stats[2] >= 6) dec.corpse++;   // corpo '¶' do acervo
+        if (ch === 0xA5 && stats[2] >= 6) dec.caveSkull++; // caveira '¥' do acervo
         if (ch === 0x3D && stats[2] >= 6) dec.caveWater++; // água úmida da caverna
         if (stats[2] >= 6) dec.sawCave = true;
       }
@@ -738,11 +740,41 @@ console.log(dungeonDecor
 
 // ---------- 3b-bis. bocarra decorada: úmida e cheia do acervo ----------
 // A BOCARRA (6-8) tem que entregar o LUGAR: corpos '¶' trazidos pela criatura
-// em massa, água '=' da umidade, e a passagem do bot de verdade por lá.
-const caveDecor = playthroughOK && dec.sawCave && dec.corpse > 0 && dec.caveWater > 0;
+// em massa, caveiras em pilha, água '=' da umidade — e a passagem do bot de
+// verdade por lá (limiares generosos: a randagem varia por seed, a ESCALA é
+// reada — perto de 300 ossos/carne nos três andares somados)
+const caveDecor = playthroughOK && dec.sawCave && dec.corpse > 80 && dec.caveSkull > 120 && dec.caveWater > 0;
 console.log(caveDecor
-  ? `PASS - bocarra decorada (corpos ¶=${dec.corpse}, água do acervo=${dec.caveWater})`
-  : `FAIL - bocarra decorada (corpos ¶=${dec.corpse}, água=${dec.caveWater}, sawCave=${dec.sawCave})`);
+  ? `PASS - bocarra decorada (corpos ¶=${dec.corpse}, caveiras do acervo=${dec.caveSkull}, água=${dec.caveWater})`
+  : `FAIL - bocarra decorada (corpos ¶=${dec.corpse}, caveiras=${dec.caveSkull}, água=${dec.caveWater}, sawCave=${dec.sawCave})`);
+
+// ---------- 3b-ter. a pista não contada ----------
+// A DENSIDADE do acervo cresce rumo à coroa: no andar 8, longe do Ferro
+// (d>=25) o chão é mais osso que pedra não; a 10 tiles dela (d<=10) o monte
+// domina. A cerca entregue é IMAGEM — a mecânica nenhum a dita (regra das
+// pílulas). pfb_debug_floor pula o bot direto a fundo e a planta fala.
+const pista = scenario('a pista não contada: o acervo se empilha rumo à coroa', () => {
+  w.pfb_new_game(1234567);
+  w.pfb_debug_floor(8);
+  if (stats[0] !== 1) return false;
+  ensureViews();
+  let crown = -1;
+  for (let i = 0; i < Wd * Hd; i++) if (wmap[i] === 0xA7) { crown = i; break; }
+  if (crown < 0) return false;
+  const cx = crown % Wd, cy = (crown / Wd) | 0;
+  const acervo = (t) => t === 0xA5 || t === 0xB6;
+  const chao = (t) => t === 0x2E || acervo(t) || t === 0x3D; // candidatos do piso
+  let nearC = 0, nearT = 0, farC = 0, farT = 0;
+  for (let i = 0; i < Wd * Hd; i++) {
+    if (!chao(wmap[i])) continue;
+    const d = Math.abs((i % Wd) - cx) + Math.abs(((i / Wd) | 0) - cy);
+    if (d <= 10) { nearT++; if (acervo(wmap[i])) nearC++; }
+    else if (d >= 25) { farT++; if (acervo(wmap[i])) farC++; }
+  }
+  if (nearT < 30 || farT < 60) return false; // janela pequena demais: honesto
+  const nearD = nearC / nearT, farD = farC / farT;
+  return nearD >= 0.65 && farD <= 0.40 && nearD > farD * 1.8;
+});
 
 
 // ---------- 3a-bis. regressão: a tela de morte nos esgotos ----------
@@ -881,6 +913,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, caveDecor, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, caveDecor, pista, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

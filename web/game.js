@@ -338,27 +338,9 @@ function schedCave() {
     }
     schedCave();
   }, 240 + Math.random() * 1700);
-  // o corpo da respiração: noise em lowpass grave, MAS o movimento é
-  // AGENDADO — a cada "respiração" (8-20 s, intervalo sorteado) um swell
-  // one-shot sobe o gain e devolve: nunca um ganho periodicamente oscilando
-  if (!noiseCaveGain) {
-    const buf = AC.createBuffer(1, Math.floor(AC.sampleRate * 4), AC.sampleRate);
-    const ch = buf.getChannelData(0);
-    for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
-    const src = AC.createBufferSource();
-    src.buffer = buf;
-    src.loop = true;
-    noiseCaveFilter = AC.createBiquadFilter();
-    noiseCaveFilter.type = 'lowpass';
-    noiseCaveFilter.frequency.value = 150;
-    noiseCaveGain = AC.createGain();
-    noiseCaveGain.gain.value = 0.004;
-    src.connect(noiseCaveFilter);
-    noiseCaveFilter.connect(noiseCaveGain);
-    noiseCaveGain.connect(ambGain);
-    src.start();
-    ambNodes.push(src); // a troca de tema o desliga com as trilhas velhas
-  }
+  // o corpo do ar (vento + eco + dissonância + a respiração): nasce UMA
+  // vez por visita; a troca de tema desliga tudo junto das trilhas velhas
+  if (!noiseCaveGain) buildCaveAir();
   if (noiseCaveBreath !== ambTheme) {
     noiseCaveBreath = ambTheme;
     const breath = () => {
@@ -378,6 +360,94 @@ function schedCave() {
     };
     breath();
   }
+}
+
+// o AR DO ACERVO: construído UMA vez por visita ao tema 3 — o TETO ALTO é
+// a morada: (a) vento grave constante, sem LFO de ganho (o corpo do ruído
+// é fixo; o único movimento é a respiração, que agenda por si), (b) a boca
+// de eco de caverna (delay longo, feedback gordo — o som não acha parede
+// nenhuma perto) e (c) a DISSONÂNCIA: dois pares de senoides desafinadas
+// cujo BATIMENTO é o desconforto — gain fixo e discreto (a dissonância
+// vive da frequência, nunca de amplitude pulsante; mesma regra do vento).
+// Passa por caveIn: seco leve + wet do eco. Tudo entra em ambNodes, então
+// a troca de tema desfaz o corpo inteiro (o agendador re-monta na volta).
+function buildCaveAir() {
+  // bus local da caverna: seco + o eco de teto alto de volta ao master
+  const caveIn = AC.createGain();
+  caveIn.gain.value = 1;
+  caveIn.connect(ambGain);
+  const echo = AC.createDelay(0.7);
+  echo.delayTime.value = 0.38;
+  const echoFb = AC.createGain();
+  echoFb.gain.value = 0.45;
+  const echoWet = AC.createGain();
+  echoWet.gain.value = 0.5;
+  caveIn.connect(echo);
+  echo.connect(echoFb);
+  echoFb.connect(echo);
+  echo.connect(echoWet);
+  echoWet.connect(ambGain);
+  ambNodes.push(caveIn, echo, echoFb, echoWet);
+
+  // vento do teto: corpo de ruído constante em lowpass bem grave, com
+  // deriva lenta de afinação (o vento muda de calibre, como o do térreo)
+  const buf = AC.createBuffer(1, Math.floor(AC.sampleRate * 4), AC.sampleRate);
+  const ch = buf.getChannelData(0);
+  for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+  const wind = AC.createBufferSource();
+  wind.buffer = buf;
+  wind.loop = true;
+  const windLo = AC.createBiquadFilter();
+  windLo.type = 'lowpass';
+  windLo.frequency.value = 120;
+  windLo.Q.value = 0.4;
+  const windGain = AC.createGain();
+  windGain.gain.value = 0.011;
+  wind.connect(windLo);
+  windLo.connect(windGain);
+  windGain.connect(caveIn);
+  const drift = AC.createOscillator();
+  drift.frequency.value = 0.03;
+  const driftG = AC.createGain();
+  driftG.gain.value = 45;
+  drift.connect(driftG);
+  driftG.connect(windLo.frequency);
+  wind.start();
+  drift.start();
+  ambNodes.push(wind, windLo, windGain, drift, driftG);
+
+  // dissonância: o par grave bate devagar (~5/s — o ar "não afina"), o par
+  // agudo bate rápido (~18/s — o chiado que coça o ouvido). Ganhos ínfimos
+  for (const [f, v] of [[82, 0.006], [87.3, 0.006], [1740, 0.0022], [1758, 0.0022]]) {
+    const o = AC.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = f;
+    const dg = AC.createGain();
+    dg.gain.value = v;
+    o.connect(dg);
+    dg.connect(caveIn);
+    o.start();
+    ambNodes.push(o, dg);
+  }
+
+  // a respiração (que já existia) mora no bus da caverna agora: de lá ela
+  // ganha o eco do teto junto com todo o resto do ar
+  const buf2 = AC.createBuffer(1, Math.floor(AC.sampleRate * 4), AC.sampleRate);
+  const ch2 = buf2.getChannelData(0);
+  for (let i = 0; i < ch2.length; i++) ch2[i] = Math.random() * 2 - 1;
+  const src = AC.createBufferSource();
+  src.buffer = buf2;
+  src.loop = true;
+  noiseCaveFilter = AC.createBiquadFilter();
+  noiseCaveFilter.type = 'lowpass';
+  noiseCaveFilter.frequency.value = 150;
+  noiseCaveGain = AC.createGain();
+  noiseCaveGain.gain.value = 0.004;
+  src.connect(noiseCaveFilter);
+  noiseCaveFilter.connect(noiseCaveGain);
+  noiseCaveGain.connect(caveIn);
+  src.start();
+  ambNodes.push(src);
 }
 
 function startDrone() {
@@ -463,16 +533,35 @@ function noiseBurst({ dur = 0.3, vol = 0.15, f = 3000, q = 2, delay = 0, pan = 0
 // sons por evento (mesmos IDs do WASM)
 function playEvent(ev, pan) {
   switch (ev) {
-    case 1: { // passo: intensidade pelo medidor de ruído (stats[10]) + esgoto respinga
+    case 1: { // passo: intensidade pelo medidor (stats[10]); o chão decide o timbre:
+      // água respinga, ossuário do acervo estala (crack), carne do acervo
+      // aperta e esborracha (mush molhado), chão seco é o clique de sempre
       const lvl = stats[10];
-      const onWater = mapview[stats[3] + stats[4] * MWd] === 0x3D; // T_WATER sob os pés
+      const under = mapview[stats[3] + stats[4] * MWd];
+      const onWater = under === 0x3D;  // T_WATER sob os pés
+      const onBone = under === 0xA5;   // caveira '¥' do acervo
+      const onCorpse = under === 0xB6; // corpo '¶' do acervo
       if (lvl === 1) {
-        // silencioso: quase nada, um toque de dedo no chão
-        if (onWater) blip({ type: 'sine', f0: 640, f1: 260, dur: 0.05, vol: 0.03, out: echoIn });
+        // silencioso: quase nada — um toque de dedo no chão
+        if (onBone) blip({ type: 'square', f0: 520, f1: 300, dur: 0.02, vol: 0.014 });
+        else if (onCorpse) blip({ type: 'sine', f0: 150, f1: 90, dur: 0.04, vol: 0.02 });
+        else if (onWater) blip({ type: 'sine', f0: 640, f1: 260, dur: 0.05, vol: 0.03, out: echoIn });
         else blip({ type: 'square', f0: 460, dur: 0.02, vol: 0.018 });
       } else if (lvl === 3) {
-        // corrida: bota batendo + eco a preencher o corredor vazio
-        if (onWater) {
+        // corrida: bota batendo + eco a preencher o corredor vazio — e no
+        // acervo, o osso FRATURA e a carne ESBORRACHA alto (o ruído
+        // mecânico nasce já no WASM: correr nesses tiles entrega você)
+        if (onBone) {
+          // craque duplo: a costela cede e rola
+          blip({ type: 'square', f0: 700, f1: 200, dur: 0.04, vol: 0.13, out: echoIn });
+          noiseBurst({ dur: 0.05, vol: 0.11, f: 2800, q: 2.5, out: echoIn });
+          noiseBurst({ dur: 0.04, vol: 0.07, f: 2200 + Math.random() * 500, q: 3, delay: 0.07, out: echoIn });
+        } else if (onCorpse) {
+          // mush molhado: a massa cede, o grude estopa e escorre
+          blip({ type: 'sine', f0: 300, f1: 50, dur: 0.12, vol: 0.13, out: echoIn });
+          noiseBurst({ dur: 0.12, vol: 0.11, f: 480, q: 0.8, out: echoIn });
+          noiseBurst({ dur: 0.08, vol: 0.08, f: 320, q: 0.9, delay: 0.06, out: echoIn });
+        } else if (onWater) {
           noiseBurst({ dur: 0.12, vol: 0.12, f: 1100, q: 1.1, out: echoIn });
           blip({ type: 'sine', f0: 820, f1: 180, dur: 0.12, vol: 0.1, out: echoIn });
         } else {
@@ -480,8 +569,15 @@ function playEvent(ev, pan) {
           blip({ type: 'sine', f0: 120, f1: 70, dur: 0.1, vol: 0.11 });
         }
       } else {
-        // andar: clique seco, bem discreto (respingo curto na água)
-        if (onWater) {
+        // andar: clique seco, bem discreto (respingo curto na água;
+        // no acervo, o craque miudo e o grude molhado — sem exagero)
+        if (onBone) {
+          blip({ type: 'square', f0: 620, f1: 260, dur: 0.03, vol: 0.055, out: echoIn });
+          noiseBurst({ dur: 0.03, vol: 0.04, f: 2500 + Math.random() * 500, q: 3 });
+        } else if (onCorpse) {
+          blip({ type: 'sine', f0: 230, f1: 60, dur: 0.09, vol: 0.07 });
+          noiseBurst({ dur: 0.09, vol: 0.055, f: 430, q: 1.0 });
+        } else if (onWater) {
           noiseBurst({ dur: 0.06, vol: 0.055, f: 1500, q: 1.4 });
           blip({ type: 'sine', f0: 760, f1: 300, dur: 0.05, vol: 0.055 });
         } else {

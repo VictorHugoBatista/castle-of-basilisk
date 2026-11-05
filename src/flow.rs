@@ -165,6 +165,13 @@ pub(crate) fn game_step(input: u32) {
                 PX = nx;
                 PY = ny;
                 MOVED = true;
+                // o acervo delata quem corre: pisar duro no osso (craque) e
+                // na carne (mush molhado) grita MAIS que a bota — coordenada
+                // exata. Andar é só cenário; CORRER é prova dela
+                if can_run && (t == T_SKULL || t == T_CORPSE) {
+                    noise(PX, PY, if t == T_SKULL { BONE_CRACK_NOISE } else { CORPSE_MUSH_NOISE }, true);
+                    NOISEL = 3;
+                }
                 if k == 0 { push_event(EV_STEP); }
                 match t {
                     // SEM return cedo: o mapa mudou de andar, mas o tick termina

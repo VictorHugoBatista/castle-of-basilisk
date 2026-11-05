@@ -266,15 +266,17 @@ Acabou de vergonha. E vergonha é muda.
   meia-prova em cem anos de que a conta de toda boca era boa.
 - **O porão.** Abaixo dos canais existe **a caverna**, o acervo dela: corpos
   empilhados, água envenenada — e no meio disso tudo, entre corpos e água, o
-  Ferro dela. A vista final do jogo imprime este nível como os **andares 6–8,
-  a BOCARRA DIABÓLICA**: sistema bizarro de cavernas abaixo dos rios, com
-  passagens irregulares que descem além do leito, corpos trazidos pela criatura
-  (campo de caveiras e corpos `¶`), umidade de fundo e — o que a conta de toda
-  boca promete e o jogo finalmente mostra — a coroa dormindo **em cama de
-  corpo** no andar 8. Toda vez que o ladrão desce, o medo crava no máximo
-  (COLAPSO permanente lá embaixo, e a cicatriz acompanha a volta): quem
-  entra no acervo não volta sã de cabeça. O jogo vence: a conta para DE
-  VERDADE lá embaixo.
+  Ferro dela. O jogo imprime este nível como os **andares 6–8, a BOCARRA
+  DIABÓLICA**: sistema bizarro de cavernas abaixo dos rios, passagens
+  irregulares que descem além do leito, umidade de fundo e — a pista que o
+  jogo JAMAIS conta — os corpos se contam: os andares da caverna rondam o
+  osso no chão, e no fundo do fundo a densidade cresce, rumo ao monte, até
+  a cama de corpo que cerca a coroa dormindo **em cama de corpo** no andar
+  8. **O caminho é contado em corpos** — quem acompanhar os mortos desce à
+  resposta; o jogo não dita frase nenhuma. Toda vez que o ladrão desce, o
+  medo crava no máximo (COLAPSO permanente lá embaixo, e a cicatriz na
+  metade acompanha a volta): quem entra no acervo não volta sã de cabeça.
+  O jogo vence: a conta desce DE VERDADE lá embaixo.
 - Quando o ladrão a tira, o **grito** (os 15 ticks de
   atordoamento) é a única vez em um século em que ela faz som de fera: o
   Ferro sai da água e o corpo dela não responde a régua conhecida.

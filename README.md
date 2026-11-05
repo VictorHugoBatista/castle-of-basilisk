@@ -84,9 +84,13 @@ ESC volta ao menu.
   Nas masmorras, portas de cela viram grade: "celas trancadas" para sempre.
 - **`¥` = caveira** / **`¶` = corpo**: ossos e corpos que a criatura trouxe.
   Celas abertas da masmorra guardam os primeiros; a **Bocarra é o acervo
-  INTEIRO** — caveiras em pilha, corpos deitados. Caminháveis, decorados. Na
-  coroa (andar 8) o chão ao redor é a **cama de corpo** de que toda boca
-  conta.
+  INTEIRO** — e o chão conta a descida: nos andares 6-7 o osso ronda o chão
+  a um-ro-quatro; no andar 8 a densidade CRESCE rumo à coroa até o monte —
+  **a pista não contada** (a cama de corpos ao redor de `§` é a resposta).
+  Caminháveis, decorados — e com voz: **cada passo sobre caveira `crack`**
+  (o osso cede e rola) e **cada passo sobre corpo é um `mush` molhado e
+  nojento** (a carne cede, o grude estopa). CORRER nesse chão é entrega:
+  o craque e o mush gritam mais que a bota — coordenada exata para ela.
 - Masmorra funda (andar 3): **poças rasas `=`** — mesmo glifo da água, MAS
   rasas: raso não é habitat, e a maré não acelera ela lá.
 - Ele **ouve**: passos no claro (raio 5), na sombra (raio 3), portas abertas
@@ -103,9 +107,12 @@ ESC volta ao menu.
   não sai — o silêncio dela também te avisa. Na caça com coroa, ela nunca cala.
 - Ouça o **lugar**: vento lento no térreo; na masmorra quase nada (e qualquer
   som soa abafado); goteiras com eco no esgoto — que param de pingar quando
-  ela está de caça perto; na Bocarra, o ping gordo do fundo (a caverna tem
-  30 m de rio por cima) e a **respiração do acervo** de 8 em 20 s — que também
-  prende quando ela caça. A paleta da tela veste a cor do andar (âmbar de
+  ela está de caça perto; na Bocarra, o **ar de teto alto**: vento grave
+  constante dentro de um eco de caverna que não acha parede nenhuma, a
+  respiração do acervo a cada 8-20 s (que também prende quando ela caça) e
+  uma **dissonância miúda e constante** (dois pares de senoides desafinadas,
+  o batimento é o desconforto — perceptível, jamais forte). A paleta da tela
+  veste a cor do andar (âmbar de
   castelo / âmbar seco / verde-lodo / pedra-úmida de caverna).
 
 ## o medo (o terror que não mata)
@@ -182,8 +189,8 @@ scripts/debug6.mjs         bancada do bot playthrough
 | 4 | Canais Envenenados | 80×44 | casa dela: veloz, olho a 5, ouvido fino |
 | 5 | Canais Envenenados | 80×44 | idem, mesmo destino |
 | 6 | Bocarra Diabólica | 88×48 | **acervo**: lenta de nunca dormir, olho a 6, **medo cravado no máximo** |
-| 7 | Bocarra Diabólica | 88×48 | idem |
-| 8 | Bocarra Diabólica (coroa) | 88×48 | idem — o fundo do fundo: a coroa em cama de corpo |
+| 7 | Bocarra Diabólica | 88×48 | idem — os corpos rondam mais o chão |
+| 8 | Bocarra Diabólica (coroa) | 88×48 | idem — os corpos se empilham rumo à coroa; a cama (`§`) é o monte |
 
 ### WASM ABI
 
@@ -244,8 +251,11 @@ te sustenta)**, pico marcado como cicatriz para o resto da run**,
 (desce os 8 andares na ordem, pega a coroa no acervo da Bocarra, escapa pelo
 portão —
 rotas que evitam a zona de gaze, esquiva geométrica, caminha na água e nos
-corpos), **a BOCARRA DECORADA — corpos `¶` e água úmida `=` presentes
-nos andares 6-8**, **a MORTE NO ESGOTO
+corpos), **a BOCARRA DECORADA — corpos `¶`, caveiras `¥` e água úmida `=`
+presentes
+em massa nos andares 6-8** e **A PISTA NÃO CONTADA — a densidade do acervo
+provada a crescer rumo à coroa (d<=10 vs d>=25, 1.8x), `pfb_debug_floor` de
+frente**, **a MORTE NO ESGOTO
 — tela de morte compõe 56x32, não o stride 80 do esgoto**
 e fuzz de 6000 ticks sem estados impossíveis.
 
