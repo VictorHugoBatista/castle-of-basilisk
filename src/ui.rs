@@ -421,7 +421,8 @@ pub(crate) fn render_select() {
     put(W() - 1, H() - 2, b'+', A_TITLE);
 
     write_big_center(1, "ANDARES", A_TITLE);
-    write_center(6, "escolha por onde entrar:", A_UI);
+    // respiro: o big-font ocupa y 1..5 — o texto só respira a partir do 7
+    write_center(7, "escolha por onde entrar:", A_UI);
 
     // cursor 0..7 (andar 1..8): a linha escolhida ambar (A_TITLE); ESC volta
     unsafe {
@@ -431,7 +432,7 @@ pub(crate) fn render_select() {
             names[k] = floor_name(*d);
         }
         for k in 0..8usize {
-            let y = 9 + k;
+            let y = 10 + k;
             let sel = KONSEL == k as u8;
             let a = if sel { A_TITLE } else { A_UI };
             let num: u8 = b'1' + k as u8;
@@ -445,8 +446,8 @@ pub(crate) fn render_select() {
         }
     }
 
-    write_center(19, "W/S - escolher  ·  ENTER - comecar la", A_UI);
-    write_center(20, "ESC - voltar", A_UI);
+    write_center(20, "W/S - escolher  ·  ENTER - comecar la", A_UI);
+    write_center(21, "ESC - voltar", A_UI);
 }
 
 

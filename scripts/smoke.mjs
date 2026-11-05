@@ -95,12 +95,12 @@ const konami = scenario('konami: escolha de andar abre, salta, crava e volta', (
   w.pfb_konami_open(); // o "A" final do detector (glue)
   if (stats[0] !== 5) return false;
   ensureViews(); // tela de menu = viewport 56x32
-  // cursor desce 7 e envolve (o 8 dá a volta ao 1): down x9 = sel 1 (y=10)
+  // cursor desce 7 e envolve (o 8 dá a volta ao 1): down x9 = sel 1 (y=11)
   for (let k = 0; k < 9; k++) w.pfb_menu(km.down);
-  if (grid[(10 * Wd + 9) * 2] !== 0x3E) return false; // '>' do sel 1 acendeu
-  // cursor sel 3 = andar 4 (2 downs a mais): '>' na linha y=12; ENTER salta
+  if (grid[(11 * Wd + 9) * 2] !== 0x3E) return false; // '>' do sel 1 acendeu
+  // cursor sel 3 = andar 4 (2 downs a mais): '>' na linha y=13; ENTER salta
   for (let k = 0; k < 2; k++) w.pfb_menu(km.down);
-  if (grid[(12 * Wd + 9) * 2] !== 0x3E) return false;
+  if (grid[(13 * Wd + 9) * 2] !== 0x3E) return false;
   w.pfb_menu(km.ok);
   if (stats[0] !== 1 || stats[2] !== 4 || stats[18] >= 100) return false;
   // de novo: reabre e POUSA NO 8 — o cravo do medo (as regras da descida)
