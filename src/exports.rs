@@ -46,6 +46,7 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         DEATH_R = 0;
         START_REQ = 0;
         MENU_SEL = 0;
+        KONAMI_I = 0;
         KONSEL = 0;
         DOORS = [0; N_MAX * FLOORS / 64];
         SEEN = [0; N_MAX * FLOORS];
@@ -116,10 +117,10 @@ pub extern "C" fn pfb_diff_ack() {
     }
 }
 
-/// Input das telas de menu (titulo e controles). Bits:
-/// 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 CONFIRMAR (ENTER/ESPACO), 64 VOLTAR (ESC).
-/// "Iniciar" nao pode ser semeado aqui: publica START_REQ (STATS[13]) e
-/// o JS chama pfb_new_game com a semente de relogio.
+/// Input das telas de menu (titulo, controles e a ESCOLHA DE ANDAR). Bits:
+/// 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 CONFIRMAR (ENTER/ESPACO), 64 VOLTAR (ESC)
+/// + 32 B e 512 A do KONAMI. "Iniciar" nao pode ser semeado aqui: publica
+/// START_REQ (STATS[13]) e o JS chama pfb_new_game com a semente de relogio.
 #[no_mangle]
 pub extern "C" fn pfb_menu(input: u32) {
     unsafe {
@@ -138,15 +139,37 @@ pub extern "C" fn pfb_menu(input: u32) {
                 _ => {}
             }
         } else if STATE == ST_CONTROLS {
-            match input {
-                IN_LEFT => { SCHEME = 0; render(); }
-                IN_RIGHT => { SCHEME = 1; render(); }
-                IN_CONFIRM | IN_MENU_BACK => {
-                    STATE = ST_TITLE;
+            // ---- o KONAMI (↑↑↓↓←→←→B A): o progresso vive em KONAMI_I
+            // (zero em pfb_new_game). O passo que AVANCA o código é
+            // CONSUMIDO: as setas do código não trocam o esquema de teclas
+            // e o B/A não Notam nada — quem não conhece o código digita às
+            // cegas. Passo que não casa reseta o rastro e cai no menu
+            // normal — com UMA gentileza: o A solto (fora do código)
+            // continua alternando o esquema (WASD), como sempre foi
+            let step = KONAMI[KONAMI_I.min(KONAMI.len() - 1)];
+            if input == step {
+                KONAMI_I += 1;
+                if KONAMI_I >= KONAMI.len() {
+                    KONAMI_I = 0;
+                    KONSEL = 0;
+                    STATE = ST_SELECT;
                     render();
+                    sync_stats();
+                    return; // o A final consumido: abre a escolha
                 }
+                // passo intermediário consumido: sem eco na tela (segredo)
+                sync_stats();
+                return;
+            }
+            KONAMI_I = if input == KONAMI[0] { 1 } else { 0 };
+            match input {
+                IN_LEFT => { SCHEME = 0; }
+                IN_RIGHT => { SCHEME = 1; }
+                IN_MENU_A => { SCHEME = 0; } // o A solto: "A/D alternam" continua
+                IN_CONFIRM | IN_MENU_BACK => { STATE = ST_TITLE; }
                 _ => {}
             }
+            render();
         } else if STATE == ST_SELECT {
             // escolha de andar: cursor 0..7 (o 8 dá a volta ao 1);
             // CONFIRMAR salta direto para o andar; ESC volta às CONTROLES
@@ -160,21 +183,6 @@ pub extern "C" fn pfb_menu(input: u32) {
                 _ => {}
             }
         }
-        sync_stats();
-    }
-}
-
-/// [CHEAT] o KONAMI completado no glue (↑↑↓↓←→←→B A digitado NA tela de
-/// CONTROLES) abre a ESCOLHA DE ANDAR: a RT fornece a tela; o detector do
-/// código é camada de browser — os bits de menu da RT não distinguem o 'A'
-/// do código do A do esquema de teclas. Fora das CONTROLES: ignora.
-#[no_mangle]
-pub extern "C" fn pfb_konami_open() {
-    unsafe {
-        if STATE != ST_CONTROLS { return; }
-        KONSEL = 0;
-        STATE = ST_SELECT;
-        render();
         sync_stats();
     }
 }

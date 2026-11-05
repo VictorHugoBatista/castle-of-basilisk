@@ -83,35 +83,43 @@ const startReq = stats[13] === 1 && stats[0] === 0;   // pedido publicado
     : 'FAIL - menu do título');
 }
 
-// ---------- 1c. o KONAMI abre a ESCOLHA DE ANDAR ----------
-// O detector do código é camada de browser (a tecla-tela do keymap); o smoke
-// headless chama pfb_konami_open na hora do A final e valida a TELA + o
-// salto: cursor, wrap, ESC de volta e o cravo do medo ao pousar no 8.
-const km = { up: 1, down: 2, left: 4, right: 8, ok: 16, back: 64 };
-const konami = scenario('konami: escolha de andar abre, salta, crava e volta', () => {
-  w.pfb_init(); // título (o cenário anterior re-semeou o jogo: ST_PLAY)
+// ---------- 1c. o KONAMI: o código digitado de frente na RT ----------
+// (pfb_menu com os bits 32/512: as setas CONSUMIDAS do código não trocam o
+// esquema de teclas, o A solto fora do código alterna e reseta, ENTER salta
+// com as regras da descida e um passo FORA do código reseta)
+const km = { up: 1, down: 2, left: 4, right: 8, ok: 16, back: 64, b: 32, a: 512 };
+const konami = scenario('konami na RT: o codigo abre, o A solto alterna, salta e crava', () => {
+  w.pfb_init(); // título (o cenário anterior re-semeou o jogo)
   w.pfb_menu(km.down); w.pfb_menu(km.ok); // CONTROLES
   if (stats[0] !== 4) return false;
-  w.pfb_konami_open(); // o "A" final do detector (glue)
-  if (stats[0] !== 5) return false;
+  // o A solto FORA do código: alterna o esquema (SETAS->WASD aqui) e não abre
+  w.pfb_menu(km.right);            // esquema = SETAS (1)
+  if (stats[15] !== 1) return false;
+  w.pfb_menu(km.a);                // A solto: volta a WASD (0), sem abrir
+  if (stats[15] !== 0 || stats[0] !== 4) return false;
+  // o código completo: ↑↑↓↓←→←→B A — as setas CONSUMIDAS não mexem no
+  // esquema (fica em WASD/0 apesar dos ←→ no meio) e o final abre a escolha
+  for (const b of [km.up, km.up, km.down, km.down, km.left, km.right, km.left, km.right, km.b, km.a]) {
+    w.pfb_menu(b);
+  }
+  if (stats[0] !== 5 || stats[15] !== 0) return false;
   ensureViews(); // tela de menu = viewport 56x32
-  // cursor desce 7 e envolve (o 8 dá a volta ao 1): down x9 = sel 1 (y=11)
-  for (let k = 0; k < 9; k++) w.pfb_menu(km.down);
-  if (grid[(11 * Wd + 9) * 2] !== 0x3E) return false; // '>' do sel 1 acendeu
-  // cursor sel 3 = andar 4 (2 downs a mais): '>' na linha y=13; ENTER salta
-  for (let k = 0; k < 2; k++) w.pfb_menu(km.down);
+  // cursor sel 3 (3 downs) = andar 4, na linha y=13 (a lista nasce na 10
+  // depois do respiro do título): '>' do sel acende no grid
+  for (let k = 0; k < 3; k++) w.pfb_menu(km.down);
   if (grid[(13 * Wd + 9) * 2] !== 0x3E) return false;
-  w.pfb_menu(km.ok);
+  w.pfb_menu(km.ok); // saltar ao andar 4 (sem coroa: medo não crava)
   if (stats[0] !== 1 || stats[2] !== 4 || stats[18] >= 100) return false;
-  // de novo: reabre e POUSA NO 8 — o cravo do medo (as regras da descida)
+  // de novo: 8 ANDARES — re-digitar o código, pousar no 8, o CRACO do medo
   w.pfb_init();
   w.pfb_menu(km.down); w.pfb_menu(km.ok);
-  w.pfb_konami_open();
+  w.pfb_menu(km.right); // passo FORA do código: reset + esquema vira SETAS
+  if (stats[15] !== 1) return false;
+  for (const b of [km.up, km.up, km.down, km.down, km.left, km.right, km.left, km.right, km.b, km.a]) {
+    w.pfb_menu(b);
+  }
   if (stats[0] !== 5) return false;
-  w.pfb_menu(km.back); // ESC volta às CONTROLES
-  if (stats[0] !== 4) return false;
-  w.pfb_konami_open();
-  for (let k = 0; k < 7; k++) w.pfb_menu(km.down); // cursor de volta ao 8
+  for (let k = 0; k < 7; k++) w.pfb_menu(km.down); // cursor 8
   w.pfb_menu(km.ok);
   return stats[0] === 1 && stats[2] === 8 && stats[18] === 100;
 });

@@ -93,8 +93,7 @@ Exports (contrato publico — nao quebrar):
 - `pfb_init`      | `() ()`                      | desenha tela de titulo |
 | `pfb_new_game`  | `(seed: u32)`                | novo jogo deterministico |
 | `pfb_step`      | `(input: u32)`               | um tick (bits: 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 WAIT, 32 SNEAK, 64 RUN) |
-| `pfb_menu`      | `(input: u32)`               | teclado dos menus (bits: 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 OK, 64 BACK) |
-| `pfb_konami_open` | `()`                       | [CHEAT] abre ST_SELECT, a ESCOLHA DE ANDAR (o glue completa o código nas CONTROLES e chama aqui; fora das CONTROLES, ignora) |
+| `pfb_menu`      | `(input: u32)`               | teclado dos menus (bits: 1 UP, 2 DOWN, 4 LEFT, 8 RIGHT, 16 OK, 64 BACK, 32 B, 512 A — o KONAMI ↑↑↓↓←→←→B A é rastreado aqui, NAS CONTROLES: consumido abre ST_SELECT; o A solto alterna o esquema) |
 | `pfb_state`     | `() u32`                     | 0 titulo, 1 jogo, 2 morte, 3 vitoria, 4 controles, 5 escolha de andar |
 | `pfb_grid_ptr`  | `() u32`                     | ponteiro do grid de render (dims atuais em STATS[16]/[17]) |
 | `pfb_max_n`     | `() u32`                     | tamanho MAXIMO do grid (W_MAX*H_MAX = 3520): o JS dimensiona as views |
@@ -592,11 +591,15 @@ Ultima atualizacao: 2026-11-04
 - **UIROW**: barra de UI fabricada pelo WASM (W0 celulas x [char,attr], via
   `pfb_ui_ptr`): dica contextual e nome do andar, fixa na ULTIMA LINHA DA
   TELA (seguem a camera, nao o mapa).
-- **ESCOLHA DE ANDAR (ST_SELECT, estado 5)**: o konami (glue lê
-  ↑↑↓↓←→←→B A NAS CONTROLES e chama `pfb_konami_open`) — menu com os 8
+- **ESCOLHA DE ANDAR (ST_SELECT, estado 5)**: o konami é rastreado em
+  `pfb_menu` (bits 32/512 para as letras; o progresso mora em `KONAMI_I`,
+  zero em `pfb_new_game`): passos do código são CONSUMIDOS (as setas dele
+  não alternam o esquema; o A solto FORA do código segue alternando p/
+  WASD), o final abre o menu — 8
   andares; CONFIRMAR salta por `jump_floor(N)` (o MESMO caminho de
   `pfb_debug_floor`): seeds por andar, GRACE e o CRACO do medo valem
   (pousar no 8 nasce em COLAPSO). Cursor em `KONSEL`, envolve (8 -> 1);
-  ESC volta às CONTROLES. Fora das CONTROLES a abertura ignora.
+  ESC volta às CONTROLES. A abertura SÓ nas CONTROLES (fora, o rastro não
+  anda — e os passos errados resetam no próprio lugar).
 - **ARRIV**: tick da chegada no andar; os primeiros 18 ticks exibem
   `floor_name` ("MASMORRA ASSOMBRADA", "CANAIS ENVENENADOS") na barra de UI.

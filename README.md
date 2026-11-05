@@ -215,14 +215,13 @@ Nada de wasm-bindgen: o módulo expõe funções `#[no_mangle] extern "C"`:
 - `pfb_new_game(seed)` — novo jogo
 - `pfb_step(input)` — um tick (bits: 1↑ 2↓ 4← 8→ 16 espera 32 furtivo 64 correr)
 - `pfb_menu(input)` — teclado das telas de menu (bits: 1↑ 2↓ 4← 8→
-  16 confirmar/ENTER·ESPAÇO 64 voltar/ESC). "Iniciar" publica `STATS[13]=1`
+  16 confirmar/ENTER·ESPAÇO 64 voltar/ESC **32 B 512 A** — as letras do
+  KONAMI). O rastreio do código **↑↑↓↓←→←→B A** vive na RT, NA tela de
+  CONTROLES: os passos certos são consumidos (as setas do código não
+  alternam o esquema de teclas) e o final abre a **ESCOLHA DE ANDAR**; o
+  **A solto** fora do código segue alternando o esquema (WASD), como
+  sempre. "Iniciar" publica `STATS[13]=1`
   e o JS semeia `pfb_new_game`
-- `pfb_konami_open()` — [CHEAT] o código ↑↑↓↓←→←→B A digitado NA tela de
-  CONTROLES (o detector é camada de browser: `game.js` chama isto no A
-  final) abre a **ESCOLHA DE ANDAR**: as 8 fases do jogo num menu com
-  cursor (o 8 dá a volta ao 1); ENTER nasce na entrada do andar (as regras
-  da descida valem — no acervo, o medo crava no início); ESC volta às
-  controles. Fora das CONTROLES, a exportação ignora
 - `pfb_grid_ptr()` / `pfb_stats_ptr()` — ponteiros para o grid (2 bytes por
   célula: `[char][attr]`) e para o bloco de status
 - `pfb_max_n()` — tamanho máximo do grid (88×48, Bocarra): o JS dimensiona as views

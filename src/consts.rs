@@ -166,8 +166,14 @@ pub const IN_LEFT: u32 = 4;
 pub const IN_RIGHT: u32 = 8;
 pub const IN_CONFIRM: u32 = 16; // ENTER/ESPACO: confirmar a opcao
 pub const IN_MENU_BACK: u32 = 64; // ESC: voltar para o menu
-// (o KONAMI ↑↑↓↓←→←→B A vive no glue do JS — detector de teclado; a RT
-// só abre a tela via pfb_konami_open, sem bit novo de menu)
+// letras do KONAMI (↑↑↓↓←→←→B A na tela de CONTROLES abre ST_SELECT): o
+// rastreio do código vive na RT (KONAMI_I), então o glue mapeia B/A para
+// bits próprios — o A das letras NÃO é o A do esquema (que era o IN_LEFT):
+// no menu normal da controls, IN_MENU_A continua alternando o esquema p/ WASD
+pub const IN_MENU_B: u32 = 32;
+pub const IN_MENU_A: u32 = 512;
+pub(crate) const KONAMI: [u32; 10] =
+    [IN_UP, IN_UP, IN_DOWN, IN_DOWN, IN_LEFT, IN_RIGHT, IN_LEFT, IN_RIGHT, IN_MENU_B, IN_MENU_A];
 
 // ---- ruído: o eco do castelo vazio ----
 pub(crate) const RUN_NOISE: i32 = 15;   // correr: ouvida de quase todo o andar
