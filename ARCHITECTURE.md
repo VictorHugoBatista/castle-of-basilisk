@@ -15,7 +15,7 @@ castle-of-basilisc/
 │   ├── state.rs            # Estado global: TODAS as `static mut` (layout documentado)
 │   ├── rng.rs              # XORSHIFT32, seed por andar
 │   ├── grid.rs             # Helpers de grid, linha de visão, fila de eventos de áudio
-│   ├── gen.rs              # Geração procedural dos 5 andares + BFS
+│   ├── gen.rs              # Geração procedural dos 8 andares + BFS
 │   ├── basilisk.rs         # IA da besta: rastro, cone, turnos, ruído por rota
 │   ├── fear.rs             # Medo/loucura e alucinações
 │   ├── flow.rs             # Fluxo do tick: jogador, subir/descer, morte, vitória
@@ -55,7 +55,7 @@ zero alocacao se mantem.
    v  keyboard (WASD/setas/ESPACO/ENTER)
 [game.js] --fetch--> [castle_of_basilisk.wasm] --instantiate--> memoria linear
    ^  ^                    |  exports: pfb_init/new_game/step/diff/ack/pop_event/...
-   |  | rAF loop           |  memoria: grid (80x44 MAX x2B, dims por andar) | stats (32B)
+   |  | rAF loop           |  memoria: grid (88x48 MAX x2B, dims por andar) | stats (32B)
    |  +--- tick 140ms ---->|  eventos: ring buffer u32[16]   · diff: bitmap 224B
    |
 [CRT CSS]  <--- canvas --- render diff por celula
@@ -102,13 +102,15 @@ Exports (contrato publico — nao quebrar):
 | `pfb_pop_event` | `() u32`                     | consome fila de audio (0 = vazia) |
 | `pfb_diff_ptr`  | `() u32`                     | diff de render (bit0 = repinte integral, [1] camX, [2] camY, [3..227] bitmap de celulas de TELA mudadas) |
 | `pfb_diff_ack`  | `()`                         | confirmacao do consumo: zera flags + bitmap |
-| `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown/fear/fear_ptr | somente para testes headless |
+| `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown/fear/fear_ptr/floor | somente para testes headless |
 
 Layout de memoria:
-- **Grid**: buffer maximo `W_MAX x H_MAX` (80x44) celulas x `[char: u8, attr: u8]`,
+- **Grid**: buffer maximo `W_MAX x H_MAX` (88x48) celulas x `[char: u8, attr: u8]`,
   dimensoes REAIS do andar atual publicadas em `STATS[16]/[17]` (funcoes `W()`/`H()`
-  leem `DIMW/DIMH`: castelo 56x32, masmorras 64x36, esgotos 80x44). Char da tabela
-  ASCII; coroa = byte `0xA7` ('§' latin-1), agua = `'='` (0x3D). Attr = indice da
+  leem `DIMW/DIMH`: castelo 56x32, masmorras 64x36, esgotos 80x44, BOCARRA
+  (acervo dela) 88x48). Char da tabela ASCII; coroa = byte `0xA7` ('§'
+  latin-1), agua = `'='` (0x3D), caveira = `0xA5` ('¥'), corpo do acervo =
+  `0xB6` ('¶'). Attr = indice da
   paleta (0..15) OU `0x80 | indice` quando o tile e "lembrado" (fog of war) e
   escurece no render.
 - **Stats** (u8[32]): `[0] estado`, `[1] motivo de morte (1 olhar, 2 toque —
@@ -142,7 +144,7 @@ Layout de memoria:
   repintam todo frame: cor viva nao muda byte nenhum no bitmap) e confirma
   com `pfb_diff_ack()`.
 
-RNG: xorshift32 com seed POR ANDAR (`SEEDS[FLOORS]`, FLOORS=5), definida em
+RNG: xorshift32 com seed POR ANDAR (`SEEDS[FLOORS]`, FLOORS=8), definida em
 `pfb_new_game`. Subir e descer NAO regenera o mapa: o mesmo seed reproduz o
 mesmo andar.
 
@@ -175,9 +177,11 @@ Decisoes:
   (esgoto 80x44) deslizam sob ela. A dica contextual mora na ULTIMA LINHA DA
   TELA (UIROW exportada pelo WASM): com a camera, a ultima linha do mapa nem
   sempre esta visivel.
-- **Paletas por tema** (`PAL_CASTLE/PAL_DUNGEON/PAL_SEWER`, mesmos indices de
+- **Paletas por tema** (`PAL_CASTLE/PAL_DUNGEON/PAL_SEWER/PAL_CAVE`, mesmos
+  indices de
   attr): a troca de andar troca a referencia de paleta + `needsFull` — o CRT
-  veste a cor do lugar (ambar rico / ambar seco / verde-lodo).
+  veste a cor do lugar (ambar rico / ambar seco / verde-lodo / pedra umida de
+  caverna).
 - **CRT em CSS puro** (scanlines `repeating-linear-gradient`, vinheta
   `radial-gradient`, flicker por keyframes): custo ZERO de runtime vs shaders.
 - **Paleta monocromatica (familia #ffb000) sobre #050200**; a EXCECAO e a
@@ -199,7 +203,10 @@ Decisoes:
   (estalo de pedra a cada 16-40 s; SFX abafados a 0.7 no bus `sfxBus` — o
   silencio sepulcral contrasta com qualquer barulho). Esgoto: GOTEIRAS (ping
   agudo com eco de cisterna, gota dupla ocasional), que PARAM quando ela esta
-  de caca perto. Passos respingam na agua (`T_WATER` sob os pes).
+  de caca perto. BOCARRA: PING GORDO (gota grave denso com eco de lago) +
+  RESPIRACAO DO ACERVO (rumor grave a cada 8-20 s em scheduler sorteado —
+  swell one-shot, nunca LFO de ganho periodico), que também prende quando ela
+  caça. Passos respingam na agua (`T_WATER` sob os pes).
 - **Todos os sons sao sintetizados**: oscillator + gain envelope + StereoPanner.
   Zero samples (binario web leve). Coracao: intervalo/volume/pitch pela
   distancia chebyshev; pan pelo sinal de dx (direita/esquerda).
@@ -297,15 +304,17 @@ Pilares (constantes tunaveis no topo de `src/consts.rs`):
   passo tem 3 intensidades (silencioso/andar/correr) dirigidas pelo medidor
   de ruido (e RESPINGA se os pes estao na agua do esgoto).
 
-### 3.5. Cinco andares tematicos
+### 3.5. Oito andares tematicos
 
 Nome: `theme()` + geracao parametrizada + temperamento (subsistemas de
 `src/consts.rs` e `src/gen.rs`)
 
 Racional: o castelo inteiro com IA identica e uma escadaria. Temas dao
 geografia e curva de tensao: comeca facil (terreo, fora do habitat dela),
-sofre na masmorra, jogo de sobrevivencia pura na cloaca. A coroa desce para
-o andar 5 (fundo da cloaca) e a vitoria segue sendo escapar pelo `<` do
+sofre na masmorra, jogo de sobrevivencia pura na cloaca, e a BOCARRA e o acervo:
+a casa da casa — medo cravado e ela mais voraz ainda. A coroa desce para
+o andar 8 (cama de corpo, no fundo da Bocarra) e a vitoria segue sendo escapar
+pelo `<` do
 terreo.
 
 | # | tema | mapa | geracao | a besta |
@@ -313,16 +322,18 @@ terreo.
 | 1 | TH_CASTLE (Ruinas do castelo) | 56x32 | saloes amplos + pilares | quase adormecida: patrol 6/invest 4/hunt 3, ouvido 60, sibilo 1/90, rastro 7/2 |
 | 2-3 | TH_DUNGEON (Masmorras) | 64x36 | ala de celas: 3 galerias de corredor largo empilhadas, celas 2x2 dos lados (trancada/aberta/meia/lacrada), 3-5 corredores de servico sorteados, descida em galeria/coluna sorteadas, pocas rasas no andar 3 | a cacadora de sempre: 4/3/2, ouvido 42, sibilo 1/47, rastro 14/5 |
 | 4-5 | TH_SEWER (Canais Envenenados) | 80x44 | 1-2 canais imperiais verticais (teto a fundo, largura/posicao sorteadas) com desabamentos (0-2 pedras por canal) e funduras '÷' (1-2 trechos, nao atravesaveis nem por ela); cavernas-bacia cortando o rio (uma garantida por canal, seca sobre a agua) + bacias/cisternas fora dos leitos | CASA dela: 3/2/2, ouvido 30, sibilo 1/23, rastro 21/8, GAZE_R+1 |
+| 6-8 | TH_CAVE (Bocarra Diabolica) | 88x48 | BLOB: 9-12 camaras irregulares (circulo desdentado, centro garantido=piso) ligadas por TUNEIS TORTOS de random-walk (70% passo rumo ao alvo, 30% vaga; emergencia carve reto), pocas/linguas de agua '=' do fundo, 24-40 pilhas de caveiras '¥' e corpos '¶', coroa no 8 em CAMA DE CORPO (todo piso a 2 tiles = '¶') | A CASA DA CASA: 2/2/2, ouvido 20, sibilo 1/10, rastro 28/12, GAZE_R+2, ganho de medo x1.5, MEDO CRAVADO em 100 na entrada — e não decai lá embaixo |
 
 - **Mapas por tema** (`floor_dims`): castelo 56x32, masmorras 64x36, esgoto
-  80x44; todos os buffers
+  80x44, BOCARRA 88x48; todos os buffers
   em `N_MAX`, dims reais publicadas em `STATS[16]/[17]`, camera no JS.
   **REGRA DE UI**: as telas FORA de jogo (titulo/controles/morte/vitoria)
   sao compostas SEMPRE no viewport padrao 56x32 — `render()` volta `DIMW/DIMH`
   para `W0/H0` quando `STATE != ST_PLAY` (o JS fora de jogo le o grid como
   56 colunas; morrer no esgoto com stride 80 rasgava a tela em diagonal).
   `gen_once` restaura as dims do andar quando ele regenera.
-- **Agua** (tile `'='` / attr 13, e fundura `'÷'`= 0xF7 / attr 13): os CANAIS
+- **Agua** (tile `'='` / attr 13, e fundura `'÷'`= 0xF7 / attr 13): nos CANAIS
+   IMPERIAIS do esgoto sao 1-2 rios verticais de teto a fundo: leito de 1 a 5
   IMPERIAIS do esgoto sao 1-2 rios verticais de teto a fundo: leito de 1 a 5
   de largura com MARGENS SECAS de alvenaria (1-3 de cada lado, pisaveis) e
   lados que meandram devagar (o leito nao e reta de regua); os corredores que
@@ -363,7 +374,7 @@ Pilares (constantes tunáveis no topo de `src/consts.rs`, prefixo `FEAR_`/`PH_`)
 
 - **Exposição**: visao mutua sobe por faixa (d<=3: +7, d<=8: +3, d<=12: +1;
   sem LOS mas d<=3 "halito de costas": +2; escamas visiveis +2; EV_STINGER
-  pico +15). No esgoto (habitat) ganho x1.5.
+  pico +15). Nos habitats dela (esgoto e BOCARRA) ganho x1.5.
 - **Queda**: 8 ticks calado comecam a acalmar; nivel 0: -2/2 ticks · nivel 1:
   -1/2 · nivel 2: -1/3 · nivel 3: -1/5 · nivel 4 (COLAPSO): -1/6, a mais lenta
   de todas — desce sempre mais lento do que sobe; e para no chão (trauma
@@ -374,9 +385,13 @@ Pilares (constantes tunáveis no topo de `src/consts.rs`, prefixo `FEAR_`/`PH_`)
   andares.
 - **Pavor ambiente (`AMBF`/`AMBT`)**: sem exposição, o medo rasteja +1 a cada
   `FEAR_AMB_N` ticks até o teto `FEAR_AMB_CAP` da profundidade (terreo 6 ·
-  masmorras 12/18 · esgoto 24/30). Monótono na run: voltar ao térreo não
-  desaprende o que o esgoto ensinou. No habitat dela o teto é 30 = nivel 1
-  sozinho: o LUGAR assombra.
+  masmorras 12/18 · esgoto 24/30 · BOCARRA 100). Monótono na run: voltar ao
+  térreo não desaprende o que o fundo ensinou. E a BOCARRA CRACA — pisar no
+  acervo (6-8) publica `FEAR = FEAR_MAX` e `FEAR_PK = FEAR_MAX` direto
+  (flow.rs `enter_floor`): o nivel 4 nasce na chegada, o chão de queda lá
+  embaixo é `FEAR_MAX` (fear.rs — o medidor não decai no fundo do fundo) e o
+  pico de 100 deixa cicatriz (33) que sobrevive até o fim da run. As mesmas
+  regras, o teto como morada permanentemente: o medo nunca mata.
 - **Freio do limiar (`fear_absorb`)**: lá em cima TODO susto rende menos —
   72+: metade, 86+: um quarto; e susto MIUDO (creep sem LOS d<=3, escamas do
   rastro: gain < 3) NÃO empurra o topo de jeito nenhum. O COLAPSO só avança
@@ -466,7 +481,8 @@ Build: `./build.sh`. Teste: `node scripts/smoke.mjs` (espera-se `SMOKE OK`).
 
 Cenarios cobertos: morte por gaze (exigindo o CONE de visao dela), morte por
 toque, IA investiga ruido, rastro de escamas do corpo, playthrough completo
-por bot (ATE OS 5 ANDARES: desce, pega a coroa na Cloaca e escapa; os bots
+por bot (ATE OS 8 ANDARES: desce, pega a coroa no acervo da Bocarra e escapa;
+os bots
 incluem a agua `=` entre os tiles passaveis), fuzz de 6000 ticks contra
 estados impossiveis.
 
@@ -497,7 +513,8 @@ Ultima atualizacao: 2026-11-04
 ## 11. Glossario
 
 - **Gaze**: linha de visao mutua entre basilisco e jogador dentro de
-  `gaze_r()`: 4 tiles (5 nos esgotos). Mata instantaneamente. Pilar/porta
+  `gaze_r()`: 4 tiles (5 nos esgotos, 6 na Bocarra). Mata instantaneamente.
+  Pilar/porta
   fechada bloqueia o olhar.
 - **GRACE**: 14 ticks de imunidade apos cada troca de andar (evita morte
   injusta ao emergir na escada).
@@ -526,13 +543,18 @@ Ultima atualizacao: 2026-11-04
   (sticky até `pfb_diff_ack`).
 - **tick**: ciclo de jogo de 140 ms. O basilisco move a cada N ticks por
   tema (`speed_patrol/invest/hunt`): castelo 6/4/3, masmorra 4/3/2, esgoto
-  3/2/2 — e 1/1 NA AGUA do esgoto (`speed_now`). Com a coroa ela caça 1
+  3/2/2, BOCARRA 2/2/2 — e 1/1 NA AGUA do esgoto e da caverna (`speed_now`).
+  Com a coroa ela caça 1
   periodo mais lento ainda.
 - **Tema** (`theme(depth)`): TH_CASTLE (andar 1), TH_DUNGEON (2-3),
-  TH_SEWER (4-5). Dirige geracao de salas, mapa (56x32 vs 80x44), agua e
-  TODAS as tabelas de temperamento do basilisco.
-- **Agua** (`'='`, 0x3D, attr 13): tile so do esgoto, andavel por ambos —
-  mas e o meio nativo dela (1/1 tick) e respinga o passo do jogador.
+  TH_SEWER (4-5), TH_CAVE (6-8, a BOCARRA). Dirige geracao de salas, mapa
+  (56x32 · 64x36 · 80x44 · 88x48), agua e TODAS as tabelas de temperamento do
+  basilisco.
+- **Agua** (`'='`, 0x3D, attr 13): tile do esgoto E da BOCARRA, andavel por
+  ambos — mas e o meio nativo dela (1/1 tick) e respinga o passo do jogador.
+- **Corpo do acervo (`'¶'`, 0xB6, attr 12/osso)**: corpos do acervo (Bocarra) —
+  caminhavel, decoracao: ela trouxe; a coroa (andar 8) dorme numa cama deles.
+- **Cama de corpo**: ao redor de `§` (andar 8), todo piso a 2 tiles vira `¶`.
 - **UIROW**: barra de UI fabricada pelo WASM (W0 celulas x [char,attr], via
   `pfb_ui_ptr`): dica contextual e nome do andar, fixa na ULTIMA LINHA DA
   TELA (seguem a camera, nao o mapa).

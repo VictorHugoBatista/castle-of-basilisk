@@ -89,7 +89,8 @@ morto há um século.
 
 **O lar e a maré.** Os Canais Envenenados (andares 4–5 em tela) são a sala
 da frente do lar dela — o jogo dá isso em tela e não sublinha; o porão é a
-caverna abaixo (§3, o acervo). De tempo em tempo ela sai
+caverna abaixo (§3, o acervo), e hoje EM TELA: os andares 6–8, a Bocarra
+Diabólica. De tempo em tempo ela sai
 pela boca do esgoto: rio abaixo, bacia adentro. É a **maré dela**. Quem
 mora na beira não tem mapa da besta — tem protocolo de geração: a água
 para de pingar (o mesmo sinal que o jogo toca quando ela caça), o peixe
@@ -112,8 +113,8 @@ corpos e de água envenenada. É para lá que ela leva cada vítima — ninguém
 fica onde caiu; o castelo é antessala. O veneno dos Canais Envenenados tem
 berço ali: é da caverna que a água desce envenenada para cima — o mapa
 inteiro bebe o mesmo fundo. E no meio disso tudo, entre corpos e água, o
-Ferro dela: a coroa em cama de corpo. O jogo de hoje aponta para lá — o
-nível da caverna ainda não existe (ver §5, o porão).
+Ferro dela: a coroa em cama de corpo. O jogo entrega o porão em tela — o nível
+da caverna existe: os andares 6–8, a Bocarra Diabólica (ver §5, o porão).
 
 **A fábrica de ausência.** O acervo explica o castelo limpo de corpos:
 não há despojo em lugar nenhum — cada morte que a coisa dá desce com o
@@ -252,11 +253,10 @@ Acabou de vergonha. E vergonha é muda.
   volta** — e quem desceu não voltou para conferir. Sem testemunha, sem
   registro, sem corpo à vista: conhecimento compartilhado do jeito que
   superstição compartilha. A aritmética da beira explica o endereço: a
-  coisa não sobe — a coroa tem de ficar no alcance dela. A frase do
-  altar ("onde o rei morto coroou-se a si mesmo", no código de geração) é
-  a única marca em tela — e até ela é conta, nunca leitura: ninguém pôs
-  olho lá com vida para vir contar. A conta para no altar; a verdade está
-  mais funda — ver o porão, abaixo.
+  coisa não sobe — a coroa tem de ficar no alcance dela. O que há em tela
+  é a cena, nunca a leitura: a coroa dormindo em **cama de corpo** no fundo
+  do acervo — quem retratou o fundo não pôs o olho lá com vida para vir
+  contar. A conta para no fundo; e o fundo não fecha (lacuna 15).
 - **O fundo é conversa, não terreno.** Em cem anos, os que tocaram o
   castelo pararam nas masmorras — e lá já é bruto demais para mais: grade,
   ossada, o corpo de sempre. Abaixo delas, o castelo deixa de ser lugar e
@@ -264,12 +264,17 @@ Acabou de vergonha. E vergonha é muda.
   fundo nele são desenho de eco, não de olho. O jogo desce o jogador
   exatamente onde ninguém jamais confirmou: o andar 5 é a primeira
   meia-prova em cem anos de que a conta de toda boca era boa.
-- **O porão (nível futuro).** Abaixo dos canais existe **a caverna**, o
-  acervo dela: corpos empilhados, água envenenada — e a coroa no meio
-  disso tudo. O jogo de hoje para no altar do andar 5; o nível da caverna
-  é o `andar 6` pendente — implementar em PR próprio (NÃO neste PR de
-  canon). Abaixo dos canais o caderno da ladrã está em branco: nem eco
-  sobe de lá.
+- **O porão.** Abaixo dos canais existe **a caverna**, o acervo dela: corpos
+  empilhados, água envenenada — e no meio disso tudo, entre corpos e água, o
+  Ferro dela. A vista final do jogo imprime este nível como os **andares 6–8,
+  a BOCARRA DIABÓLICA**: sistema bizarro de cavernas abaixo dos rios, com
+  passagens irregulares que descem além do leito, corpos trazidos pela criatura
+  (campo de caveiras e corpos `¶`), umidade de fundo e — o que a conta de toda
+  boca promete e o jogo finalmente mostra — a coroa dormindo **em cama de
+  corpo** no andar 8. Toda vez que o ladrão desce, o medo crava no máximo
+  (COLAPSO permanente lá embaixo, e a cicatriz acompanha a volta): quem
+  entra no acervo não volta sã de cabeça. O jogo vence: a conta para DE
+  VERDADE lá embaixo.
 - Quando o ladrão a tira, o **grito** (os 15 ticks de
   atordoamento) é a única vez em um século em que ela faz som de fera: o
   Ferro sai da água e o corpo dela não responde a régua conhecida.
@@ -349,8 +354,9 @@ caverna. O que ela ensinou, em uma frase, o jogador repete todas as noites:
   cima; a tela conta como o medo conta: chiqueiro, não mentira dura.
 - **Vitória:** *"voce escapou do olhar que comeu uma era"* · *"o castelo
   fica orfao de reis"* · *"a besta continua, paciente, no escuro"*.
-- **O altar fundo:** a coroa sobre o lugar "**onde o rei morto coroou-se a
-  si mesmo**" — UMA frase, zero explicação: a pílula mais pesada do canon.
+- **O acervo fundo:** a coroa dorme **em cama de corpo** — todo piso a dois
+  tiles de `§` é `¶` (andar 8, na Bocarra), e o jogo explica coisa nenhuma:
+  a conta de toda boca, em cena, sem poste.
 
 **Candidatas a pílulas futuras** (textos escondidos no mundo — NÃO
 implementar sem branch + smoke + PR):

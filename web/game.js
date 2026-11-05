@@ -50,7 +50,24 @@ const PAL_SEWER = [
   '#4a6a3a', // 13 água '=' (waves próprias em colorFor)
   '#8a9a7a', '#030500', // 14 = fantasma (lodo pálido) · 15 vazio
 ];
-const PAL_BY_THEME = [PAL_CASTLE, PAL_DUNGEON, PAL_SEWER];
+const PAL_CAVE = [
+  '#3a2f26', // 0 piso (rocha úmida do acervo)
+  '#5c4a36', // 1 parede (pedra respirando água)
+  '#221b14', // 2 sombra
+  '#6f5738', // 3 porta (não existe na Bocarra, mas a paleta é uma)
+  '#d8caa0', // 4 escadas
+  '#ffe08a', // 5 coroa
+  '#cdbf9d', // 6 jogador (pálido acendido do acervo)
+  '#ff2e00', // 7 basilisco
+  '#4a3d2e', // 8 UI
+  '#ff5000', // 9 alerta
+  '#8a7a4a', // 10 título
+  '#bf1600', // 11 corpo
+  '#9a9178', // 12 osso: '¥' caveira e '¶' corpo do acervo
+  '#1f3a42', // 13 água '=' (escura e fria — a umidade de 30 m de rio por cima)
+  '#b0a890', '#060403', // 14 = fantasma · 15 vazio
+];
+const PAL_BY_THEME = [PAL_CASTLE, PAL_DUNGEON, PAL_SEWER, PAL_CAVE];
 let PAL = PAL_CASTLE;
 const WATER_ATTR = 13;
 const GHOST_ATTR = 14; // 'o': as mentiras do RT (alucinações do medo)
@@ -106,6 +123,11 @@ let ambGain = null; // bus da trilha ambiente contínua
 let ambNodes = [];
 let ambTimer = null;
 let ambTheme = -1;
+// Bocarra: corpo da "respiração do acervo" (os nós persistem só o tema
+// vigente — a troca de trilha zera junto com os ambNodes)
+let noiseCaveGain = null;
+let noiseCaveFilter = null;
+let noiseCaveBreath = -1;
 
 function audioOn() {
   if (AC) return;
@@ -137,10 +159,10 @@ function audioOn() {
   startDrone();
 }
 
-// tema derivado de DEPTH: 0 castelo · 1 masmorra · 2 esgoto
+// tema derivado de DEPTH: 0 castelo · 1 masmorra · 2 esgoto · 3 Bocarra (acervo)
 function ambientTheme() {
   const d = stats[2];
-  return d <= 1 ? 0 : (d <= 3 ? 1 : 2);
+  return d <= 1 ? 0 : (d <= 3 ? 1 : (d <= 5 ? 2 : 3));
 }
 
 // troca de trilha ao mudar de andar: fade das velhas, arranque das novas
@@ -156,6 +178,8 @@ function setAmbience(force) {
     setTimeout(() => { try { n.stop ? n.stop() : n.disconnect(); } catch (e) {} }, 1600);
   }
   ambNodes = [];
+  noiseCaveGain = null;
+  noiseCaveFilter = null;
   PAL = PAL_BY_THEME[th === -1 ? 0 : th]; // o CRT respira a cor do lugar
   needsFull = true;
   // SFX abafados na masmorra: o silêncio sepulcral contrasta qualquer som
@@ -241,6 +265,13 @@ function setAmbience(force) {
   } else if (th === 2) {
     // ---- ESCGOTO: GOTEIRAS — ping agudo com eco de cisterna, irregular
     schedDrips();
+  } else if (th === 3) {
+    // ---- BOCARRA: O ACERVO RESPONDENDO — goteira densa e funda (30 m de
+    // rio por cima: o ping chega gordo, com eco de lago) + a RESPIRAÇÃO do
+    // acervo: um rumor que sobe e desce a cada 8-20 s, sempre em scheduler
+    // irregular — nada de LFO de amplitude periódico (regra do glue). Tudo
+    // prende quando ELA caça perto: a caverna guarda o ar
+    schedCave();
   }
 }
 
@@ -276,6 +307,76 @@ function schedDrips() {
     }
     schedDrips();
   }, 320 + Math.random() * 2600);
+}
+
+// agendador da BOCARRA: ping gordo e denso (a caverna é úmida, 30 m abaixo
+// do leito) + a RESPIRAÇÃO do acervo — rumor grave que sobe e desce a cada
+// 8-20 s, sempre em scheduler irregular. Nada de LFO de amplitude periódico
+// (a regra de "ondas do mar" da seção 3 do AGENTS.md vale aqui por inteiro).
+// Quando ELA caça perto, tudo emudece: a caverna prende a respiração.
+function schedCave() {
+  if (ambTheme !== 3 || !AC) return;
+  ambTimer = setTimeout(() => {
+    const hunted = stats[0] === 1 && stats[7] === 2;
+    if (!hunted) {
+      // ping denso: 1-2 gotas, f0 mais grave que o do esgoto, eco de lago
+      blip({
+        type: 'sine',
+        f0: 900 + Math.random() * 300,
+        f1: 240,
+        dur: 0.09,
+        vol: 0.055,
+        out: echoIn,
+      });
+      if (Math.random() < 0.28) { // gota dupla escorrendo
+        blip({ type: 'sine', f0: 760, f1: 210, dur: 0.07, vol: 0.04, delay: 0.14, out: echoIn });
+      }
+      if (Math.random() < 0.18) { // gota numa caveira: quase estalo
+        noiseBurst({ dur: 0.05, vol: 0.02, f: 2200 + Math.random() * 900, q: 3, out: echoIn });
+      }
+    }
+    schedCave();
+  }, 240 + Math.random() * 1700);
+  // o corpo da respiração: noise em lowpass grave, MAS o movimento é
+  // AGENDADO — a cada "respiração" (8-20 s, intervalo sorteado) um swell
+  // one-shot sobe o gain e devolve: nunca um ganho periodicamente oscilando
+  if (!noiseCaveGain) {
+    const buf = AC.createBuffer(1, Math.floor(AC.sampleRate * 4), AC.sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+    const src = AC.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    noiseCaveFilter = AC.createBiquadFilter();
+    noiseCaveFilter.type = 'lowpass';
+    noiseCaveFilter.frequency.value = 150;
+    noiseCaveGain = AC.createGain();
+    noiseCaveGain.gain.value = 0.004;
+    src.connect(noiseCaveFilter);
+    noiseCaveFilter.connect(noiseCaveGain);
+    noiseCaveGain.connect(ambGain);
+    src.start();
+    ambNodes.push(src); // a troca de tema o desliga com as trilhas velhas
+  }
+  if (noiseCaveBreath !== ambTheme) {
+    noiseCaveBreath = ambTheme;
+    const breath = () => {
+      if (ambTheme !== 3 || !AC) return;
+      setTimeout(() => {
+        if (ambTheme !== 3 || !AC) return;
+        if (!(stats[0] === 1 && stats[7] === 2) && noiseCaveGain) {
+          const t = AC.currentTime;
+          const f0 = 130 + Math.random() * 70;
+          const peak = 0.020 + Math.random() * 0.014;
+          noiseCaveFilter.frequency.setTargetAtTime(f0, t, 1.8);
+          noiseCaveGain.gain.setTargetAtTime(peak, t, 1.8);          // inala
+          noiseCaveGain.gain.setTargetAtTime(0.004, t + 3.4 + Math.random() * 1.6, 2.6); // expira
+        }
+        breath(); // agenda a próxima — enquanto a Bocarra respirar, soa
+      }, 8000 + Math.random() * 12000);
+    };
+    breath();
+  }
 }
 
 function startDrone() {

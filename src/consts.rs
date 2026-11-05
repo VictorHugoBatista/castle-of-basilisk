@@ -7,18 +7,21 @@ pub const W0: usize = 56;  // castelo: o mapa de sempre
 pub const H0: usize = 32;
 pub const W_BANK: usize = 64; // masmorras: a ala de celas — maior que o palácio,
 pub const H_BANK: usize = 36; // menor que a cloaca
-pub const W_MAX: usize = 80; // esgotos: a rede imperial, consideravelmente maior
-pub const H_MAX: usize = 44;
+pub const W_SEWER: usize = 80; // esgotos: a rede imperial, consideravelmente maior
+pub const H_SEWER: usize = 44;
+pub const W_MAX: usize = 88; // Bocarra Diabólica: a caverna dela, abaixo dos rios —
+pub const H_MAX: usize = 48; // o MAPA MAIOR do jogo (o buffer dimensiona por ela)
 pub const N_MAX: usize = W_MAX * H_MAX;
-pub const FLOORS: usize = 5; // 1 = térreo · 2-3 = masmorras · 4-5 = esgotos
+pub const FLOORS: usize = 8; // 1 = térreo · 2-3 = masmorras · 4-5 = esgotos · 6-8 = bocarra
 
 // ---- temas de andar ----
 pub(crate) const TH_CASTLE: u8 = 1;
 pub(crate) const TH_DUNGEON: u8 = 2;
 pub(crate) const TH_SEWER: u8 = 3;
+pub(crate) const TH_CAVE: u8 = 4; // Bocarra Diabólica: o ACERVO dela, casa da casa
 
 pub(crate) fn theme(depth: u8) -> u8 {
-    if depth <= 1 { TH_CASTLE } else if depth <= 3 { TH_DUNGEON } else { TH_SEWER }
+    if depth <= 1 { TH_CASTLE } else if depth <= 3 { TH_DUNGEON } else if depth <= 5 { TH_SEWER } else { TH_CAVE }
 }
 
 // o nome do piso, escrito na barra de UI ao chegar: o lugar fala
@@ -28,7 +31,8 @@ pub(crate) fn floor_name(depth: u8) -> &'static str {
         2 => "MASMORRA ASSOMBRADA",
         3 => "MASMORRA ASSOMBRADA",
         4 => "CANAIS ENVENENADOS",
-        _ => "CANAIS ENVENENADOS",
+        5 => "CANAIS ENVENENADOS",
+        _ => "BOCARRA DIABOLICA",
     }
 }
 
@@ -55,6 +59,7 @@ pub(crate) const T_RUBBLE: u8 = b'%'; // becos de escombro: transitáveis por vo
 pub(crate) const T_WATER: u8 = b'=';  // esgoto: canais imperiais — caminháveis, mas o lar dela
 pub(crate) const T_BARS: u8 = b'|';   // masmorra: grade de cela — bloqueia passagem, a LUZ atravessa
 pub(crate) const T_SKULL: u8 = 0xA5;  // masmorra: caveira '¥' restada nas celas abertas (transitável)
+pub(crate) const T_CORPSE: u8 = 0xB6; // bocarra: corpo '¶' trazido pela criatura para o acervo (transitável)
 pub(crate) const T_SHALLOW: u8 = b'='; // masmorra funda: poça rasa — MESMO glifo da água, mas rasa:
                             // não é o habitat dela, e os pés dela não ganham maré
 pub(crate) const T_DEEP: u8 = 0xF7;   // esgoto: '÷' fundura — água demais até para ela: não se passa
@@ -203,10 +208,12 @@ pub(crate) const FEAR_GAIN_CREEP: i32 = 2;    // sem LOS, d<=3: você logo SABE 
 pub(crate) const FEAR_GAIN_BODY: i32 = 2;     // escamas do rastro visíveis
 pub(crate) const FEAR_GAIN_SPOTTED: i32 = 15; // EV_STINGER: ela TE VIU — pico de pânico
 pub(crate) const FEAR_WHELP_AT: [i32; 5] = [0, 30, 18, 9, 9]; // soluço involuntário por nível (cadência)
-// pavor ambiente por PROFUNDIDADE (1..5; [0] é pad): teto do medo que o lugar
-// impõe e ticks entre cada +1 — monótono na run: subir de volta não desaprende
-pub(crate) const FEAR_AMB_CAP: [i32; 6] = [0, 6, 12, 18, 24, 30];
-pub(crate) const FEAR_AMB_N: [i32; 6] = [0, 44, 38, 32, 26, 22];
+// pavor ambiente por PROFUNDIDADE (1..8; [0] é pad): teto do medo que o lugar
+// impõe e ticks entre cada +1 — monótono na run: subir de volta não desaprende.
+// A BOCARRA (6-8) tem teto FEAR_MAX: lá o medo é o próprio lugar — e a entrada
+// CRACA o medidor no teto (flow.rs enter_floor), o chão de queda = FEAR_MAX
+pub(crate) const FEAR_AMB_CAP: [i32; 9] = [0, 6, 12, 18, 24, 30, 100, 100, 100];
+pub(crate) const FEAR_AMB_N: [i32; 9] = [0, 44, 38, 32, 26, 22, 18, 16, 14];
 // alucinações: chance 1/N ticks por NÍVEL (0..4); cadências sobem do calmo
 // para a paranoia LENTA mas presente — graça = menos morte, mais pavor
 pub(crate) const PH_GHOST_N: [usize; 5] = [1, 30, 18, 12, 14];
@@ -221,26 +228,31 @@ pub(crate) const FAKE_B_MIN: i32 = 12;    // o falso B nasce com a real fora do 
 pub(crate) const PH_CD_MAX: i32 = 10;     // cooldown entre spawns: não enxameia num tick só
 
 // ---- temperamento por tema: fora do habitat ela é quase adormecida; na
-// masmorra, a besta de sempre; nos esgotos (CASA dela), mortífera ----
+// masmorra, a besta de sempre; nos esgotos, mortífera; na BOCARRA (a casa
+// da casa) o ofício dela a cada tick: lenta na patrulha que NUNCA dorme,
+// e o olhar que raspa o fundo do acervo ----
 #[inline]
-pub(crate) fn speed_patrol() -> i32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 6, TH_DUNGEON => 4, _ => 3 } }
+pub(crate) fn speed_patrol() -> i32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 6, TH_DUNGEON => 4, TH_CAVE => 2, _ => 3 } }
 #[inline]
-pub(crate) fn speed_invest() -> i32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 4, TH_DUNGEON => 3, _ => 2 } }
+pub(crate) fn speed_invest() -> i32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 4, TH_DUNGEON => 3, TH_CAVE => 2, _ => 2 } }
 #[inline]
-pub(crate) fn speed_hunt() -> i32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 3, TH_DUNGEON => 2, _ => 2 } }
+pub(crate) fn speed_hunt() -> i32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 3, TH_DUNGEON => 2, TH_CAVE => 2, _ => 2 } }
 #[inline]
-pub(crate) fn ear_cool() -> i32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 60, TH_DUNGEON => EAR_COOL, _ => 30 } }
+pub(crate) fn ear_cool() -> i32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 60, TH_DUNGEON => EAR_COOL, TH_CAVE => 20, _ => 30 } }
 #[inline]
-pub(crate) fn hiss_mod() -> u32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 90, TH_DUNGEON => 47, _ => 23 } }
+pub(crate) fn hiss_mod() -> u32 { match theme(unsafe { DEPTH }) { TH_CASTLE => 90, TH_DUNGEON => 47, TH_CAVE => 10, _ => 23 } }
 // peso do rastro do jogador no sorteio de salas: no térreo o passado cheira
-// pouco; nos esgotos o cheiro dela é um cão de caça eterno
+// pouco; na casa dela o cheiro de VOCÊ é a única luz que ela segue
 #[inline]
 pub(crate) fn trail_weights() -> (i32, i32) {
-    match theme(unsafe { DEPTH }) { TH_CASTLE => (7, 2), TH_DUNGEON => (TRAIL_W_RECENT, TRAIL_W_OLD), _ => (21, 8) }
+    match theme(unsafe { DEPTH }) { TH_CASTLE => (7, 2), TH_DUNGEON => (TRAIL_W_RECENT, TRAIL_W_OLD), TH_CAVE => (28, 12), _ => (21, 8) }
 }
-// o olhar dela é mais letal no habitat: a Cloaca engole luz e pessoas
+// o olhar dela é mais letal no habitat: a Cloaca engole luz e pessoas —
+// e no acervo, o fundo do fundo, o fundo olha de volta mais longe
 #[inline]
-pub(crate) fn gaze_r() -> i32 { if theme(unsafe { DEPTH }) == TH_SEWER { GAZE_R + 1 } else { GAZE_R } }
+pub(crate) fn gaze_r() -> i32 {
+    match theme(unsafe { DEPTH }) { TH_SEWER => GAZE_R + 1, TH_CAVE => GAZE_R + 2, _ => GAZE_R }
+}
 // bônus de habitat: na água ela anda a CADA TICK — é o meio nativo dela
 #[inline]
 pub(crate) fn speed_now(base: i32) -> i32 {

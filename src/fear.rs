@@ -252,8 +252,9 @@ pub(crate) fn fear_update() {
             gain = FEAR_GAIN_CREEP; // o hálito mesmo de costas
         }
         gain += (STATS[9] > 0) as i32 * FEAR_GAIN_BODY; // pressenti as escamas
-        // no habitat dela, o medo contamina o dobro: o lugar te ensina a obedecer
-        if theme(DEPTH) == TH_SEWER && gain > 0 { gain += gain / 2; }
+        // nos habitats dela (esgoto e acervo), o medo contamina o dobro:
+        // nos canais o lugar ensina a obedecer; na BOCARRA, o lugar É ele
+        if matches!(theme(DEPTH), TH_SEWER | TH_CAVE) && gain > 0 { gain += gain / 2; }
 
         if gain > 0 {
             FEAR += fear_absorb(gain);
@@ -265,7 +266,7 @@ pub(crate) fn fear_update() {
             // pavor ambiente: o lugar respira — sem exposição nenhuma, o medo
             // rasteja até o teto da profundidade (monótono: o que o esgoto
             // ensinou, o térreo não desaprende)
-            let di = DEPTH.clamp(1, 5) as usize;
+            let di = DEPTH.clamp(1, 8) as usize;
             AMBT += 1;
             if AMBF < FEAR_AMB_CAP[di] && AMBT >= FEAR_AMB_N[di] {
                 AMBT = 0;
@@ -292,9 +293,11 @@ pub(crate) fn fear_update() {
         }
         // o chão do medo: um TERÇO do pico (o trauma) ou o pavor ambiente — o
         // que for maior. O medidor NUNCA desce abaixo dele: quase morreu de
-        // medo uma vez, termina a run assombrado — cicatriz, não sentença
+        // medo uma vez, termina a run assombrado — cicatriz, não sentença.
+        // Na BOCARRA o chão é o TETO: o medo cravado na entrada (flow.rs)
+        // nunca decai lá embaixo — a casa dela é COLAPSO permanente
         if FEAR < 0 { FEAR = 0; }
-        let floor = (FEAR_PK / 3).max(AMBF);
+        let floor = if DEPTH >= 6 { FEAR_MAX } else { (FEAR_PK / 3).max(AMBF) };
         if FEAR < floor { FEAR = floor; }
         // o TOPO NÃO MATA — decisão de design: o medo atrapalha, fascina e
         // desarma, mas nunca é a causa da morte (isso é trabalho dela). O

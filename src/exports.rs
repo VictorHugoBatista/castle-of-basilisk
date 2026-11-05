@@ -234,6 +234,22 @@ pub extern "C" fn pfb_debug_give_crown() {
     }
 }
 
+/// [DEBUG] salto de andar (o smoke/bench examina os andares fundos de frente,
+/// sem o bot ter de atravessar os sete primeiros): regenera o piso N (1..FLOORS)
+/// com a seed que `pfb_new_game` distribui por andar e repõe o jogador na entrada.
+#[no_mangle]
+pub extern "C" fn pfb_debug_floor(depth: u32) {
+    unsafe {
+        if depth < 1 || depth > FLOORS as u32 { return; }
+        STATE = ST_PLAY;
+        enter_floor(depth as u8, EV_DOWN, false);
+        compute_fov();
+        body_pass();
+        render();
+        sync_stats();
+    }
+}
+
 /// [DEBUG] injeta medo (0..100) direto no medidor — os cenários do smoke usam
 /// para testar níveis/alucinações/colapso sem esperar exposição orgânica.
 #[no_mangle]

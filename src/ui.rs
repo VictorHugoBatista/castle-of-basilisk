@@ -169,7 +169,7 @@ pub(crate) fn attr_of(t: u8) -> u8 {
         T_RUBBLE => A_RUBBLE,
         T_WATER | T_SHALLOW => A_WATER,
         T_BARS => A_WALL,
-        T_SKULL => A_RUBBLE,
+        T_SKULL | T_CORPSE => A_RUBBLE, // '¥'/'¶': osso e carne do acervo, cor de osso
         _ => A_FLOOR,
     }
 }

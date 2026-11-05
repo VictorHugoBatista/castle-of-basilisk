@@ -18,7 +18,7 @@
 | arquivo previsto | status | o que abrigará |
 |---|---|---|
 | `ANDARES.md` | planejado | Um capítulo por andar (1–5): habitat, temperamento dela e o que a geração de cada tema semeia — hoje espalhado entre README e LORE |
-| `ANDAR6-CAVERNA.md` | pendente | O porão: o acervo (corpos e água envenenada), as paredes pintadas (lacuna 16) e a coroa no meio — nasce junto com o nível, no PR que o implementar |
+| `ANDAR6-CAVERNA.md` | implementado em tela (andares 6–8, Bocarra Diabólica) — o doc de canon por trás dos níveis é o próprio LORE.md §5; separar um arquivo próprio ainda pode valer a pena para as paredes pintadas (lacuna 16) |
 | `BEIRA.md` | planejado | Os povos da beira e a Liga: protocolo da maré, o caderno da ladrã, o talho `L.B.`, as três leituras do empregador (lacuna 9) |
 
 ## convenções para documento novo

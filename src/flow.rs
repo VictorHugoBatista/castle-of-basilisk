@@ -69,6 +69,16 @@ pub(crate) fn enter_floor(depth: u8, ev: u32, by_exit: bool) {
         clear_player_trail();
         if by_exit { place_player_at_exit(); } else { place_player_at_up(); }
         place_basilisk();
+        // ---- A BOCARRA CRACA O MEDO NO TETO: pisar no acervo (6-8) é o
+        // momento em que o corpo inteiro entende o lugar — o medidor nasce
+        // em 100 (COLAPSO, as MESMAS regras: não mata) e não decai lá embaixo
+        // (fear.rs crava o chão em FEAR_MAX por profundidade). O pico crava
+        // FEAR_PK também: a cicatriz sobrevive até o fim da run, em qualquer
+        // andar da volta
+        if depth >= 6 {
+            FEAR = FEAR_MAX;
+            FEAR_PK = FEAR_MAX;
+        }
         GRACE = 14;
         push_event(ev);
     }

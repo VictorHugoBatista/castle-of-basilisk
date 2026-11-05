@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 const bytes = readFileSync(new URL('../web/wasm/castle_of_basilisk.wasm', import.meta.url));
 const { instance } = await WebAssembly.instantiate(bytes, {});
 const w = instance.exports;
-const N_MAX = 80 * 44; // pior caso do grid (esgoto)
+const N_MAX = 88 * 48; // pior caso do grid (Bocarra Diabólica)
 let Wd = 56, Hd = 32;    // dims do andar atual (stats[16]/[17])
 
 let gview = null, mview = null, lastViewKey = -1;
@@ -552,7 +552,7 @@ const diffContract = scenario('contrato do diff: bitmap == byte-a-byte real (120
 // desvio do tile quando já está parado sobre o alvo.
 const pass = (i) => {
   const t = wmap[i];
-  return t === 0x2E || t === 0x2C || t === 0x3E || t === 0x3C || t === 0x2B || t === 0xA7 || t === 0x3D || t === 0xA5; // 0x3D = água '=' · 0xA5 = caveira '¥' (masmorras)
+  return t === 0x2E || t === 0x2C || t === 0x3E || t === 0x3C || t === 0x2B || t === 0xA7 || t === 0x3D || t === 0xA5 || t === 0xB6; // 0x3D = água '=' · 0xA5 = caveira '¥' · 0xB6 = corpo '¶' (bocarra)
 };
 // portais (>, <, §) são INTERAÇÕES: só pisável se é o alvo do plano —
 // senão o bot atravessa um '<' sem querer e sobe de andar
@@ -637,9 +637,9 @@ function dodge(target) {
 wmap = new Uint8Array(w.memory.buffer, wmap.byteOffset, wmap.length); // re-sincroniza
 
 let playthroughOK = false, attempts = 0, deathReasons = {};
-// decoração da masmorra: contada a cada andar que o bot visita — grades
-// (barras '|') e caveiras '¥' nas celas, poças rasas '=' no andar fundo
-const dec = { bars: 0, skull: 0, shallow3: 0, sawD3: false };
+// decoração por andar: masmorra (grades '|' e caveiras '¥', poças rasas no d3)
+// e BOCARRA (corpos '¶' e água '=' do acervo)
+const dec = { bars: 0, skull: 0, shallow3: 0, sawD3: false, corpse: 0, caveWater: 0, sawCave: false };
 let lastDepth = -1;
 while (attempts < 40 && !playthroughOK) {
   attempts++;
@@ -657,13 +657,16 @@ while (attempts < 40 && !playthroughOK) {
         if (ch === 0xA5) dec.skull++;          // caveira '¥'
         if (ch === 0x3D && stats[2] === 3) dec.shallow3++; // poça rasa no andar 3
         if (stats[2] === 3) dec.sawD3 = true;
+        if (ch === 0xB6 && stats[2] >= 6) dec.corpse++;   // corpo '¶' do acervo
+        if (ch === 0x3D && stats[2] >= 6) dec.caveWater++; // água úmida da caverna
+        if (stats[2] >= 6) dec.sawCave = true;
       }
     }
     steps++;
     let target;
     if (stats[8] === 1) target = findTile(0x3C);       // com coroa: sempre '<'
-    else if (stats[2] < 5) target = findTile(0x3E);    // sem coroa: desce (5 andares)
-    else target = findTile(0xA7);                      // andar 5: a coroa
+    else if (stats[2] < 8) target = findTile(0x3E);    // sem coroa: desce (8 andares)
+    else target = findTile(0xA7);                      // andar 8: a coroa no acervo
     if (target < 0) break;
 
     const pos0 = stats[3] + stats[4] * Wd;
@@ -731,6 +734,14 @@ const dungeonDecor = playthroughOK && dec.bars > 0 && dec.skull > 0 && dec.sawD3
 console.log(dungeonDecor
   ? `PASS - masmorra decorada (grades=${dec.bars}, caveiras=${dec.skull}, poças d3=${dec.shallow3})`
   : `FAIL - masmorra decorada (grades=${dec.bars}, caveiras=${dec.skull}, poças d3=${dec.shallow3}, sawD3=${dec.sawD3})`);
+
+// ---------- 3b-bis. bocarra decorada: úmida e cheia do acervo ----------
+// A BOCARRA (6-8) tem que entregar o LUGAR: corpos '¶' trazidos pela criatura
+// em massa, água '=' da umidade, e a passagem do bot de verdade por lá.
+const caveDecor = playthroughOK && dec.sawCave && dec.corpse > 0 && dec.caveWater > 0;
+console.log(caveDecor
+  ? `PASS - bocarra decorada (corpos ¶=${dec.corpse}, água do acervo=${dec.caveWater})`
+  : `FAIL - bocarra decorada (corpos ¶=${dec.corpse}, água=${dec.caveWater}, sawCave=${dec.sawCave})`);
 
 
 // ---------- 3a-bis. regressão: a tela de morte nos esgotos ----------
@@ -869,6 +880,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, caveDecor, deadUi, bodyProof, traps === 0, menuOk, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);
