@@ -13,7 +13,7 @@
 | pergunta | resposta curta | a parte que o jogo nunca diz |
 |---|---|---|
 | **Qual o ano atual?** | **Ano 100 da Regência** — a única contagem que ainda existe | Dentro dos muros é sempre Ano 100: não sobrou ninguém para virar o número. Fora deles, ninguém usa essa régua desde o massacre |
-| **Há quanto tempo é ruína?** | ~100 anos — mas "ruína" é a palavra errada | O castelo não desabou: foi **abandonado de uma vez e nunca mais tocado**. Há salões onde a pedra está inexplicavelmente limpa (por onde ela passa) e onde os objetos da fuga continuam no chão do primeiro dia. E a periferia do entorno **nunca desocupou** — só se muda quando a maré dela manda |
+| **Há quanto tempo é ruína?** | ~100 anos — mas "ruína" é a palavra errada | O castelo não desabou: foi **abandonado de uma vez e nunca mais tocado**. Há salões onde a pedra está inexplicavelmente limpa (por onde ela passa) e onde os objetos da fuga continuam no chão do primeiro dia. A periferia do entorno **nunca desocupou** — só se muda quando a maré dela manda. E nenhum corpo em toda a pedra, salvo as ossadas das celas: o resto desce para o acervo (§3) |
 | **O que aconteceu?** | O **Massacre Silencioso** | Não houve grito, fogo ou exército: morreram parados os que viram o olhar, e o resto saiu antes do amanhecer, sem encostar mais. E o pior: **a tragédia veio anunciada** — em pesadelos — e os grandes ignoraram placidamente. Da coroa: dizem que desceu ao fundo junto do rei morto e de todos à volta — todos contam, nenhum provou |
 | **O que é o basilisco?** | A coisa da bacia — sem nome verdadeiro, sem acordo com ninguém | "Basilisco" é palavra emprestada dos livros de fora; o nome verdadeiro, ninguém tem. Ninguém a firmou, a convidou nem a temeu a tempo: quando ela subiu, não havia regimento nenhum a atender. Os canais do castelo são a sala da frente do lar dela; o porão é a caverna abaixo — cheia de corpos e de água envenenada, com o Ferro no meio. As pálpebras jamais abriram; o "olhar" que mata não sai dos olhos dela — sai do SEU. De onde veio e por que caça o Ferro: lacunas 13 e 15 |
 | **Quem é o player?** | Um ladrão pago adiantado pela **Liga das Beiras**; sem nome no canon | Não é a primeira vez dele ali — a cicatriz do medo (o terço do pico que nunca decai) é a prova, e ele não se lembra da primeira visita. E nem ele nem a Liga sabem o que a coroa DE FATO faz |
@@ -24,7 +24,7 @@
 
 | quando | o que aconteceu | o jogador pode ver? |
 |---|---|---|
-| antes do ano 0 | A bacia já tem gente de beira — e a coisa do leito já tem maré: povos de palafita convivem com ela por protocolo sem nome (a água para de pingar, o peixe muda de toca, a mochila levanta). Não há registro: é hábito de corpo | não |
+| antes do ano 0 | A bacia já tem gente de beira — e a coisa do leito já tem maré: povos de palafita convivem com ela por protocolo sem nome (a água para de pingar, o peixe muda de toca, a mochila levanta). Não há registro: é hábito de corpo. E as paredes da caverna pintam que o culto começou antes ainda — lacuna 16 | não |
 | ano 0 do Império | A capital é fundada **em cima da água doce** sobre uma coisa que dorme no leito. Os engenheiros acreditam ter fundado uma cidade; fundaram uma **tampa** | nunca — só como tagarelice de pescadores fora dos muros |
 | ~ano 280 | A placa de pedra: **"NÃO OLHE A ÁGUA."** Sem explicação, sem assinatura — a única concessão da corte: gente morria "de olhar" nos canais, e a corte NÃO nomeia a coisa (nomear é confirmar); manda não olhar e volta para a guerra. Na beira, ninguém precisa de placa: já existe a régua da maré | nunca (a placa é pílula candidata, §7) |
 | anos ~200–311 | **A Guerra por Pouco**: o Império e o reino vizinho sangram décadas por três ilhotas de sal e uma divisa que nenhum mapa respeita. Leva, imposto de guerra e canal alargado a bico de pá — a logística naval atravessa o berço dela: **a guerra alarga a porta do lar dela** | não |
@@ -112,6 +112,20 @@ berço ali: é da caverna que a água desce envenenada para cima — o mapa
 inteiro bebe o mesmo fundo. E no meio disso tudo, entre corpos e água, o
 Ferro dela: a coroa em cama de corpo. O jogo de hoje aponta para lá — o
 nível da caverna ainda não existe (ver §5, o porão).
+
+**A fábrica de ausência.** O acervo explica o castelo limpo de corpos:
+não há despojo em lugar nenhum — cada morte que a coisa dá desce com o
+dono. A exceção prova a regra: as ossadas das celas são as únicas do
+castelo, porque morreram de FOME — sem toque, sem olhar — não eram
+vítimas; eram resto de mundo. A coisa só colhe o que é dela.
+
+**As paredes pintadas.** Na caverna, pintura muito antiga — mais antiga
+que o império, mais antiga que a datação por escrito permite: figuras
+humanas de outros tempos curvadas diante de uma forma, a mesma silhueta,
+ou quase. O culto não nasceu com o castelo: gente de outro tempo já esteve
+lá embaixo — de vontade própria, pela postura das figuras. E as perguntas
+ficam: é A MESMA coisa de sempre? é ancestral dela? foi criada ou trazida
+por aqueles que cultuavam? O canon não fecha (lacuna 16).
 
 **Por que patrulha um palácio morto.** Ela não sabe que o rei morreu; não
 sabe que o rei alguma vez viveu; não sabe o que é coroa. E, ainda assim,
@@ -349,10 +363,10 @@ implementar sem branch + smoke + PR):
    `fui eu?` — a mesma frase do sussurro de medo. O sussurro do jogo é
    frase **deles**, não do basilisco: este é o elo que o jogador pode fazer
    sozinho, e é TUDO o que se entrega do massacre.
-4. **Ossada sentada perto do altar, a mão no alto da cabeça:** a conta de
-   todos promete corpos ao redor do rei (a casa que desceu junto) — esta é
-   a primeira em pé. A mão no alto da cabeça é o gesto de coroar, feito de
-   osso.
+4. **Ossada sentada perto do altar, a mão no alto da cabeça:** exceção em
+   ponto — castelo sem corpos, salvo celas, e esta senta junto do altar. A
+   conta de todos promete a casa com o rei; a mão no alto da cabeça é o
+   gesto de coroar, feito de osso. (Onde o resto foi: o porão.)
 5. **Marco de pedra no portão:** só resta `...··· DO..A...` — a cidade sem
    nome: o nome se apagou antes de qualquer mapa copiá-lo.
 6. **Agulha do tutorial** (uma linha escondida de texto na tela de fôlego ou
@@ -402,6 +416,7 @@ o que é mecânica e o que é narrativa.
 | 13 | **De onde veio — e o que é de fato?** | Só nomes emprestados: "basilisco" nos livros, "maré" na beira, `B` na tela — e nenhum é dela | versões que toda boca reparte, e nenhuma tem prova: sempre esteve lá esperando; foi ovo e chocou no leito; cresceu dos efluentes de um império inteiro; acordou com o trânsito de guerra; desceu o rio; saiu de fenda do inferno; caiu das estrelas; ou ainda está se transformando — e TODAS podem ser a mesma história. Mistério do calibre da origem da própria humanidade: o edital existe porque a versão não se pôde escrever |
 | 14 | O que aconteceu com a **casa que desceu com o rei**? | Só a conta: "desceu junto, todos à volta" — sem prova | (a) morreram todos no fundo, em pé ao lado do cadáver — ossada é promessa — ou foram os primeiros entregues ao acervo dela; (b) os que sobraram saíram pela beira na mesma noite e sumiram no anel da periferia de vez; (c) ninguém desceu jamais: a coroa sempre esteve no fundo, e a Descida é a história que se conta para explicá-la |
 | 15 | Por que ela **subiu naquela noite** — e por que **caça o Ferro** até hoje? | Só o fato: subiu de vez, e a caça dura desde o Ferro sair da água | (a) a Descida a chamou — endereço, cheiro: a conta da beira empurra as duas ocorrências para uma mesma história; (b) o século de guerra e trânsito a despertou de vez; (c) motivo nenhum humano — ela decidiu; e é a posse inédita do Ferro (primeira vez em um milênio fora da água) o único estímulo que a caça explica |
+| 16 | O que as **pinturas da caverna** retratam? | Nada em tela ainda — o nível é o `andar 6`, pendente | (a) é ELA: a mesma criatura, cultuada antes de qualquer registro; (b) é uma ANCESTRAL dela — a caverna guarda linhagem, não um corpo único; (c) foi CRIADA ou TRAZIDA por aqueles cultistas — o culto fez ou chamou. E nas três, a mesma sombra: quem cultuava, lá embaixo, ia por vontade própria |
 
 ---
 
