@@ -203,7 +203,7 @@ Decisoes:
   (estalo de pedra a cada 16-40 s; SFX abafados a 0.7 no bus `sfxBus` — o
   silencio sepulcral contrasta com qualquer barulho). Esgoto: GOTEIRAS (ping
   agudo com eco de cisterna, gota dupla ocasional), que PARAM quando ela esta
-  de caca perto. BOCARRA: PING GORDO (gota grave denso com eco de lago) +
+  de caca perto. BOCARRA: PING GORDO (gota grave e densa com eco de lago) +
   RESPIRACAO DO ACERVO (rumor grave a cada 8-20 s em scheduler sorteado —
   swell one-shot, nunca LFO de ganho periodico), que também prende quando ela
   caça. Passos respingam na agua (`T_WATER` sob os pes).
@@ -322,7 +322,7 @@ terreo.
 | 1 | TH_CASTLE (Ruinas do castelo) | 56x32 | saloes amplos + pilares | quase adormecida: patrol 6/invest 4/hunt 3, ouvido 60, sibilo 1/90, rastro 7/2 |
 | 2-3 | TH_DUNGEON (Masmorras) | 64x36 | ala de celas: 3 galerias de corredor largo empilhadas, celas 2x2 dos lados (trancada/aberta/meia/lacrada), 3-5 corredores de servico sorteados, descida em galeria/coluna sorteadas, pocas rasas no andar 3 | a cacadora de sempre: 4/3/2, ouvido 42, sibilo 1/47, rastro 14/5 |
 | 4-5 | TH_SEWER (Canais Envenenados) | 80x44 | 1-2 canais imperiais verticais (teto a fundo, largura/posicao sorteadas) com desabamentos (0-2 pedras por canal) e funduras '÷' (1-2 trechos, nao atravesaveis nem por ela); cavernas-bacia cortando o rio (uma garantida por canal, seca sobre a agua) + bacias/cisternas fora dos leitos | CASA dela: 3/2/2, ouvido 30, sibilo 1/23, rastro 21/8, GAZE_R+1 |
-| 6-8 | TH_CAVE (Bocarra Diabolica) | 88x48 | BLOB: 9-12 camaras irregulares (circulo desdentado, centro garantido=piso) ligadas por TUNEIS TORTOS de random-walk (70% passo rumo ao alvo, 30% vaga; emergencia carve reto), pocas/linguas de agua '=' do fundo, 24-40 pilhas de caveiras '¥' e corpos '¶', coroa no 8 em CAMA DE CORPO (todo piso a 2 tiles = '¶') | A CASA DA CASA: 2/2/2, ouvido 20, sibilo 1/10, rastro 28/12, GAZE_R+2, ganho de medo x1.5, MEDO CRAVADO em 100 na entrada — e não decai lá embaixo |
+| 6-8 | TH_CAVE (Bocarra Diabolica) | 88x48 | BLOB: 9-12 camaras irregulares (circulo desdentado, centro garantido=piso) ligadas por TUNEIS TORTOS de random-walk (70% passo rumo ao alvo, 30% vaga; emergencia carve reto), pocas/linguas de agua '=' do fundo, 30-44 pilhas de caveiras '¥' e corpos '¶', coroa no 8 em CAMA DE CORPO (todo piso a 2 tiles = '¶') | A CASA DA CASA: 2/2/2, ouvido 20, sibilo 1/10, rastro 28/12, GAZE_R+2, ganho de medo x1.5, MEDO CRAVADO em 100 na entrada — e não decai lá embaixo |
 
 - **Mapas por tema** (`floor_dims`): castelo 56x32, masmorras 64x36, esgoto
   80x44, BOCARRA 88x48; todos os buffers

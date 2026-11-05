@@ -56,7 +56,7 @@ ESC volta ao menu.
 
 - **`B` = a cabeça do basilisco.** Se ele *puder ver você* a até 4–6 tiles (linha de
   visão aberta, raios de pilar/porta bloqueiam), o olhar mata — no esgoto, a 5
-  (`GAZE_R + 1`); na Bocarra, o acervo dele, a 6 (`+ 2`).
+  (`GAZE_R + 1`); na Bocarra, o acervo dela, a 6 (`+ 2`).
 - **`~` = o corpo dela.** Escamas do rastro que a serpente deixa ao andar — ~24 anéis
   que avançam com a cabeça. Ver o corpo é verlumbre, não morte: **o olhar que mata é
   o da cabeça**. Corpo em tela ganha sombra 3D, halo vermelho e um arrasto grave

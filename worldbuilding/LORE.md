@@ -356,7 +356,7 @@ caverna. O que ela ensinou, em uma frase, o jogador repete todas as noites:
   fica orfao de reis"* · *"a besta continua, paciente, no escuro"*.
 - **O acervo fundo:** a coroa dorme **em cama de corpo** — todo piso a dois
   tiles de `§` é `¶` (andar 8, na Bocarra), e o jogo explica coisa nenhuma:
-  a conta de toda boca, em cena, sem poste.
+  a conta de toda boca, em cena.
 
 **Candidatas a pílulas futuras** (textos escondidos no mundo — NÃO
 implementar sem branch + smoke + PR):
