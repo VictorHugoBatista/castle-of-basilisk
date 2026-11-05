@@ -16,30 +16,30 @@ cima do Y**: os muros abraçam a goela por cima, o castelo dentro, as
 palafitas ao longo dos três, os povoados longe de toda margem.
 
 ```
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-ttttttttttttttx x xtttttttttttttttttttttttttttttttttttttxtttttttttttttttttttttttttttttttttttttttx xtttttttttttttttttttttttttttxttttttttttttt
-ttttttttttttttttttttttttttxtttttttttttttttttxtttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttx xttttttttttttttttttttttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-ttttttttttxttttttttttttttttttttttt~~~~tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt~~~~ttttttttttttttttttttttxttttttttttt
-tttttttttttttttttttttttttttttttttttttttt~~~~ttytttttttttttttttttttttttttttttttttttttttttttttttyt~~~~tttttttttttttttttttttttttttttttttttttttt
-ttttttttttttttttttttttttttttttttttttttttttyttt~~~~tttttttttttttttttttttttttttttttttttttttt~~~~yttttttttttttttttttttttttttttttttttttttttttttt
-ttttttttttttxttttttttttttttttttttttttttttttttttttttt~~~~tttttttttttttttttttttttttttttt~~~~ttttttttttttttttttttttttttttttttttttttxttttttttttt
-ttttttttttttttxttttttttttttttttttttttttttttttttttttttttttt~~~~tttttttttttttttttt~~~~ttttttttttttttttttttttttttttttttttttttttxttttttttttttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt~~~~tttttttttt~~~~tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttytttt~~~~~==*==~~~~~tytttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttt====================t=================tttttttttttttttttttttttttttttttttttttttttttttttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt########################tttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt# p   p    C    p   p  #tttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt#    p    C  C    p    #tttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt# p   p    C    p   p  #tttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt########################tttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-ttttttttttttttttttttttttttttttttttttttttttttttttttttttm   m   m   m   m   mtttttttttttttttttttttttm   mttttttttttttttttttttttttttttttttttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt~~~~~~~~~~~~~~tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-ttttttttttttttttttttttttttttttttttttttttttttttyttttttttttt~~~~~~~~~~~~~~~~~~~~~~~~~~~~ttttttttttttyttttttttttttttttttttttttttttttttttttttttt
-ttttttttttttttttttttttttttttttttttttttttyttttttttt~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ttttttttttttttttyttttttttttttttttttttttttttttt
-ttttttttttttttttttttttttx   xtttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttx xttttttttttttttttttttttttt
-ttttttttttttttttttttx xtttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttxttttttttttttttttttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+ttttttttttttx xtttttttttttttttttttttttttttttttttxtttttttttttttttttttttttttttttttttx xtttttttttttttttttttttttxttttttttttt
+ttttttttttttttttttttttxtttttttttttttttxtttttttttttttttttttttttttttttttttttttttttttttttttttttttttx xttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+ttttttttxtttttttttttttttttttt~~~~ttttttttttttttttttttttttttttttttttttttttttttttttttttttt~~~~ttttttttttttttttttxttttttttt
+tttttttttttttttttttttttttttttttttt~~~~ttytttttttttttttttttttttttttttttttttttttttyt~~~~tttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttyttt~~~~tttttttttttttttttttttttttttttttttt~~~~ytttttttttttttttttttttttttttttttttttttt
+ttttttttttxtttttttttttttttttttttttttttttttttt~~~~tttttttttttttttttttttttt~~~~tttttttttttttttttttttttttttttttttxttttttttt
+ttttttttttttxttttttttttttttttttttttttttttttttttttt~~~~tttttttttttttt~~~~ttttttttttttttttttttttttttttttttttxttttttttttttt
+ttttttttttttttttttttttttttttttttttttttttttttttttttttt~~~~tttttt~~~~ttttttttttttttttttttttttttttttttttttttttttttttttttttt
+ttttttttttttttttttttttttttttttttttttttttttttttttttytttt~~~==*==~~~ttyttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttt========================================tttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttt########################tttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttt# p   p    C    p   p  #tttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttt#    p    C  C    p    #tttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttt# p   p    C    p   p  #tttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttt########################tttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttm   m   m   m   m   mttttttttttttttm   mttttttttttttttttttttttttttttttt
+ttttttttttttttttttttttttttttttttttttttttttttttttttttt~~~~~~~~~~~~~~ttttttttttttttttttttttttttttttttttttttttttttttttttttt
+ttttttttttttttttttttttttttttttttttttttttyttttttttt~~~~~~~~~~~~~~~~~~~~~~~~ttttttttttyttttttttttttttttttttttttttttttttttt
+ttttttttttttttttttttttttttttttttttytttttttt~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ttttttttttttttttttytttttttttttttttttttttttt
+ttttttttttttttttttttx xtttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttx xttttttttttttttttttttt
+tttttttttttttttttx xtttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttxtttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
 ```
 
 | símbolo | o que é |
