@@ -15,7 +15,7 @@
 | **Qual o ano atual?** | **Ano 100 da Regência** — a única contagem que ainda existe | Dentro dos muros é sempre Ano 100: não sobrou ninguém para virar o número. Fora deles, ninguém usa essa régua desde o massacre |
 | **Há quanto tempo é ruína?** | ~100 anos — mas "ruína" é a palavra errada | O castelo não desabou: foi **abandonado de uma vez e nunca mais tocado**. Há salões onde a pedra está inexplicavelmente limpa (por onde ela passa) e onde os objetos da fuga continuam no chão do primeiro dia. E a periferia do entorno **nunca desocupou** — só se muda quando a maré dela manda |
 | **O que aconteceu?** | O **Massacre Silencioso** | Não houve grito, fogo ou exército: morreram parados os que viram o olhar, e o resto saiu antes do amanhecer, sem encostar mais. E o pior: **a tragédia veio anunciada** — em pesadelos — e os grandes ignoraram placidamente. Da coroa: dizem que desceu ao fundo junto do rei morto e de todos à volta — todos contam, nenhum provou |
-| **O que é o basilisco?** | A coisa da bacia — sem nome verdadeiro, sem acordo com ninguém | "Basilisco" é palavra emprestada dos livros de fora; o nome verdadeiro, ninguém tem. Ninguém a firmou, a convidou nem a temeu a tempo: quando ela subiu, não havia regimento nenhum a atender. Os esgotos do castelo são o lar dela; as pálpebras jamais abriram; o "olhar" que mata não sai dos olhos dela — sai do SEU. De onde veio e por que caça o Ferro: lacunas 13 e 15 |
+| **O que é o basilisco?** | A coisa da bacia — sem nome verdadeiro, sem acordo com ninguém | "Basilisco" é palavra emprestada dos livros de fora; o nome verdadeiro, ninguém tem. Ninguém a firmou, a convidou nem a temeu a tempo: quando ela subiu, não havia regimento nenhum a atender. Os canais do castelo são a sala da frente do lar dela; o porão é a caverna abaixo — cheia de corpos e de água envenenada, com o Ferro no meio. As pálpebras jamais abriram; o "olhar" que mata não sai dos olhos dela — sai do SEU. De onde veio e por que caça o Ferro: lacunas 13 e 15 |
 | **Quem é o player?** | Um ladrão pago adiantado pela **Liga das Beiras**; sem nome no canon | Não é a primeira vez dele ali — a cicatriz do medo (o terço do pico que nunca decai) é a prova, e ele não se lembra da primeira visita. E nem ele nem a Liga sabem o que a coroa DE FATO faz |
 
 ---
@@ -85,8 +85,9 @@ tentativa de contá-los rende um número diferente. O que se sabe: o corpo
 **lustra a pedra que roça** — é por isso que há salões limpos num castelo
 morto há um século.
 
-**O lar e a maré.** Os Canais Envenenados (andares 4–5 em tela) são o lar
-dela — o jogo dá isso em tela e não sublinha. De tempo em tempo ela sai
+**O lar e a maré.** Os Canais Envenenados (andares 4–5 em tela) são a sala
+da frente do lar dela — o jogo dá isso em tela e não sublinha; o porão é a
+caverna abaixo (§3, o acervo). De tempo em tempo ela sai
 pela boca do esgoto: rio abaixo, bacia adentro. É a **maré dela**. Quem
 mora na beira não tem mapa da besta — tem protocolo de geração: a água
 para de pingar (o mesmo sinal que o jogo toca quando ela caça), o peixe
@@ -99,9 +100,18 @@ combina com nada — não existe contrato que instrua, e o silêncio dela
 obedece régua nenhuma conhecida. Leituras alternativas
 vivem na §8, de propósito.
 
-**O que ela come.** Nada que se possa provar. A hipótese maldita: o medo que
-ela causa é o sustento — e o castelo é armadilha e pastagem ao mesmo tempo.
-Ninguém confirmou; ninguém que pudesse confirmar voltou.
+**O que ela come.** Nada que se possa provar. O castelo mostra o destino em
+vez da refeição: toda vítima desce (a caverna, abaixo dos canais), e o
+medo que ela causa pode ser o sustento — o castelo é armadilha e pastagem
+ao mesmo tempo. Ninguém confirmou; ninguém que pudesse confirmar voltou.
+
+**A caverna (o acervo).** Abaixo dos canais existe a caverna dela: cheia de
+corpos e de água envenenada. É para lá que ela leva cada vítima — ninguém
+fica onde caiu; o castelo é antessala. O veneno dos Canais Envenenados tem
+berço ali: é da caverna que a água desce envenenada para cima — o mapa
+inteiro bebe o mesmo fundo. E no meio disso tudo, entre corpos e água, o
+Ferro dela: a coroa em cama de corpo. O jogo de hoje aponta para lá — o
+nível da caverna ainda não existe (ver §5, o porão).
 
 **Por que patrulha um palácio morto.** Ela não sabe que o rei morreu; não
 sabe que o rei alguma vez viveu; não sabe o que é coroa. E, ainda assim,
@@ -229,7 +239,8 @@ Acabou de vergonha. E vergonha é muda.
   coisa não sobe — a coroa tem de ficar no alcance dela. A frase do
   altar ("onde o rei morto coroou-se a si mesmo", no código de geração) é
   a única marca em tela — e até ela é conta, nunca leitura: ninguém pôs
-  olho lá com vida para vir contar.
+  olho lá com vida para vir contar. A conta para no altar; a verdade está
+  mais funda — ver o porão, abaixo.
 - **O fundo é conversa, não terreno.** Em cem anos, os que tocaram o
   castelo pararam nas masmorras — e lá já é bruto demais para mais: grade,
   ossada, o corpo de sempre. Abaixo delas, o castelo deixa de ser lugar e
@@ -237,6 +248,12 @@ Acabou de vergonha. E vergonha é muda.
   fundo nele são desenho de eco, não de olho. O jogo desce o jogador
   exatamente onde ninguém jamais confirmou: o andar 5 é a primeira
   meia-prova em cem anos de que a conta de toda boca era boa.
+- **O porão (nível futuro).** Abaixo dos canais existe **a caverna**, o
+  acervo dela: corpos empilhados, água envenenada — e a coroa no meio
+  disso tudo. O jogo de hoje para no altar do andar 5; o nível da caverna
+  é o `andar 6` pendente — implementar em PR próprio (NÃO neste PR de
+  canon). Abaixo dos canais o caderno da ladrã está em branco: nem eco
+  sobe de lá.
 - Quando o ladrão a tira, o **grito** (os 15 ticks de
   atordoamento) é a única vez em um século em que ela faz som de fera: o
   Ferro sai da água e o corpo dela não responde a régua conhecida.
@@ -296,7 +313,8 @@ redesenhando o castelo por som**. Toda a rota do jogo é uma página dela.
 Os dois andares do fundo são as páginas de eco: ela nunca viu os canais —
 ninguém foi tão fundo; as masmorras foram o limite do século, e lá embaixo
 o caderno é desenho de som que sobe, sustentado pela conta que todos
-contam. O que ela ensinou, em uma frase, o jogador repete todas as noites:
+contam. Abaixo dos canais, o caderno está em branco: nem eco sobe da
+caverna. O que ela ensinou, em uma frase, o jogador repete todas as noites:
 *quem entra no castelo não pode ter um reflexo à mão.*
 
 ---
@@ -309,7 +327,10 @@ contam. O que ela ensinou, em uma frase, o jogador repete todas as noites:
   descrita como "cega, gigante, paciente" — **a contradição cega+olhar é
   intencional**: nunca se explica.
 - **Morte:** *"seus ossos guardam o castelo agora"* — o jogador é mais um
-  `¥`; *"o basilisco volta a rondar, paciente"*.
+  `¥`; *"o basilisco volta a rondar, paciente"*. E o canon completa por
+  baixo: os ossos não ficam onde o corpo caiu — **toda vítima desce para
+  o acervo**. "Seus ossos guardam o castelo" é a versão de quem ficou em
+  cima; a tela conta como o medo conta: chiqueiro, não mentira dura.
 - **Vitória:** *"voce escapou do olhar que comeu uma era"* · *"o castelo
   fica orfao de reis"* · *"a besta continua, paciente, no escuro"*.
 - **O altar fundo:** a coroa sobre o lugar "**onde o rei morto coroou-se a
@@ -348,6 +369,9 @@ implementar sem branch + smoke + PR):
 9. **Talho recente na trave do portão, machado fino, madeira sem século:**
    `L.B.` — a Liga já viu o terreno. O jogador não é o único que quer o
    castelo — é o primeiro a entrar por dentro.
+10. **Riscos de unha no corredor do altar — dezenas de pares, todos para
+    BAIXO:** ninguém levou ninguém para cima. Por onde acabam os riscos é
+    a pergunta que a pedra não responde.
 
 **Regra das pílulas:** nenhuma pílula pode entregar UMA resposta que a §8
 reserva em dúvida. Pílula confirma **imagem** — jamais mecanismo.
@@ -370,13 +394,13 @@ o que é mecânica e o que é narrativa.
 | 5 | A **água canta** (`=`) e **para** de pingar quando ela caça | Mecânica de áudio | (a) o canal é o corpo dela prolongado; (b) ela bebe os sons do caminho; (c) a água também tem medo dela |
 | 6 | As **alucinações** existem no render e nunca na lógica | Nota mecânica do README | (a) o castelo é narrador não confiável; (b) o medo do ladrão é o narrador; (c) a besta aprendeu a imitar o que o ladrão quer ouvir |
 | 7 | A **coroa-fantasma** que chama de longe | Mecânica de medo (nv 2+) | (a) ilusão do pânico; (b) a coroa embaixo chama de volta pelos modos do medo — e o medo traduz; (c) a coroa verdadeira já foi trocada uma vez e ninguém notou |
-| 8 | **Por que a besta nunca come?** | O toque mata, sempre; mas ela "abre" menos de vez | (a) os mortos viram outra coisa que não comida; (b) ela come o medo — o toque é só a colher; (c) ninguém viu ela mastigar: o toque mata mais rápido que a fome explica |
+| 8 | **Por que a besta nunca come?** | O toque mata, sempre; e o destino da vítima é descer | (a) os mortos viram outra coisa que não comida; (b) ela come o medo — o toque é só a colher; (c) ninguém viu ela mastigar: o toque mata mais rápido que a fome explica; (d) ela não come: **leva** — cem anos de acervo na caverna, e o uso dos corpos é a pergunta por trás da pergunta |
 | 9 | O que a **Liga das Beiras** quer de fato com o Ferro | A moeda velha e o talho no portão (`L.B.`) — de resto, nada | (a) símbolo: plantar a coroa velha no centro novo e matar a Regência por fora; (b) isca: aposta na leitura da beira (*quem tira, traz — ou é trazido*) — e querem arrastar a coisa para longe dos muros... ou para cima de alguém; (c) nome: o Ferro vale direito sobre o nome apagado da cidade — e a Liga quer o nome |
 | 10 | **Quem entrou antes dele?** | A cicatriz de medo; o caderno da ladrã; ossadas `¥` | toda ossada do castelo tem chance na teoria de fã de ter sido um ladrão |
 | 11 | O que acontece ao **mundo** quando a coroa sai da Cloaca? | *"...a besta continua, paciente, no escuro"* | a besta sem função provada nenhuma; a coroa chamando por cima da terra; a Regência enfim rompida — e o jogo NUNCA mostra o dia seguinte. Era para ninguém ver |
-| 12 | **Para onde vai a maré dela?** | Só o sinal: a água para de pingar | (a) o alcance dela cobre a bacia, não o castelo: ela patrulha região inteira; (b) ela caça onde o medo acaba — e a beira a alimenta de longe sem saber; (c) há um leito mais fundo, rio abaixo, e o castelo é só a sala da frente |
+| 12 | **Para onde vai a maré dela?** | Só o sinal: a água para de pingar | (a) o alcance dela cobre a bacia, não o castelo: ela patrulha região inteira; (b) ela caça onde o medo acaba — e a beira a alimenta de longe sem saber; (c) a caverna é o porão, não o fim: da cisterna da antessala o caminho dela continua rio abaixo, para um leito ainda mais fundo |
 | 13 | **De onde veio — e o que é de fato?** | Só nomes emprestados: "basilisco" nos livros, "maré" na beira, `B` na tela — e nenhum é dela | versões que toda boca reparte, e nenhuma tem prova: sempre esteve lá esperando; foi ovo e chocou no leito; cresceu dos efluentes de um império inteiro; acordou com o trânsito de guerra; desceu o rio; saiu de fenda do inferno; caiu das estrelas; ou ainda está se transformando — e TODAS podem ser a mesma história. Mistério do calibre da origem da própria humanidade: o edital existe porque a versão não se pôde escrever |
-| 14 | O que aconteceu com a **casa que desceu com o rei**? | Só a conta: "desceu junto, todos à volta" — sem prova | (a) morreram todos no fundo, em pé ao lado do cadáver — ossada é promessa; (b) os que sobraram saíram pela beira na mesma noite e sumiram no anel da periferia de vez; (c) ninguém desceu jamais: a coroa sempre esteve no fundo, e a Descida é a história que se conta para explicá-la |
+| 14 | O que aconteceu com a **casa que desceu com o rei**? | Só a conta: "desceu junto, todos à volta" — sem prova | (a) morreram todos no fundo, em pé ao lado do cadáver — ossada é promessa — ou foram os primeiros entregues ao acervo dela; (b) os que sobraram saíram pela beira na mesma noite e sumiram no anel da periferia de vez; (c) ninguém desceu jamais: a coroa sempre esteve no fundo, e a Descida é a história que se conta para explicá-la |
 | 15 | Por que ela **subiu naquela noite** — e por que **caça o Ferro** até hoje? | Só o fato: subiu de vez, e a caça dura desde o Ferro sair da água | (a) a Descida a chamou — endereço, cheiro: a conta da beira empurra as duas ocorrências para uma mesma história; (b) o século de guerra e trânsito a despertou de vez; (c) motivo nenhum humano — ela decidiu; e é a posse inédita do Ferro (primeira vez em um milênio fora da água) o único estímulo que a caça explica |
 
 ---
