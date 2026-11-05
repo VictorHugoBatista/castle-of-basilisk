@@ -128,6 +128,7 @@ let ambTheme = -1;
 let noiseCaveGain = null;
 let noiseCaveFilter = null;
 let noiseCaveBreath = -1;
+let caveGen = 0; // geração do corpo do ar: corrente de timer velha morre nela
 
 function audioOn() {
   if (AC) return;
@@ -181,6 +182,7 @@ function setAmbience(force) {
   noiseCaveGain = null;
   noiseCaveFilter = null;
   noiseCaveBreath = -1; // a respiração re-agenda na PRÓXIMA visita ao acervo
+  caveGen++; // nova geração: qualquer corrente de timer da visita velha morre
   PAL = PAL_BY_THEME[th === -1 ? 0 : th]; // o CRT respira a cor do lugar
   needsFull = true;
   // SFX abafados na masmorra: o silêncio sepulcral contrasta qualquer som
@@ -343,10 +345,11 @@ function schedCave() {
   if (!noiseCaveGain) buildCaveAir();
   if (noiseCaveBreath !== ambTheme) {
     noiseCaveBreath = ambTheme;
+    const gen = caveGen; // corrente presa à sua geração de corpo
     const breath = () => {
       if (ambTheme !== 3 || !AC) return;
       setTimeout(() => {
-        if (ambTheme !== 3 || !AC) return;
+        if (ambTheme !== 3 || !AC || gen !== caveGen) return;
         if (!(stats[0] === 1 && stats[7] === 2) && noiseCaveGain) {
           const t = AC.currentTime;
           const f0 = 130 + Math.random() * 70;
@@ -415,6 +418,76 @@ function buildCaveAir() {
   wind.start();
   drift.start();
   ambNodes.push(wind, windLo, windGain, drift, driftG);
+
+  // ---- O VENTO GRANDE (o tamanho das cavernas): corpo gustado à RÉGUA DO
+  // TÉRREO (ganho constante ~0.05 = o nível do vento da primeira fase) —
+  // sempre POR caveIn: cada onda devolve eco de 0.38 s (é o tamanho da
+  // boca que ele acha). Highpass embaixo para o rumble e a dissonância
+  // NUNCA ficarem embaixo da brisa; rajadas por scheduler sorteado (nada
+  // de LFO de ganho periódico) — o corpo abre até 460-740 Hz e o assobio
+  // fino cresce; ELA caçando: a rajada não sai (o corpo fica grave, a
+  // caverna prende o ar). Tudo morre com a troca de tema (ambNodes)
+  const windBig = AC.createBufferSource();
+  windBig.buffer = buf; // mesmo serviço de ruído fonte: leitura independente
+  windBig.loop = true;
+  const bigHp = AC.createBiquadFilter();
+  bigHp.type = 'highpass';
+  bigHp.frequency.value = 100;
+  const bigLo = AC.createBiquadFilter();
+  bigLo.type = 'lowpass';
+  bigLo.frequency.value = 260;
+  bigLo.Q.value = 0.4;
+  const bigGain = AC.createGain();
+  bigGain.gain.value = 0.05;
+  windBig.connect(bigHp);
+  bigHp.connect(bigLo);
+  bigLo.connect(bigGain);
+  bigGain.connect(caveIn);
+  // assobio da caverna: faixa média-fina, quase nada — cresce na rajada
+  const bigWhistle = AC.createBiquadFilter();
+  bigWhistle.type = 'bandpass';
+  bigWhistle.frequency.value = 720;
+  bigWhistle.Q.value = 6;
+  const bigWg = AC.createGain();
+  bigWg.gain.value = 0.004;
+  windBig.connect(bigWhistle);
+  bigWhistle.connect(bigWg);
+  bigWg.connect(caveIn);
+  // deriva lenta de afinação: o vento muda de calibre sozinho, entre rajadas
+  const drift2 = AC.createOscillator();
+  drift2.frequency.value = 0.05;
+  const drift2G = AC.createGain();
+  drift2G.gain.value = 55;
+  drift2.connect(drift2G);
+  drift2G.connect(bigLo.frequency);
+  windBig.start();
+  drift2.start();
+  ambNodes.push(windBig, bigHp, bigLo, bigGain, bigWhistle, bigWg, drift2, drift2G);
+  // rajadas do vento grande: 5-15 s, sobe/desce a sorte — igual ao vento do
+  // térreo (subida 1.0-2.8 s, descida 2.0-4.5 s), mas MAIS grave e sempre
+  // com o eco do teto por trás. A corrente carrega a GERAÇÃO do corpo: um
+  // vai-e-vem rápido de andar não ressuscita corrente velha (sem dobrar keu)
+  const gen = caveGen;
+  const gustBig = () => {
+    if (ambTheme !== 3 || !AC) return;
+    setTimeout(() => {
+      if (ambTheme !== 3 || !AC || gen !== caveGen) return;
+      if (noiseCaveGain === null) return; // corpo morto: remonta na volta
+      if (!(stats[0] === 1 && stats[7] === 2)) { // ELA caçando: sem rajada
+        const t = AC.currentTime;
+        const rise = 1.0 + Math.random() * 1.8;
+        const fall = 2.0 + Math.random() * 2.5;
+        const peak = 460 + Math.random() * 280;
+        bigLo.frequency.setTargetAtTime(peak, t, rise * 0.45);
+        bigLo.frequency.setTargetAtTime(260, t + rise + 0.5, fall * 0.5);
+        const wG = 0.009 + Math.random() * 0.007;
+        bigWg.gain.setTargetAtTime(wG, t, rise * 0.45);
+        bigWg.gain.setTargetAtTime(0.004, t + rise + 0.5, fall * 0.5);
+      }
+      gustBig();
+    }, 5000 + Math.random() * 10000);
+  };
+  gustBig();
 
   // dissonância: o par grave bate devagar (~5/s — o ar "não afina"), o par
   // agudo bate rápido (~18/s — o chiado que coça o ouvido). Ganhos ínfimos

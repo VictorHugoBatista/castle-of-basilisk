@@ -211,7 +211,9 @@ Decisoes:
   silencio sepulcral contrasta com qualquer barulho). Esgoto: GOTEIRAS (ping
   agudo com eco de cisterna, gota dupla ocasional), que PARAM quando ela esta
   de caca perto. BOCARRA: a morada do TETO ALTO (bus `buildCaveAir`, uma
-  vez por visita; tudo morre com a troca de tema) — ping gordo (gota grave
+  vez por visita; tudo morre com a troca de tema e as correntes de timer
+  carregam GERACAO — um vai-e-vem rapido de andar nao ressuscita corpo
+  velho) — ping gordo (gota grave
   e densa com eco de lago), vento grave constante com deriva de afinacao
   (lowpass 120 Hz, sem LFO de ganho algum), eco de caverna propria
   (delay 0.38 s, feedback 0.45 — o som nao acha parede nenhuma), a
@@ -219,8 +221,12 @@ Decisoes:
   swell one-shot) e a DISSONANCIA: dois pares de senoides desafinadas
   (82/87.3 Hz batendo ~5/s e 1740/1758 Hz batendo rapido) em ganho fixo e
   discreto — o desconforto vive do batimento de frequencias, nunca de
-  amplitude pulsante (a mesma regra do vento). Gota/respiracao prendem
-  quando ela
+  amplitude pulsante (a mesma regra do vento). E o VENTO GRANDE (o tamanho
+  das cavernas): corpo gustado ao nivel do vento do TERREO (gain ~0.05,
+  highpass 100 para o fundo rum/dissonancia seguirem audiveis), rajadas
+  5-15 s que abrem o corpo a 460-740 Hz e crescem o assobio 720 Hz — cada
+  onda por caveIn devolve o eco de 0.38 s; ELA cacando, a rajada nao sai.
+  Gota/respiracao prendem quando ela
   caça. Passos respingam na agua (`T_WATER` sob os pes); no acervo, passo
   em osso soa CRAQUE (o osso cede e rola) e passo em corpo soa MUSH
   molhado (a carne cede, o grude estopa) — o tile sob os pes decide
