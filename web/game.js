@@ -813,6 +813,14 @@ function colorFor(ch, attr, nowMs) {
     // fica sólido. Duas senoidas fora de fase: batimento irregular.
     const p = 0.62 + 0.25 * Math.sin(nowMs * 0.0021) + 0.13 * Math.sin(nowMs * 0.011);
     col = shade(col, Math.max(0.35, Math.min(1.0, p)));
+  } else if (a === 5) {
+    // a COROA brilha forte: duas ondas fora de fase, pico ~1.4 (o amarelo
+    // sangra até perto do branco) e vale MINIMO 0.6 — nunca apaga. No acervo
+    // o '¶' osso é estático e baixo (attr 12): é o contraste que salva §
+    // da cama de corpos. A coroa-fantasma desenha com o MESMO attr (o RT
+    // menti com a mesma criança): a mentira segue o padrão por construção
+    const p = 1.0 + 0.25 * Math.sin(nowMs * 0.0055) + 0.15 * Math.sin(nowMs * 0.0131);
+    col = shade(col, p);
   } else if (a === WATER_ATTR) {
     // ondulação lenta de lodo: cada célula corrói o brilho no tempo
     const p = 0.78 + 0.22 * Math.sin(nowMs * 0.0028);
@@ -852,8 +860,16 @@ function redrawWorldCell(si, wi, nowMs) {
   const ch = grid[wi * 2];
   const attr = grid[wi * 2 + 1];
   if (ch !== 0 && ch !== 32) {
+    // mesmo halo do loop principal: a coroa (real ou fantasma) nunca perde
+    // o brilho nem quando a serpente passa ao lado (repasse da vizinhança)
+    // — e tile LEMBRADO (DIM) não tem halo: a memória não ilumina
+    if ((attr & 0x7f) === 5 && (attr & DIM_FLAG) === 0) {
+      ctx.shadowColor = 'rgba(255,224,138,0.6)';
+      ctx.shadowBlur = 9;
+    }
     ctx.fillStyle = colorFor(ch, attr, nowMs);
     ctx.fillText(String.fromCharCode(ch), x + 1, y + CELL_H / 2 + 1);
+    ctx.shadowBlur = 0;
   }
 }
 
@@ -968,8 +984,17 @@ function render(nowMs) {
     ctx.fillRect(x, y, CELL_W, CELL_H);
     const c = String.fromCharCode(ch);
     if (ch !== 0 && c !== ' ') {
+      // a COROA tem halo próprio (attr 5 real OU fantasma: a mentira brilha
+      // igual) — o osso '¶' ao redor não tem brilho nenhum: § não se perde.
+      // tile LEMBRADO (DIM) não tem halo: a névoa escurece e o glow não
+      // vaza além da célula (a memória não ilumina)
+      if ((attr & 0x7f) === 5 && (attr & DIM_FLAG) === 0) {
+        ctx.shadowColor = 'rgba(255,224,138,0.6)';
+        ctx.shadowBlur = 9;
+      }
       ctx.fillStyle = colorFor(ch, attr, nowMs);
       ctx.fillText(c, x + 1, y + CELL_H / 2 + 1);
+      ctx.shadowBlur = 0;
     }
   }
 

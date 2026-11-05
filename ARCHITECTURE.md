@@ -187,7 +187,13 @@ Decisoes:
   `radial-gradient`, flicker por keyframes): custo ZERO de runtime vs shaders.
 - **Paleta monocromatica (familia #ffb000) sobre #050200**; a EXCECAO e a
   serpente, em vermelho para saltar do monocromo: cabeca `B` `#ff2e00`, corpo
-  `~` (attr 11) `#bf1600`; coroa e escadas pulsam; attr 9 pisca.
+  `~` (attr 11) `#bf1600`; escadas pulsam; attr 9 pisca. A COROA (attr 5)
+  brilha forte: duas ondas de brilho fora de fase, pico ~1.4 (o amarelo
+  beira o branco) com minimo 0.6 (nunca apaga) + HALO ambar no canvas
+  (shadowBlur 9) — no acervo ela nao se confunde com o osso '¶' (attr 12,
+  estatico e baixo). Tile LEMBRADO (DIM) nao tem halo: a memoria nao
+  ilumina. A coroa-fantasma das alucinacoes usa o MESMO attr 5: a mentira
+  herda o brilho por construcao (indistinguivel do real).
   - **Serpente em 3 efeitos JS** (baratos: ~25 glyphs/frame, so quando visivel):
     sombra de glyph deslocada (+3px quase-preta = "saltando do CRT"), halo
     `shadowBlur` vermelho e onda de brilho que percorre os anels a partir da

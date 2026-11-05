@@ -102,6 +102,11 @@ conhece a casa.
 - Ele **ouve**: passos no claro (raio 5), na sombra (raio 3), portas abertas
   (raio 12 — cuidado ao se esconder atrás delas). Ouvidos por andar: no térreo
   ela demora a acordar; nos esgotos desperta na hora.
+- **`§` = a coroa**: brilha FORTE (duas ondas de brilho que tocam perto do
+  branco + halo ambar ao redor) — no monte de osso do acervo ela não se
+  perde: o `¶` é estático e baixo, a coroa guarda a luz. A
+  **coroa-fantasma** das alucinações desenha com o MESMO brilho (mesmo
+  attr): a mentira segue o padrão — indistinguível do real, como sempre.
 - Ao pegar a **coroa** (`§` no acervo, andar 8, em cama de corpo), ele **grita**
   (15 ticks de
   atordoamento — sua chance de arrancar) e entra em caça eterna pelo cheiro.
