@@ -180,6 +180,7 @@ function setAmbience(force) {
   ambNodes = [];
   noiseCaveGain = null;
   noiseCaveFilter = null;
+  noiseCaveBreath = -1; // a respiração re-agenda na PRÓXIMA visita ao acervo
   PAL = PAL_BY_THEME[th === -1 ? 0 : th]; // o CRT respira a cor do lugar
   needsFull = true;
   // SFX abafados na masmorra: o silêncio sepulcral contrasta qualquer som

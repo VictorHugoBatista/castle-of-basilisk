@@ -18,7 +18,7 @@
 | **Há quanto tempo é ruína?** | ~100 anos — mas "ruína" é a palavra errada | O castelo não desabou: foi **abandonado de uma vez e nunca mais tocado**. Há salões onde a pedra está inexplicavelmente limpa (por onde ela passa) e onde os objetos da fuga continuam no chão do primeiro dia. A periferia do entorno **nunca desocupou** — só se muda quando a maré dela manda. E nenhum corpo em toda a pedra, salvo as ossadas das celas: o resto desce para o acervo (§3) |
 | **O que aconteceu?** | O **Massacre Silencioso** | Não houve grito, fogo ou exército: morreram parados os que viram o olhar, e o resto saiu antes do amanhecer, sem encostar mais. E o pior: **a tragédia veio anunciada** — em pesadelos — e os grandes ignoraram placidamente. Da coroa: dizem que desceu ao fundo junto do rei morto e de todos à volta — todos contam, nenhum provou |
 | **O que é o basilisco?** | A coisa da bacia — sem nome verdadeiro, sem acordo com ninguém | "Basilisco" é palavra emprestada dos livros de fora; o nome verdadeiro, ninguém tem. Ninguém a firmou, a convidou nem a temeu a tempo: quando ela subiu, não havia regimento nenhum a atender. Os canais do castelo são a sala da frente do lar dela; o porão é a caverna abaixo — cheia de corpos e de água envenenada, com o Ferro no meio. As pálpebras jamais abriram; o "olhar" que mata não sai dos olhos dela — sai do SEU. De onde veio e por que caça o Ferro: lacunas 13 e 15 |
-| **Quem é o player?** | Um ladrão pago adiantado pela **Liga das Beiras**; sem nome no canon | Não é a primeira vez dele ali — a cicatriz do medo (o terço do pico que nunca decai) é a prova, e ele não se lembra da primeira visita. E nem ele nem a Liga sabem o que a coroa DE FATO faz |
+| **Quem é o player?** | Um ladrão pago adiantado pela **Liga das Beiras**; sem nome no canon | Não é a primeira vez dele ali — a cicatriz do medo (metade do pico que nunca decai) é a prova, e ele não se lembra da primeira visita. E nem ele nem a Liga sabem o que a coroa DE FATO faz |
 
 ---
 
@@ -300,7 +300,7 @@ dura 40 tiles num jogo de um toque. Ele **ouve** demais: HUD
 sonoro, passada silenciosa, orientação por eco. E NUNCA olha — quem entra
 no castelo lutando contra o escuro morre. Ele não luta.
 
-**Canon oculto — não é a primeira vez.** O terço de pico de medo que jamais
+**Canon oculto — não é a primeira vez.** A metade de pico de medo que jamais
 decai (a mecânica da cicatriz) é literal: a primeira visita dele
 **aconteceu** e ele não se lembra do meio — apenas da entrada e da saída.
 O medo que conserva é tudo que sobrou daquele dia. Nada nos textos

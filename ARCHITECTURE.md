@@ -365,7 +365,7 @@ Nome: subsistema de `src/fear.rs` (`fear_update`, `fear_haunt`, `phantoms_tick`,
 Descricao: exposição à besta sobe o medo; ausência desce — MAS devagar, e
 quanto mais alto o nível, MAIS lenta a queda (histerese do susto). O medo tem
 dois CHÕES que ele jamais desce abaixo (regra "o susto fica preso no corpo"):
-o TRAUMA (um terço do pico histórico da run, `FEAR_PK/3`) e o PAVOR AMBIENTE
+o TRAUMA (metade do pico histórico da run, `FEAR_PK/2`) e o PAVOR AMBIENTE
 (`AMBF`, teto por profundidade). E o **TOPO NÃO MATA**: em 100 de medo nada
 acontece além do proprio teatro do pavor no máximo (`COLAPSO` — decisão de
 design: o medo atrapalha e fascina; a morte é trabalho dela, `DEATH_R` 1/2).
@@ -380,18 +380,19 @@ Pilares (constantes tunáveis no topo de `src/consts.rs`, prefixo `FEAR_`/`PH_`)
   de todas — desce sempre mais lento do que sobe; e para no chão (trauma
   ou pavor ambiente, o que for maior).
 - **Trauma (`FEAR_PK`)**: todo ganho marca o pico; a queda NUNCA leva o medo
-  abaixo de um TERÇO dele. Uma caçada até 60 deixa o jogador assombrado (20)
+  abaixo de METADE dele. Uma caçada até 60 deixa o jogador assombrado (30)
   para sempre — cicatriz, não sentença — e a espiral de terror acumula entre
   andares.
 - **Pavor ambiente (`AMBF`/`AMBT`)**: sem exposição, o medo rasteja +1 a cada
   `FEAR_AMB_N` ticks até o teto `FEAR_AMB_CAP` da profundidade (terreo 6 ·
-  masmorras 12/18 · esgoto 24/30 · BOCARRA 100). Monótono na run: voltar ao
+  masmorras 12/18 · esgoto 24/30 · BOCARRA 50). Monótono na run: voltar ao
   térreo não desaprende o que o fundo ensinou. E a BOCARRA CRACA — pisar no
   acervo (6-8) publica `FEAR = FEAR_MAX` e `FEAR_PK = FEAR_MAX` direto
-  (flow.rs `enter_floor`): o nivel 4 nasce na chegada, o chão de queda lá
-  embaixo é `FEAR_MAX` (fear.rs — o medidor não decai no fundo do fundo) e o
-  pico de 100 deixa cicatriz (33) que sobrevive até o fim da run. As mesmas
-  regras, o teto como morada permanentemente: o medo nunca mata.
+  (flow.rs `enter_floor`): o nivel 4 nasce na chegada e o chão de queda lá
+  embaixo é `FEAR_MAX` (fear.rs — o medidor não decai no fundo do fundo). Ao
+  subir de volta, a cicatriz é METADE do pico (50): o teto ambiente do acervo
+  fica em 50 de propósito — o horror da descida marca a volta em 50, não
+  envenena o resto da run em COLAPSO inteiro. O medo nunca mata.
 - **Freio do limiar (`fear_absorb`)**: lá em cima TODO susto rende menos —
   72+: metade, 86+: um quarto; e susto MIUDO (creep sem LOS d<=3, escamas do
   rastro: gain < 3) NÃO empurra o topo de jeito nenhum. O COLAPSO só avança

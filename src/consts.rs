@@ -188,7 +188,7 @@ pub(crate) const TRAIL_W_OLD: i32 = 5;     // peso de sala visitada a 140..260 t
 // Exposição (visão mútua) sobe rápido; longe dela desce DEVAGAR — e quanto
 // mais alto o nível, mais lenta a queda: o susto fica preso no corpo.
 // Dois freios contra o "medo que nunca aparece" (bancada fear_bench: 94% dos
-// ticks no nível 0, coroa-fantasma 0/40 jogos): o TRAUMA (um terço do pico
+// ticks no nível 0, coroa-fantasma 0/40 jogos): o TRAUMA (metade do pico
 // histórico nunca decai — quase-morte deixa cicatriz, não sentença) e o PAVOR
 // AMBIENTE (o castelo respira: sem exposição nenhuma, o medo rasteja até um
 // teto por profundidade — no habitat dela você nunca fica são por muito tempo).
@@ -210,9 +210,11 @@ pub(crate) const FEAR_GAIN_SPOTTED: i32 = 15; // EV_STINGER: ela TE VIU — pico
 pub(crate) const FEAR_WHELP_AT: [i32; 5] = [0, 30, 18, 9, 9]; // soluço involuntário por nível (cadência)
 // pavor ambiente por PROFUNDIDADE (1..8; [0] é pad): teto do medo que o lugar
 // impõe e ticks entre cada +1 — monótono na run: subir de volta não desaprende.
-// A BOCARRA (6-8) tem teto FEAR_MAX: lá o medo é o próprio lugar — e a entrada
-// CRACA o medidor no teto (flow.rs enter_floor), o chão de queda = FEAR_MAX
-pub(crate) const FEAR_AMB_CAP: [i32; 9] = [0, 6, 12, 18, 24, 30, 100, 100, 100];
+// Na BOCARRA o teto fica em METADE (50): o acervo marca (o chão lá embaixo é
+// FEAR_MAX, fear.rs — o medo cravado na entrada não decai no fundo), mas NÃO
+// envenena a volta: o chão dos andares de cima é o trauma (metade do pico),
+// então a escada de volta respira no 50, não em COLAPSO inteiro
+pub(crate) const FEAR_AMB_CAP: [i32; 9] = [0, 6, 12, 18, 24, 30, 50, 50, 50];
 pub(crate) const FEAR_AMB_N: [i32; 9] = [0, 44, 38, 32, 26, 22, 18, 16, 14];
 // alucinações: chance 1/N ticks por NÍVEL (0..4); cadências sobem do calmo
 // para a paranoia LENTA mas presente — graça = menos morte, mais pavor

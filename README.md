@@ -116,14 +116,15 @@ de você: **sobe rápido com a exposição** (vê-la de perto sobe muito; ela TE
 dispara um pico) e **desce devagar longe dela** — quanto mais alto o nível,
 mais lenta a queda. As regras que seguram tudo:
 
-- **o trauma fica**: um terço do pico de medo da run **não decai** — uma caçada
-  que te levou a 60 te deixa assombrado (20) até o fim, mas sobreviver a ela
+- **o trauma fica**: METADE do pico de medo da run **não decai** — uma caçada
+  que te levou a 60 te deixa assombrado (30) até o fim, mas sobreviver a ela
   não é sentença: cicatriz, não condenação;
 - **o lugar respira**: mesmo sem vê-la, o medo rasteja sozinho até um teto por
   andar — no esgoto, o habitat dela, o teto é 30: você não fica são por muito
   tempo por lá. E a Bocarra CRACA: pisar no acervo (6-8) marca o medidor
   direto em 100 (**colapso** — teatro, não morte) e o medidor não decai mais
-  lá embaixo; o pico de 100 vira cicatriz (33) que acompanha a volta toda;
+  lá embaixo; o pico de 100 vira cicatriz (50 — metade do pico) que acompanha
+  a volta toda;
 - **o topo só sobe pelo que você VÊ**: perto de 100 cada susto rende menos
   (72+: metade, 86+: um quarto) e os sustos miúdos não empurram nada — o
   sopro atrás da parede e as escamas do rastro alimentam o pavor, os gritos
@@ -232,7 +233,7 @@ node scripts/smoke.mjs
 Valida: morte por olhar (com CONE de visão dela), morte por toque, IA investigando
 ruído, **o rastro de escamas existindo** (via `pfb_debug_body_ptr`) e **o corpo
 ficando visível em tela em algum momento**, **o MEDO subindo com exposição e
-caindo LONGE dela, a CICATRIZ do pico (nunca cai de um terço), o PAVOR AMBIENTE
+caindo LONGE dela, a CICATRIZ do pico (nunca cai de metade), o PAVOR AMBIENTE
 rastejando sozinho, o FREIO DO LIMIAR (perto do 100 a subida cansa e susto
 miúdo não empurra o topo), alucinações nascendo no pânico (fantasma + falso
 `B`), a COROA-FANTASMA nascendo longe e evaporando ao chegar perto,

@@ -73,8 +73,8 @@ pub(crate) fn enter_floor(depth: u8, ev: u32, by_exit: bool) {
         // momento em que o corpo inteiro entende o lugar — o medidor nasce
         // em 100 (COLAPSO, as MESMAS regras: não mata) e não decai lá embaixo
         // (fear.rs crava o chão em FEAR_MAX por profundidade). O pico crava
-        // FEAR_PK também: a cicatriz sobrevive até o fim da run, em qualquer
-        // andar da volta
+        // FEAR_PK também: ao subir de volta a cicatriz é METADE do pico (50)
+        // — a escada respira, mas nunca deixa de respirar errado
         if depth >= 6 {
             FEAR = FEAR_MAX;
             FEAR_PK = FEAR_MAX;

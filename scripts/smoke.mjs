@@ -332,8 +332,9 @@ const collapse = scenario('o medo NUNCA mata: 100 sustenta o caos, sem morte (e 
   place(far.x, far.y);
   w.pfb_debug_fear(100); // o COLAPSO, forçado
   for (let k = 0; k < 240; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
-  // 240 ticks parado longe: do teto (98+) sangrou só até a cicatriz (~33),
-  // vivo todo instante — o drama mora no travessia, não na lápide
+  // 240 ticks parado longe: do teto (98+) sangrou só até a cicatriz (~50,
+  // metade do pico), vivo todo instante — o drama mora na travessia, não na
+  // lápide
   return stats[18] <= 100 && stats[18] >= 30 && stats[18] < 100;
 });
 
@@ -369,11 +370,11 @@ const brake = scenario('freio do limiar: perto do 100, a subida cansa', () => {
   return false;
 });
 
-// ---------- 2h. trauma: um TERÇO do pico NUNCA decai ----------
+// ---------- 2h. trauma: METADE do pico NUNCA decai ----------
 // O design diz "o susto fica preso no corpo": depois de um pico 60, o medo
-// desce até 20 e PARA — a cicatriz acompanha você até o fim da run (assombrado,
+// desce até 30 e PARA — a cicatriz acompanha você até o fim da run (assombrado,
 // não condenado: escapar de uma caçada não é sentença de morte).
-const trauma = scenario('medo: o pico deixa cicatriz (nunca cai de um terço)', () => {
+const trauma = scenario('medo: o pico deixa cicatriz (nunca cai de metade)', () => {
   w.pfb_new_game(1234567);
   for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
   const far = findCell((p) => (p & 1) && ((p >> 2) >= 14));
@@ -381,7 +382,7 @@ const trauma = scenario('medo: o pico deixa cicatriz (nunca cai de um terço)', 
   place(far.x, far.y);
   w.pfb_debug_fear(60); // um quase-morte: pico 60
   for (let k = 0; k < 200; k++) { w.pfb_step(0); pump(); if (stats[0] !== 1) return false; }
-  return stats[18] >= 20; // 200 ticks calmo depois: ainda em 20 — ficou preso
+  return stats[18] >= 30; // 200 ticks calmo depois: em 30 — ficou preso
 });
 
 // ---------- 2h-bis. o topo só avança pelo que você VÊ ----------

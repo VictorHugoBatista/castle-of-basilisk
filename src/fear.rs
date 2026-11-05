@@ -291,13 +291,15 @@ pub(crate) fn fear_update() {
                 }
             }
         }
-        // o chão do medo: um TERÇO do pico (o trauma) ou o pavor ambiente — o
+        // o chão do medo: METADE do pico (o trauma) ou o pavor ambiente — o
         // que for maior. O medidor NUNCA desce abaixo dele: quase morreu de
         // medo uma vez, termina a run assombrado — cicatriz, não sentença.
         // Na BOCARRA o chão é o TETO: o medo cravado na entrada (flow.rs)
-        // nunca decai lá embaixo — a casa dela é COLAPSO permanente
+        // nunca decai lá embaixo — a casa dela é COLAPSO permanente. Nos
+        // andares de cima a cicatriz é metade do pico: sobreviver ao acervo
+        // inteiro deixa a base no 50 — a volta é infernal, mas respira
         if FEAR < 0 { FEAR = 0; }
-        let floor = if DEPTH >= 6 { FEAR_MAX } else { (FEAR_PK / 3).max(AMBF) };
+        let floor = if DEPTH >= 6 { FEAR_MAX } else { (FEAR_PK / 2).max(AMBF) };
         if FEAR < floor { FEAR = floor; }
         // o TOPO NÃO MATA — decisão de design: o medo atrapalha, fascina e
         // desarma, mas nunca é a causa da morte (isso é trabalho dela). O
