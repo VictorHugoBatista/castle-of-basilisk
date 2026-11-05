@@ -1,10 +1,12 @@
 # LORE.md — o canon escondido do CASTLE OF BASILISK
 
-> **Documento interno.** Nada aqui aparece integralmente ao jogador: é a
-> verdade inteira que os autores conhecem, para que o jogo possa MENTIR
-> melhor. O jogador recebe pílulas (seção 7) e lacunas deliberadas (seção 8).
-> Não linkar do README. Se o jogo vier a contradizer algo aqui, o jogo vence
-> e este documento é alterado no mesmo commit.
+> **Documento interno.** Vive em `worldbuilding/LORE.md` — o mapa da pasta
+> é o índice em `worldbuilding/README.md`. Nada aqui aparece integralmente
+> ao jogador: é a verdade inteira que os autores conhecem, para que o jogo
+> possa MENTIR melhor. O jogador recebe pílulas (seção 7) e lacunas
+> deliberadas (seção 8). Não linkar do README. Se o jogo vier a
+> contradizer algo aqui, o jogo vence e este documento é alterado no mesmo
+> commit.
 
 ---
 
