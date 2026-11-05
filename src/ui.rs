@@ -420,9 +420,10 @@ pub(crate) fn render_select() {
     put(0, H() - 2, b'+', A_TITLE);
     put(W() - 1, H() - 2, b'+', A_TITLE);
 
-    write_big_center(1, "ANDARES", A_TITLE);
-    // respiro: o big-font ocupa y 1..5 — o texto só respira a partir do 7
-    write_center(7, "escolha por onde entrar:", A_UI);
+    // respiro: o big-font nasce UMA LINHA abaixo da moldura (o topo respira)
+    // e solta mais uma antes do subtítulo (os glifos grandes moram em y 2..6)
+    write_big_center(2, "ANDARES", A_TITLE);
+    write_center(8, "escolha por onde entrar:", A_UI);
 
     // cursor 0..7 (andar 1..8): a linha escolhida ambar (A_TITLE); ESC volta
     unsafe {
