@@ -16,29 +16,30 @@ cima do Y**: os muros abraçam a goela por cima, o castelo dentro, as
 palafitas ao longo dos três, os povoados longe de toda margem.
 
 ```
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-tttt    x    x    x      x      x      x      x    x    x       ttttt
-ttt        x      x       x    x     x       x      x        tttttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-tttttt        ~~~~                    ~~~~                ttttttttttt
-tttttttt           ~~~~                ~~~~             tttttttttttt
-tttttt                 ~~~              ~~~                ttttttttt
-ttttttt                   ~~~          ~~~                  tttttttt
-ttttttttt                    ~~~      ~~~                  ttttttttt
-ttttttttttt                     ~~~~ ~~~~               ttttttttttt
-ttttttttttttt          y      ~===*===~     y           ttttttttttt
-tttttttttttttttt   y   ##################   y         ttttttttttttt
-ttttttttttttttttt   ##=################=##         tttttttttttttt
-ttttttttttttttttt   #  p   p      C   p  p  #       tttttttttttttt
-tttttttttttttttt    #     p    C  C   p     #       tttttttttttttt
-ttttttttttttttttt   #  p   p      C   p  p  #       tttttttttttttt
-ttttttttttttttttt   #########======#########       ttttttttttttttt
-tttttttttttttt     m    m     m     m     m       ttttttttttttttt
-tttttttttttttttt      ~~~~~~~~~~~~~~~~~~           tttttttttttttt
-tttttttt     y   y         ~~~~~~~~~~      y    y      ttttttttt
-tttttttttttttt  y    y      ~~~~~~~~   y     y   ttttttttttttttt
-ttt     x     x       x       x      x      x       x      ttttt
-tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+ttttttttttttttx x xtttttttttttttttttttttttttttttttttttttxtttttttttttttttttttttttttttttttttttttttx xtttttttttttttttttttttttttttxttttttttttttt
+ttttttttttttttttttttttttttxtttttttttttttttttxtttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttx xttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+ttttttttttxttttttttttttttttttttttt~~~~tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt~~~~ttttttttttttttttttttttxttttttttttt
+tttttttttttttttttttttttttttttttttttttttt~~~~ttytttttttttttttttttttttttttttttttttttttttttttttttyt~~~~tttttttttttttttttttttttttttttttttttttttt
+ttttttttttttttttttttttttttttttttttttttttttyttt~~~~tttttttttttttttttttttttttttttttttttttttt~~~~yttttttttttttttttttttttttttttttttttttttttttttt
+ttttttttttttxttttttttttttttttttttttttttttttttttttttt~~~~tttttttttttttttttttttttttttttt~~~~ttttttttttttttttttttttttttttttttttttttxttttttttttt
+ttttttttttttttxttttttttttttttttttttttttttttttttttttttttttt~~~~tttttttttttttttttt~~~~ttttttttttttttttttttttttttttttttttttttttxttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt~~~~tttttttttt~~~~tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttytttt~~~~~==*==~~~~~tytttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttt====================t=================tttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt########################tttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt# p   p    C    p   p  #tttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt#    p    C  C    p    #tttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt# p   p    C    p   p  #tttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt########################tttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+ttttttttttttttttttttttttttttttttttttttttttttttttttttttm   m   m   m   m   mtttttttttttttttttttttttm   mttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt~~~~~~~~~~~~~~tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+ttttttttttttttttttttttttttttttttttttttttttttttyttttttttttt~~~~~~~~~~~~~~~~~~~~~~~~~~~~ttttttttttttyttttttttttttttttttttttttttttttttttttttttt
+ttttttttttttttttttttttttttttttttttttttttyttttttttt~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ttttttttttttttttyttttttttttttttttttttttttttttt
+ttttttttttttttttttttttttx   xtttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttx xttttttttttttttttttttttttt
+ttttttttttttttttttttx xtttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttxttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
 ```
 
 | símbolo | o que é |
@@ -52,15 +53,17 @@ tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
 | `C` | o castelo — o mapa do jogo (5 andares; o porão no corte abaixo) |
 | `m` | a cidade média — **esvaziada**, fora dos muros |
 | `y` | palafitas — ao longo dos três; cada aldeia uma orelha |
-| `x` | povoados distantes — as clareiras, longe de toda margem |
+| `x` | povoados: clareiras isoladas no miolo da cerrada — de par em par, jamais em faixa |
 
 Como ler: norte é o topo; os braços descem do norte e se juntam; o stem
-sai para o sul. O traço não leva nome nenhum — os nomes estão nas seções
-de baixo e no mapa anotado, que entra a seguir. Distância mede-se **por
-trilha**, nunca em linha reta — a cerrada não se atravessa sem caminho
-herdado: cada coluna do mapa vale dias. As trilhas vivas: as margens
-(palafita a palafita, água acima e abaixo), o ramo dos povoados (clareira
-a clareira) e a estrada morta até o castelo.
+sai para o sul. O traço mostra a BACIA inteira fechada — o zoom é largo:
+os povoados aparecem como clareiras isoladas no miolo da mata (par de
+pares, distante umas das outras), nunca como faixa. O traço não leva nome
+nenhum — os nomes estão nas seções de baixo e no mapa anotado. Distância
+mede-se **por trilha**, nunca em linha reta — a cerrada não se atravessa
+sem caminho herdado: cada coluna do mapa vale dias. As trilhas vivas: as
+margens (palafita a palafita, água acima e abaixo), o ramo dos povoados
+(clareira a clareira) e a estrada morta até o castelo.
 
 ## o mapa anotado (com nomes — para conferência)
 
