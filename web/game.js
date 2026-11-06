@@ -756,6 +756,27 @@ function playEvent(ev, pan) {
       noiseBurst({ dur: 0.7, vol: vol * 0.65, f: bright * 1.7, q: 5, delay: 1.6, pan });
       break;
     }
+    case 23: // EV_SHARD: o achado — açoite frio do metal antigo, dissonante e curto
+      blip({ type: 'sine', f0: 2620, f1: 1540, dur: 0.16, vol: 0.1 });
+      noiseBurst({ dur: 0.06, vol: 0.05, f: 4300, q: 6 });
+      break;
+    case 24: { // EV_HEART: um pulso do SEU coração — intervalo decidido no RT
+      // (heart_tick, pela distância até ela); daqui nasce só o lub-dub:
+      // volume/pan pela proximidade (mesma seção de leitura do caso 22)
+      const dx = stats[5] - stats[3];
+      const dy = stats[6] - stats[4];
+      const dist = Math.max(Math.abs(dx), Math.abs(dy));
+      const closeness = Math.max(0, Math.min(1, 1 - dist / 24));
+      const vol = 0.045 + closeness * 0.2;
+      const pan = Math.max(-1, Math.min(1, dx / 8));
+      // o batimento em dois tempos: lub (inteiro) e dub (mais miúdo) —
+      // grave e baixo, cresce de perto; longe é um tique no fundo da tela
+      const thump = (delay, v) =>
+        blip({ type: 'sine', f0: 64 - closeness * 12, f1: 28, dur: 0.15, vol: v, delay, pan });
+      thump(0, vol);
+      thump(0.11, vol * 0.6);
+      break;
+    }
   }
 }
 
@@ -869,7 +890,8 @@ function colorFor(ch, attr, nowMs) {
     const p = 0.62 + 0.25 * Math.sin(nowMs * 0.0021) + 0.13 * Math.sin(nowMs * 0.011);
     col = shade(col, Math.max(0.35, Math.min(1.0, p)));
   } else if (a === 5) {
-    // a COROA brilha forte: duas ondas fora de fase, pico ~1.4 (o amarelo
+    // a COROA e o FRAGMENTO SOMBRIO brilham forte (a MESMA matéria — attr 5
+    // por construção): duas ondas fora de fase, pico ~1.4 (o amarelo
     // sangra até perto do branco) e vale MINIMO 0.6 — nunca apaga. No acervo
     // o '¶' osso é estático e baixo (attr 12): é o contraste que salva §
     // da cama de corpos. A coroa-fantasma desenha com o MESMO attr (o RT
@@ -915,9 +937,9 @@ function redrawWorldCell(si, wi, nowMs) {
   const ch = grid[wi * 2];
   const attr = grid[wi * 2 + 1];
   if (ch !== 0 && ch !== 32) {
-    // mesmo halo do loop principal: a coroa (real ou fantasma) nunca perde
-    // o brilho nem quando a serpente passa ao lado (repasse da vizinhança)
-    // — e tile LEMBRADO (DIM) não tem halo: a memória não ilumina
+    // mesmo halo do loop principal: a coroa/fragmento (real ou fantasma)
+    // nunca perde o brilho nem quando a serpente passa ao lado (repasse da
+    // vizinhança) — e tile LEMBRADO (DIM) não tem halo: a memória não ilumina
     if ((attr & 0x7f) === 5 && (attr & DIM_FLAG) === 0) {
       ctx.shadowColor = 'rgba(255,224,138,0.6)';
       ctx.shadowBlur = 9;
@@ -1039,8 +1061,9 @@ function render(nowMs) {
     ctx.fillRect(x, y, CELL_W, CELL_H);
     const c = String.fromCharCode(ch);
     if (ch !== 0 && c !== ' ') {
-      // a COROA tem halo próprio (attr 5 real OU fantasma: a mentira brilha
-      // igual) — o osso '¶' ao redor não tem brilho nenhum: § não se perde.
+      // a COROA e o FRAGMENTO têm halo próprio (attr 5 real OU fantasma: a
+      // mentira brilha igual, e o '¤' guarda da coroa a mesma luz) — o osso
+      // '¶' ao redor não tem brilho nenhum: § não se perde.
       // tile LEMBRADO (DIM) não tem halo: a névoa escurece e o glow não
       // vaza além da célula (a memória não ilumina)
       if ((attr & 0x7f) === 5 && (attr & DIM_FLAG) === 0) {

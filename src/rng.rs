@@ -35,6 +35,19 @@ pub(crate) fn rsib() -> u32 {
         x
     }
 }
+// stream PRÓPRIA do pulso (mesma seção do rsib): o SEU coração também não
+// desgasta o rng do mundo — nenhum sorteio do jogo muda por ele pulsar
+#[inline]
+pub(crate) fn rheart() -> u32 {
+    unsafe {
+        let mut x = R_HEART;
+        x ^= x << 13;
+        x ^= x >> 17;
+        x ^= x << 5;
+        R_HEART = x;
+        x
+    }
+}
 pub(crate) fn repick() {
     // garante RNG não-degenerado (evita ciclo zero)
     unsafe {

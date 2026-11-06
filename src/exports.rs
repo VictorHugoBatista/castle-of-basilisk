@@ -40,6 +40,7 @@ pub extern "C" fn pfb_new_game(seed: u32) {
     unsafe {
         STATE = ST_PLAY;
         CROWN = false;
+        SHARD = false;
         DEPTH = 1;
         TICK = 0;
         ARRIV = 0;
@@ -76,6 +77,8 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         clear_phantoms();
         SIB_T = -(SIB_MAX_MS / TICK_MS);
         R_SIB = ((seed | 1) ^ 0xA5A5A5A5) | 1; // stream própria do sibilo, derivada da seed
+        HEART_T = 0;
+        R_HEART = ((seed | 1) ^ 0xB347B347) | 1; // stream própria do pulso, também derivada da seed
         DIFF = [0; 227];
         DIFF_PREV = [0; W0 * H0 * 2];
         DIFF_ST = 0xFF;
@@ -267,6 +270,17 @@ pub extern "C" fn pfb_debug_give_crown() {
     unsafe {
         CROWN = true;
         push_event(EV_CROWN);
+        sync_stats();
+    }
+}
+
+/// [DEBUG] entrega o Fragmento Sombrio (liga o pulso do peito).
+#[no_mangle]
+pub extern "C" fn pfb_debug_give_shard() {
+    unsafe {
+        SHARD = true;
+        push_event(EV_SHARD);
+        HEART_T = 0; // o pulso nasce na mão: bate já
         sync_stats();
     }
 }

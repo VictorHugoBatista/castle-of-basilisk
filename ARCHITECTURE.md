@@ -102,7 +102,7 @@ Exports (contrato publico — nao quebrar):
 | `pfb_pop_event` | `() u32`                     | consome fila de audio (0 = vazia) |
 | `pfb_diff_ptr`  | `() u32`                     | diff de render (bit0 = repinte integral, [1] camX, [2] camY, [3..227] bitmap de celulas de TELA mudadas) |
 | `pfb_diff_ack`  | `()`                         | confirmacao do consumo: zera flags + bitmap |
-| `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown/fear/fear_ptr/floor | somente para testes headless |
+| `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown/give_shard/fear/fear_ptr/floor | somente para testes headless |
 
 Layout de memoria:
 - **Grid**: buffer maximo `W_MAX x H_MAX` (88x48) celulas x `[char: u8, attr: u8]`,
@@ -110,7 +110,8 @@ Layout de memoria:
   leem `DIMW/DIMH`: castelo 56x32, masmorras 64x36, esgotos 80x44, BOCARRA
   (acervo dela) 88x48). Char da tabela ASCII; coroa = byte `0xA7` ('§'
   latin-1), agua = `'='` (0x3D), caveira = `0xA5` ('¥'), corpo do acervo =
-  `0xB6` ('¶'). Attr = indice da
+  `0xB6` ('¶'), fundura = `0xF7` ('÷'), fragmento sombrio = `0xA4` ('¤',
+  pega-se ao pisar). Attr = indice da
   paleta (0..15) OU `0x80 | indice` quando o tile e "lembrado" (fog of war) e
   escurece no render.
 - **Stats** (u8[32]): `[0] estado`, `[1] motivo de morte (1 olhar, 2 toque —
@@ -124,7 +125,9 @@ Layout de memoria:
   `[15] modo de teclas (0 WASD, 1 SETAS — o J S usa para filtrar a tecla de
   corrida X/K)`, `[16] largura do andar atual`, `[17] altura do andar atual`,
   `[18] medo (0..100)`, `[19] nivel do medo (0..4; 4 = COLAPSO, efeitos
-  máximos — e o medo nunca mata)`.
+  máximos — e o medo nunca mata)`, `[20] o pulso (0/1 — 1 = carrega o que
+  chia: o fragmento sombrio OU a coroa, a mesma matéria; espelho da cerca
+  do heart_tick, evento 24)`.
   **REGRA DE OURO**: qualquer funcao que mude estado (morte/vitoria/eventos)
   DEVE chamar `sync_stats()`. (Dois bugs ja nasceram de stats obsoletos —
   o terceiro: `return` cedo apos descer de andar deixava o bot do smoke
@@ -136,7 +139,11 @@ Layout de memoria:
   proximidade ficam no JS, caso 22 do playEvent). `18` EV_WHISPER (sussurro:
   nasceu alucinacao) · `19` EV_WHELP (soluco involuntario do medo) ·
   `20` EV_VANISH (alucinacao evaporou de perto) · `21` EV_VANISH_C (a
-  coroa-fantasma evaporou).
+  coroa-fantasma evaporou). `23` EV_SHARD (o achado: o acoite frio do metal
+  antigo) · `24` EV_HEART (um pulso do SEU coracao: o QUANDO e do RT —
+  `heart_tick` em fear.rs pela distancia chebyshev ate ela, piso 600 ms,
+  teto 4.5 s, stream propria `rheart`, gate = fragmento OU coroa; o
+  lub-dub, volume e pan sao do JS, case 24).
 
 - **Diff de render** (DIFF 227 bytes via `pfb_diff_ptr`): a comparacao
   byte-a-byte `[ch,attr]` do viewport 56x32 nasce no Rust (ui.rs `diff_pass`,
@@ -373,6 +380,18 @@ terreo.
   coroa (a ancara do gradiente e a coroa de verdade, migrada ou nao).
   Seeds antigas compram plantas novas (RNG reciclado em lugar diferente);
   gate de regressao no smoke ("escada longe") varre seeds x andares.
+- **Fragmento sombrio** (`¤` = 0xA4, attr 5 — o MESMO attr da coroa: o
+  MESMO brilho = a MESMA matéria, por construção): o achado da run. Nasce
+  no FIM de `gen_once`, na stream PRÓPRIA do achado (`shard_roll`, seed do
+  andar + sal — nenhum rolagem do mundo desanda: a patrulha que o
+  `place_basilisk` rola a seguir fica byte-a-byte igual), nos andares 1-4
+  com raridade escadinha: 1/4 no térreo · 2/5 no 2 · 1/2 no 3 · COBERTO no
+  4 (um e um só); dos 5 para baixo NUNCA (o fundo já pulsa por si — a coroa
+  é a matéria toda). Posição: piso seco em rota (`T_FLOOR`, DMAP >= 10
+  passos desde o '<', portas abertas do bfs de player-terrain; escada
+  [10, 1, 0] de fallback). Pisar no `¤` pega-o: `SHARD = true` +
+  `EV_SHARD` + o pulso `heart_tick` liga (mesmo efeito da coroa).
+  `STATS[20]` expõe "carrega o que chia" (fragmento OU coroa).
 - **Agua** (tile `'='` / attr 13, e fundura `'÷'`= 0xF7 / attr 13): nos CANAIS
    IMPERIAIS do esgoto sao 1-2 rios verticais de teto a fundo: leito de 1 a 5
   IMPERIAIS do esgoto sao 1-2 rios verticais de teto a fundo: leito de 1 a 5
@@ -484,6 +503,20 @@ Pilares (constantes tunáveis no topo de `src/consts.rs`, prefixo `FEAR_`/`PH_`)
   nunca mata). 4 jogos ficam TRAVADOS no dodge infinito do bot surdo (bancada
   apenas: o contador `travados` os segrega — o jogador humano não os vê).
 
+- **O pulso** (`heart_tick`, fear.rs; EV_HEART=24): o SIÊNCIO é a linha de
+  base do castelo — sem artefato (`SHARD || CROWN`), nenhum pulso NUNCA.
+  Com o que chia (e a coroa é da mesma matéria, então ela também liga), o
+  coração do LADRÃO bate com a distância chebyshev até ela: período em
+  ticks entre HEART_MIN_T (5 ticks de 140 ms = piso de 600 ms de intenção,
+  colado) e HEART_MAX_T (33 ticks ≈ 4.5 s, em d >= HEART_FAR_D = 22), com
+  sorte miúda (±1 tick) na stream própria `rheart`. A DECISÃO é do RT
+  (`game_step` a chama depois de `sibilo_tick`); o SOM é do JS (case 24 do
+  playEvent: lub-dub sintetizado, volume/pan pela proximidade). Um draw de
+  `rnd`/`rndn` aqui moveria TODA a aleatoriedade do mundo a partir do
+  pulso — no gate, a bancada fear_bench desandou de 4/40 para 1/40 de
+  vitórias até o remédio (a MESMA stream própria do sibilo) entrar.
+  `STATS[20] = SHARD || CROWN` é o espelho pro HUD/testes.
+
 ## 4. Armazenamento
 
 Nao existe: o jogo nao persiste nada (nem localStorage) — PoC sem save.
@@ -531,6 +564,12 @@ da coroa d<=10 vs d>=25 tem que vencer a distante por 1.8x, com >65% de
 osso/carne perto e <=40% longe — o gradiente provado em gate),
 "ESCADA LONGE" (varredura seeds x andares: a rota '<' -> '>'/§ nunca
 abaixo do LIM por tema — a regra da descida distante provada em gate),
+"O FRAGMENTO SOMBRIO" (varredura 24 seeds x 8 andares: raridade pelo
+contrato — 1/4 no térreo, 2/5 e 1/2 na masmorra, COBERTO e ÚNICO no 4,
+ZERO do 5 para baixo; todo '¤' em piso pisável) e
+"O PULSO" (o bot pega o '¤' andando até ele; o pulso nasce no tick do
+pega; a MEDIANA do intervalo entre batidas colada ~19-20t vs longe 33t;
+CALADO sem artefato nenhum; a COROA sozinha liga o mesmo pulso),
 fuzz de 6000 ticks contra
 estados impossiveis.
 
@@ -585,6 +624,13 @@ Ultima atualizacao: 2026-11-06
   coroa falsa]` para o smoke.
 - **EV_18..21**: eventos mentais (sussurro / soluço / evaporou / coroa mentiu).
   O JS não os panlama pela posição real da besta: acontecem dentro da cabeça.
+- **EV_23/24 e STATS[20]**: borda do FRAGMENTO SOMBRIO — `EV_SHARD` (o
+  achado) e `EV_HEART` (o pulso do ladrão pela distância dela; decisão no
+  RT, `heart_tick` de fear.rs). **Fragmento sombrio** (`¤`, `T_SHARD`,
+  attr 5): o achado da matéria da coroa — como à coroa-fantasma, o brilho
+  é herdado por construção; nasce e o pulso cara no mesmo pulso (1/4 ·
+  2/5 · 1/2 · coberto no 4; nunca dos 5 para baixo; fallback de rota
+  [10, 1, 0]; stream própria `shard_roll`).
 - **EV_22 / DIFF**: borda da migração de glue para RT — `EV_SIBILO` é a
   decisão de fala dela (basilisk.rs; a voz é toda do JS) e `DIFF`
   (`pfb_diff_ptr`) é o bitmap de render diff que o Rust produz e o JS pinta

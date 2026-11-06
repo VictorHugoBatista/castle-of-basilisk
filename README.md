@@ -107,6 +107,18 @@ conhece a casa.
   perde: o `¶` é estático e baixo, a coroa guarda a luz. A
   **coroa-fantasma** das alucinações desenha com o MESMO brilho (mesmo
   attr): a mentira segue o padrão — indistinguível do real, como sempre.
+- **`¤` = o fragmento sombrio**: um pedaço bruto de metal antigo, quebrado
+  pelo tempo, com uma marca que devia ter desaparecido — e não desaparece.
+  **Brilha como a coroa** (o mesmo pulso de luz, o mesmo halo: a matéria é
+  a mesma). Nasce raro nas ruínas do térreo, menos raro na masmorra — e na
+  **primeira mão dos Canais (andar 4) um sempre existe**, às vezes longe
+  (≥ 10 passos de rota da escada). Pisa nele para pegar; quem o carrega
+  sente o **próprio coração pulsar com a distância DELE até ela** — quanto
+  mais forte e rápido o pulso, mais perto ela está (colo: ~0.6 s por
+  pulso; além da visão: um deslize de ~4.5 s). Sem material nenhum, o
+  peito fica calado: o pulso não é radar, é uma consequência de carregar
+  a matéria errada — **e a coroa, quando sai da água, liga o mesmo
+  pulso**.
 - Ao pegar a **coroa** (`§` no acervo, andar 8, em cama de corpo), ele **grita**
   (15 ticks de
   atordoamento — sua chance de arrancar) e entra em caça eterna pelo cheiro.
@@ -233,7 +245,8 @@ Nada de wasm-bindgen: o módulo expõe funções `#[no_mangle] extern "C"`:
   confirma com o ack
 - `pfb_state()` — 0 título, 1 jogando, 2 morto, 3 vitória, 4 controles,
   5 escolha de andar (o konami)
-- `pfb_debug_*` — ferramentas dos testes (place/bas_place/map/probe/give_crown)
+- `pfb_debug_*` — ferramentas dos testes (place/bas_place/map/probe/body_ptr/
+  ai/give_crown/**give_shard**/fear/fear_ptr/floor)
 
 O WASM nunca aloca: as views JS são criadas uma vez e ficam válidas.
 
@@ -247,10 +260,11 @@ seu rastro) · `12` sibilo distante · `13` A BESTA abriu uma porta ·
 `20` alucinação evaporou de perto · `21` a coroa mentiu (falsa § evaporou) ·
 `22` sibilo de perto (a DECISÃO de falar nasce no WASM: raio 6, períodos por
 coroa/medo e o silêncio proposital de ~1 em 3; volume/pan/brilho pela
-proximidade ficam no JS) —
-mais o **batimento cardíaco** contínuo (intervalo/volume/pan pela distância, e
-dispara sozinho no pânico) e o drone ambiente do castelo (engorda enquanto o
-corpo dela está visível).
+proximidade ficam no JS) · `23` o achado (o açoite frio de pegar o `¤`) ·
+`24` o pulso do seu coração (DECISÃO no WASM, `heart_tick`: intervalo pela
+distância chebyshev até ela — 0.6 s colado a 4.5 s além da visão — só
+com o fragmento OU a coroa carregados; o lub-dub, volume e pan são do JS) —
+mais o drone ambiente do castelo (engorda enquanto o corpo dela está visível).
 
 ## smoke test (headless)
 
@@ -277,10 +291,16 @@ corpos), **a ESCADA LONGE — a descida `>`/`§` nunca nasce colada na escada
 de entrada** (distância de rota desde o `<` respeita o limiar por tema em
 varredura de seeds e andares), **a BOCARRA DECORADA — corpos `¶`, caveiras `¥` e água úmida `=`
 presentes
-em massa nos andares 6-8** e **A PISTA NÃO CONTADA — a densidade do acervo
+em massa nos andares 6-8**, **A PISTA NÃO CONTADA — a densidade do acervo
 provada a crescer rumo à coroa (d<=10 vs d>=25, 1.8x), `pfb_debug_floor` de
 frente**, **a MORTE NO ESGOTO
-— tela de morte compõe 56x32, não o stride 80 do esgoto**
+— tela de morte compõe 56x32, não o stride 80 do esgoto**,
+**o FRAGMENTO SOMBRIO — nascimento por andar na varredura de 24 seeds x 8
+andares (raro no térreo ~1/4, coberto e ÚNICO no 4, nunca dos 5 para baixo,
+todo `¤` em piso pisável)** e **o PULSO — cadência pela distância (mediana
+do intervalo entre batidas: colada ~19-20 ticks, longe 33), o pulso nasce na
+mão ao pegar, o peito CALADO sem material nenhum e a coroa sozinha liga o
+mesmo pulso**
 e fuzz de 6000 ticks sem estados impossíveis.
 
 ## status do conceito
@@ -295,7 +315,10 @@ interrompidos por desabamentos de pedra, funduras `÷` atravessáveis por
 ninguém e cavernas-bacia que cortam o rio a seco) — e a **BOCARRA DIABÓLICA**
 88×48, o acervo dela: câmaras nascidas de blob, túneis tortos de random-walk,
 umidade em poças de `=`, caveiras `¥` e corpos `¶` em pilha, a coroa no andar 8
-em cama de corpo e o medo cravado no teto lá embaixo. IA em 3 estados
+em cama de corpo e o medo cravado no teto lá embaixo. O **fragmento sombrio**
+(`¤`, o mesmo material) reparte-se nas ruínas e na masmorra — e um sempre
+existe no primeiro nível dos canais — quem o carrega (ou carrega a coroa)
+sente o coração pulsar com a distância da besta. IA em 3 estados
 (patrulha/invest/caça) com BFS real e temperamento por tema, FOV por raycast,
 um toque mata / Um olhar mata. Cada tema tem o próprio caráter de geração.
 Para o jogo grande: itens de "ruído falso", basilisco aprendendo padrões de

@@ -594,7 +594,7 @@ const diffContract = scenario('contrato do diff: bitmap == byte-a-byte real (120
 // desvio do tile quando já está parado sobre o alvo.
 const pass = (i) => {
   const t = wmap[i];
-  return t === 0x2E || t === 0x2C || t === 0x3E || t === 0x3C || t === 0x2B || t === 0xA7 || t === 0x3D || t === 0xA5 || t === 0xB6; // 0x3D = água '=' · 0xA5 = caveira '¥' · 0xB6 = corpo '¶' (bocarra)
+  return t === 0x2E || t === 0x2C || t === 0x3E || t === 0x3C || t === 0x2B || t === 0xA7 || t === 0x3D || t === 0xA5 || t === 0xB6 || t === 0xA4; // 0x3D = água '=' · 0xA5 = caveira '¥' · 0xB6 = corpo '¶' (bocarra) · 0xA4 = fragmento '¤' (pisável, o achado)
 };
 // portais (>, <, §) são INTERAÇÕES: só pisável se é o alvo do plano —
 // senão o bot atravessa um '<' sem querer e sobe de andar
@@ -992,6 +992,144 @@ if (!bodySeen) {
   }
 }
 
+// ---------- 3d. O FRAGMENTO SOMBRIO: nascimento por andar ----------
+// A raridade é contrato: raro no térreo (1/4), menos raro na masmorra
+// (2/5 · 1/2), garantido — e ÚNICO — no primeiro nível dos canais (o 4),
+// inexistente do 5 para baixo (o fundo já pulsa por si). E todo '¤' nasce
+// em piso seco. Uma varredura de seeds x andares prova os dois lados.
+let shardOK = false;
+{
+  const countShards = () => {
+    ensureViews();
+    let n = 0;
+    for (let i = 0; i < Wd * Hd; i++) if (wmap[i] === 0xA4) n++;
+    return n;
+  };
+  let f1 = 0, f2 = 0, f3 = 0, f4 = 0, fundo = 0, seco = true, umSo = true;
+  for (let s = 0; s < 24; s++) {
+    w.pfb_new_game(2000 + s);
+    for (const d of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      w.pfb_debug_floor(d);
+      const n = countShards();
+      if (d >= 5) { fundo += n; continue; }
+      if (n > 1) umSo = false; // o achado é UM por andar, sempre
+      if (n === 1) {
+        // réguas da posição: piso seco (o probe bit0 é caminhável de pés)
+        const at = wmap.indexOf(0xA4);
+        if (!(w.pfb_debug_probe(at % Wd, (at / Wd) | 0) & 1)) seco = false;
+      }
+      if (d === 4) { if (n === 0) umSo = false; f4 += n; } // o 1º canal é COBERTO
+      else if (d === 1) f1 += n;
+      else if (d === 2) f2 += n;
+      else if (d === 3) f3 += n;
+    }
+  }
+  shardOK = umSo && fundo === 0 && seco
+         && f1 >= 2 && f1 <= 20   // 1/4 esperado: ~6 de 24
+         && f2 >= 2 && f2 <= 20   // 2/5 esperado: ~10 de 24
+         && f3 >= 4 && f3 <= 20;  // 1/2 esperado: ~12 de 24
+  console.log(`  fragmento: terreo ${f1}/24 · masmorra ${f2}/24-${f3}/24 · canais(4) ${f4}/24 · fundo ${fundo}${seco ? ' seco' : ' MOLHADO'}${umSo ? ' · único' : ' · DUPLICADO/FALTANTE'}`);
+  console.log(shardOK
+    ? 'PASS - fragmento: raro no terreo, garantido no 4, nunca no fundo'
+    : 'FAIL - fragmento (nascimento)');
+}
+
+// ---------- 3e. o pulso do fragmento: acha, leva, o peito obedece ----------
+// O coração é o radar honesto: SEM fragmento e SEM coroa NUNCA bate (o
+// silêncio é a linha de base); com o '¤' começa a bater (5 ticks) e
+// desliza até ~33 (4.5 s) quando ela some; a coroa liga o mesmo pulso.
+let shardPulseOK = false;
+{
+  const heartCount = () => evSeen[24] || 0;
+  // (a) o achado, no andar garantido: pega o '¤' ANDANDO até ele
+  w.pfb_new_game(1234567);
+  w.pfb_debug_floor(4);
+  ensureViews();
+  let at = -1;
+  for (let i = 0; i < Wd * Hd; i++) if (wmap[i] === 0xA4) { at = i; break; }
+  let picked = false, pulsoNasce = false;
+  if (at >= 0) {
+    const sx = at % Wd, sy = (at / Wd) | 0;
+    // vizinho pisável do '¤': um passo até ele
+    let nb = null;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const p = w.pfb_debug_probe(sx + dx, sy + dy);
+      if (p & 1) { nb = { x: sx + dx, y: sy + dy }; break; }
+    }
+    if (nb) {
+      place(nb.x, nb.y);
+      const p0 = () => stats[3] + stats[4] * Wd;
+      const ev0 = evSeen[23] || 0, h0 = heartCount();
+      w.pfb_step(dirTo(p0(), at)); pump(); // pisa no '¤'
+      picked = (evSeen[23] || 0) > ev0 && stats[20] === 1 && wmap[at] === 0x2E;
+      pulsoNasce = heartCount() > h0; // o pulso nasce na mão: bate no mesmo tick
+    }
+    // (b) cadência: colada (a 7-12 de chebyshev, na coleira de re-place por
+    // tick, SEM LOS pro jogador: nenhum olhar/morte a d>=6, gaze no esgoto
+    // pede d<=5) tem que galopar; longe (22+, o teto da cadência) quase para
+    if (picked) {
+      let closeCell = null;
+      for (let y = 1; y < Hd - 1 && !closeCell; y++)
+        for (let x = 1; x < Wd - 1; x++) {
+          if (!(w.pfb_debug_probe(x, y) & 1)) continue;
+          const dc = Math.max(Math.abs(x - stats[3]), Math.abs(y - stats[4]));
+          if (dc < 7 || dc > 12) continue;
+          w.pfb_debug_bas_place(x, y);
+          if (!(w.pfb_debug_probe(stats[3], stats[4]) & 2)) { closeCell = { x, y }; break; } // prova do LOS: dela pro jogador
+        }
+      let farCell = null;
+      for (let y = 1; y < Hd - 1 && !farCell; y++)
+        for (let x = 1; x < Wd - 1; x++) {
+          if (!(w.pfb_debug_probe(x, y) & 1)) continue;
+          const dc = Math.max(Math.abs(x - stats[3]), Math.abs(y - stats[4]));
+          if (dc >= 22) { farCell = { x, y }; break; }
+        }
+      if (closeCell && farCell) {
+        // o relógio do pulso atravessa as janelas (o HEART_T segue de onde
+        // ficou e a troca compra batidas caras), então a régua honesta é o
+        // INTERVALO MEDIANO entre batidas dentro de cada janela
+        let beatsBase = heartCount();
+        const runWindow = (cell, ticksOut) => {
+          let tLast = null;
+          for (let s = 0; s < 140 && stats[0] === 1; s++) {
+            w.pfb_debug_bas_place(cell.x, cell.y); // ela presa na coleira
+            w.pfb_step(0); pump(); // 140 ticks: ~4 ciclos longe, ~8 perto
+            if (heartCount() > beatsBase) {
+              beatsBase = heartCount();
+              if (tLast !== null) ticksOut.push(s - tLast);
+              tLast = s;
+            }
+          }
+        };
+        const nearInt = [], farInt = [];
+        runWindow(closeCell, nearInt);
+        runWindow(farCell, farInt);
+        const med = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[(s.length / 2) | 0] : 0; };
+        const nearMed = med(nearInt), farMed = med(farInt);
+        // períodos do RT em ticks: colada 7..12 => 13..19 · longe 22+ => 33
+        const cadOk = nearMed > 0 && farMed > 0 && nearMed < farMed && farMed - nearMed >= 10;
+        console.log(`  cadência: colada(7-12) mediana ${nearMed}t · longe(22+) ${farMed}t ${cadOk ? 'OK' : 'FALHOU'}`);
+        shardPulseOK = picked && pulsoNasce && cadOk;
+      }
+    }
+  }
+  // (c) sem nada, o peito fica CALADO (ela livre, geometria caótica);
+  // e a coroa, sozinha, liga o mesmo pulso
+  w.pfb_new_game(9999);
+  const hQuiet0 = heartCount();
+  for (let s = 0; s < 60; s++) { w.pfb_step(0); pump(); }
+  const quiet = heartCount() === hQuiet0;
+  w.pfb_new_game(8888);
+  w.pfb_debug_give_crown();
+  for (let s = 0; s < 40; s++) { w.pfb_step(0); pump(); }
+  const crownPulse = heartCount() > hQuiet0 && stats[20] === 1;
+  console.log(`  calado sem nada ${quiet ? 'OK' : 'FALHOU'} · coroa pulsa ${crownPulse ? 'OK' : 'FALHOU'}`);
+  shardPulseOK = shardPulseOK && quiet && crownPulse;
+  console.log(shardPulseOK
+    ? 'PASS - pulso do fragmento (e da coroa): cadência pela distância, silêncio como base'
+    : 'FAIL - pulso do fragmento');
+}
+
 // ---------- 4. fuzz bruto anti-trap ----------
 let traps = 0;
 try {
@@ -1009,6 +1147,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, caveDecor, pista, farStairs, deadUi, bodyProof, traps === 0, menuOk, konami, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, caveDecor, pista, farStairs, deadUi, bodyProof, traps === 0, menuOk, konami, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract, shardOK, shardPulseOK].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

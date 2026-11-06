@@ -203,6 +203,14 @@ pub(crate) fn game_step(input: u32) {
                         push_event(EV_CROWN);
                         CFREEZE = 15;
                     }
+                    T_SHARD => {
+                        // o FRAGMENTO SOMBRIO: acha-se, leva-se — e o peito
+                        // passa a pulsar com a distância dela (heart_tick)
+                        SHARD = true;
+                        MAP[ni] = T_FLOOR;
+                        push_event(EV_SHARD);
+                        HEART_T = 0; // o pulso nasce na mão: bate já
+                    }
                     _ => {}
                 }
                 if portaled { break; } // dash não atravessa o teleporte
@@ -239,6 +247,7 @@ pub(crate) fn game_step(input: u32) {
             note_player_room();
             basilisk_turn();
             if STATE == ST_PLAY { sibilo_tick(); } // a fala dela: o olhar dela pode ter matado no passo acima
+            if STATE == ST_PLAY { heart_tick(); }  // o SEU pulso: só com fragmento/coroa no peito
         }
         if STATE != ST_PLAY { return; }
 

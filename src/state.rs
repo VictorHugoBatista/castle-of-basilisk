@@ -23,6 +23,8 @@ pub(crate) static mut DEATH_R: u8 = 0; // motivos de morte REAL: 1 = olhar, 2 = 
                             // (o medo nunca mata — veja fear_update)
 pub(crate) static mut DEPTH: u8 = 1;
 pub(crate) static mut CROWN: bool = false;
+pub(crate) static mut SHARD: bool = false; // o Fragmento Sombrio: carrega-o e o SEU peito
+                                           // pulsa com a distância dela (a coroa também liga)
 pub(crate) static mut TICK: i32 = 0;
 pub(crate) static mut GRACE: i32 = 0;
 pub(crate) static mut ARRIV: i32 = 0; // tick de chegada no andar: o nome do piso anuncia-se
@@ -119,6 +121,11 @@ pub(crate) static mut R32: u32 = 1;
 // ---- sibilo próximo (produtor: basilisk.rs · consumidor: JS, evento 22) ----
 pub(crate) static mut SIB_T: i32 = -(SIB_MAX_MS / TICK_MS); // último sopro (tick); começa no fundo: entrar no raio dispara na hora
 pub(crate) static mut R_SIB: u32 = 1;  // xorshift PRÓPRIO do sibilo: a fala dela não desgasta o rng do mundo
+
+// ---- o pulso do fragmento (produtor: fear.rs · consumidor: JS, evento 24) ----
+pub(crate) static mut HEART_T: i32 = 0; // ticks até o próximo pulso; 0 = bate já
+pub(crate) static mut R_HEART: u32 = 1; // xorshift PRÓPRIO do pulso: o SEU coração também não
+                                        // desgasta o rng do mundo (mesma seção do sibilo)
 
 // ---- diff de render: produtor Rust (ui.rs: diff_pass dentro de render()),
 // consumidor JS (pfb_diff_ptr/pfb_diff_ack) — a comparação byte-a-byte que

@@ -63,6 +63,9 @@ pub(crate) const T_CORPSE: u8 = 0xB6; // bocarra: corpo '¶' trazido pela criatu
 pub(crate) const T_SHALLOW: u8 = b'='; // masmorra funda: poça rasa — MESMO glifo da água, mas rasa:
                             // não é o habitat dela, e os pés dela não ganham maré
 pub(crate) const T_DEEP: u8 = 0xF7;   // esgoto: '÷' fundura — água demais até para ela: não se passa
+pub(crate) const T_SHARD: u8 = 0xA4;  // lat-1 '¤' — o FRAGMENTO SOMBRIO: pedaço bruto de metal
+                            // antigo, marcas indecifráveis (pega-se ao pisar — e o attr de coroa:
+                            // o MESMO brilho = o MESMO material, por construção)
 
 // ---- atributos (índice da paleta em JS) ----
 pub(crate) const A_FLOOR: u8 = 0;
@@ -112,6 +115,10 @@ pub const EV_VANISH_C: u32 = 21; // a coroa mentiu: a § falsa evaporou
 // Decisão inteira no RT (basilisk.rs: quando ela sopra, se cala de propósito);
 // o SOM é do JS (caso 22 do playEvent: vol/pan/brilho derivam da proximidade).
 pub const EV_SIBILO: u32 = 22;
+
+// ---- o Fragmento Sombrio: o achado e o pulso que ele liga no SEU peito ----
+pub const EV_SHARD: u32 = 23; // o achado: o açoite frio do metal antigo
+pub const EV_HEART: u32 = 24; // um pulso: intervalo decidido no RT pela distância DELE até ela
 pub(crate) const SIB_R: i32 = 6; // raio do sopro: acima de 6 tiles nada dela te alcança
 
 // cadência do sopro (migrada de web/game.js para o RT): períodos em MS
@@ -127,6 +134,14 @@ pub(crate) const SIB_MIN_MS: i32 = 1000;     // clamp: sopro nunca mais rápido 
 pub(crate) const SIB_MAX_MS: i32 = 5200;     // nem mais lento que 5.2 s
 pub(crate) const SIB_FLOOR_MS: i32 = 900;    // o medo aperta o sopro até este piso (−140 ms/nível)
 pub(crate) const SIB_GAP_PCT: u32 = 38;      // ~1 sopro em 3 não sai (fora da caça com coroa)
+
+// cadência do PULSO (o coração de quem carrega o que chia: o fragmento ou
+// a coroa — a mesma matéria). Decidida no RT, o relógio é o TICK (140 ms):
+// perto (Ela colada) corre até o piso de 600 ms; longe desliza linear até
+// quase parar em d >= HEART_FAR_D — 4.5 s é devagar, mas nunca é mudo
+pub(crate) const HEART_MIN_T: i32 = 5;   // 600/140 arredondado p/ cima: 5 ticks
+pub(crate) const HEART_MAX_T: i32 = 33;  // 4500/140 → 33 ticks
+pub(crate) const HEART_FAR_D: i32 = 22;  // d >= 22: o pulso fica no piso (mapa máximo: 88x48)
 
 // duração de um tick na fronteira WASM↔JS: o loop de web/game.js roda a este
 // passo fixo — o sibilo nasce em ms no RT e vira ticks aqui
