@@ -762,26 +762,28 @@ function playEvent(ev, pan) {
       break;
     case 24: { // EV_HEART: um pulso do SEU coração — intervalo decidido no RT
       // (heart_tick, pela distância até ela); daqui nasce só o lub-dub.
-      // PERCEPTÍVEL NO FUNDO DO FUNDO: o batimento vivia exatamente no
-      // armário do drone (55/58,3 Hz) e dentro do lowpass do vento grave
-      // da Bocarra — a senoide pura sumia no rumble. Agora ele sai da
-      // faixa do drone e ganha PELE: um square Miúdo em cima (harmônicos
-      // ímpares ~130-400 Hz) atravessa o vento e dá o ataque do batido;
-      // o volume piso sobe para o coração valer como SOM do corpo, sem
-      // engolir o marketplace do lugar
+      // O PEITO É O SOM DO SEU CORPO — NÃO PEDE SUBWOOFER: camadas novas
+      // (74 Hz fora do drone + square miúda) ainda presunham bom falante;
+      // em laptop o sub-grave 50-74 Hz fisicamente não sai. O batido que
+      // OUVIR EM QUALQUER ALTO-FALANTE mora na banda da pele de tambor
+      // (~165-380 Hz — acima do rumble, abaixo do silbo). O sub-senoide
+      // fica como tranco para quem tem caixa de verdade.
       const dx = stats[5] - stats[3];
       const dy = stats[6] - stats[4];
       const dist = Math.max(Math.abs(dx), Math.abs(dy));
       const closeness = Math.max(0, Math.min(1, 1 - dist / 24));
-      const vol = 0.09 + closeness * 0.22;
+      const vol = 0.11 + closeness * 0.21;
       const pan = Math.max(-1, Math.min(1, dx / 8));
-      // perto: pesado e fundo (50 Hz); longe: 74 Hz, fora do drone
-      const f = 74 - closeness * 24;
       const thump = (delay, v) => {
-        // a massa grave do batido
-        blip({ type: 'sine', f0: f, f1: 28, dur: 0.15, vol: v, delay, pan });
-        // a pele: harmônicos ímpares que o vento não engole
-        blip({ type: 'square', f0: f * 1.8, f1: 56, dur: 0.09, vol: v * 0.24, delay, pan });
+        // a PELE do batido (o que você OUVIR de fato): baque curto de
+        // band-noise na banda da pele de tambor — o ataque que nem a
+        // rajada grande engole
+        noiseBurst({ dur: 0.05, vol: v * 0.55, f: 380 - closeness * 90, q: 1.2, delay, pan });
+        // o CORPO do batido: "bomp" em 168 Hz longe (124 colado) com
+        // caída até 72 — a massa que carrega o lub-dub acima do drone
+        blip({ type: 'square', f0: 168 - closeness * 44, f1: 72, dur: 0.11, vol: v * 0.5, delay, pan });
+        // o TRANCO (para caixas com grave): sub-senoide pesando o chão
+        blip({ type: 'sine', f0: 74 - closeness * 24, f1: 28, dur: 0.15, vol: v * 0.8, delay, pan });
       };
       thump(0, vol);
       thump(0.11, vol * 0.6);

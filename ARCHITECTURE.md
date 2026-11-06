@@ -241,10 +241,14 @@ Decisoes:
   Zero samples (binario web leve). Coracao (o pulso do fragmento OU da
   coroa, decidido no RT —`heart_tick`, evento 24): intervalo/volume/pitch
   pela distancia chebyshev; pan pelo sinal de dx (direita/esquerda). O
-  lub-dub corta o ar de teto alto do fundo por camada: massa grave em
-  senoide (`74→50` Hz, FORA da faixa do drone 55/58,3) + pele em square
-  (`f*1.8`, harmonicos imparares ~130-400 Hz que o lowpass do vento grave
-  (120 Hz) nao engole) — volume piso 0.09 a pico 0.31.
+  lub-dub corta o ar de teto alto do fundo por camada: o corpo AUDIVEL
+  mora na banda da pele de tambor (acima do rumble, abaixo do silbo) —
+  baque curto de band-noise (380 -> 290 Hz, deriva por proximidade) +
+  "bomp" de square (168 -> 72 Hz colado); o sub-senoide (74 -> 50 Hz)
+  apenas pesa, para quem tem caixa com grave (em laptop os 50-74 Hz
+  fisicamente nao saem — por isso o batido mora no MEIO). Volume piso
+  0.11 a pico 0.32: o coracao e o som DO seu corpo, nao pesa sobre o
+  marketplace do lugar.
 
 ### 3.3. Testes headless
 
