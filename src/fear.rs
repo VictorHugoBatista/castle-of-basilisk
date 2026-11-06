@@ -165,7 +165,7 @@ pub(crate) fn spawn_ghost(lvl: u8) {
             let y = rndn(H());
             let d = cheb(x, y, PX, PY);
             if d < min || d > max { continue; }
-            if !walkable(x as i32, y as i32) { continue; }
+            if !spawn_clear(x as i32, y as i32) { continue; }
             if !glimpse && !in_player_sight_ok(x, y, lvl) { continue; }
             for k in 0..4 {
                 if PH_ON[k] { continue; }
@@ -200,7 +200,7 @@ pub(crate) fn spawn_fake_b() {
             let y = rndn(H());
             let d = cheb(x, y, PX, PY);
             if d < 9 || d > 15 { continue; }
-            if !walkable(x as i32, y as i32) { continue; }
+            if !spawn_clear(x as i32, y as i32) { continue; }
             FB_ON = true;
             FB_X = x;
             FB_Y = y;
@@ -220,7 +220,7 @@ pub(crate) fn spawn_phantom_crown() {
             let y = rndn(H());
             let d = cheb(x, y, PX, PY);
             if d < 8 || d > 14 { continue; } // longe o bastante para VOCÊ ACEITAR IR
-            if !walkable(x as i32, y as i32) { continue; }
+            if !spawn_clear(x as i32, y as i32) { continue; } // nem sobre o ¤: a mentira não veste o achado
             // nasce na MEMÓRIA: tile lembrado mas fora do olho atual (senão o
             // render a desenha num buraco negro e ela "não existe")
             if SEEN[(DEPTH as usize - 1) * N_MAX + idx(x, y)] != 1 { continue; }

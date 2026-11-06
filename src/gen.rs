@@ -1056,12 +1056,14 @@ pub(crate) fn spawn_shard(depth: u8, seed: u32) {
 
 // ================= becos de escombro =================
 
-// algo especial (<, >, §, outro escombro) perto demais do ponto (px,py)?
+// algo especial (<, >, §, ¤, outro escombro) perto demais do ponto (px,py)?
+// (o '¤' entrou na lista como trava: dig_pockets roda ANTES de spawn_shard, então
+// hoje a ordem já os separa — a linha é a proteção se alguém mexer na ordem)
 pub(crate) fn near_tile(px: i32, py: i32, lim: i32) -> bool {
     unsafe {
         for i in 0..N_MAX {
             let t = MAP[i];
-            if t == T_UP || t == T_DOWN || t == T_CROWN || t == T_RUBBLE {
+            if t == T_UP || t == T_DOWN || t == T_CROWN || t == T_RUBBLE || t == T_SHARD {
                 let (ix, iy) = ((i % W()) as i32, (i / W()) as i32);
                 if (ix - px).abs() + (iy - py).abs() <= lim { return true; }
             }

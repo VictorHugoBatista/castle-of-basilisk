@@ -137,9 +137,10 @@ pub(crate) const SIB_GAP_PCT: u32 = 38;      // ~1 sopro em 3 não sai (fora da 
 
 // cadência do PULSO (o coração de quem carrega o que chia: o fragmento ou
 // a coroa — a mesma matéria). Decidida no RT, o relógio é o TICK (140 ms):
-// perto (Ela colada) corre até o piso de 600 ms; longe desliza linear até
-// quase parar em d >= HEART_FAR_D — 4.5 s é devagar, mas nunca é mudo
-pub(crate) const HEART_MIN_T: i32 = 5;   // 600/140 arredondado p/ cima: 5 ticks
+// perto desliza até o piso de 600 ms DE INTENÇÃO, que a régua do tick
+// arredonda para cima: 5 ticks = ~0.7 s de cadência real no colo — longe
+// desliza linear até quase parar em d >= HEART_FAR_D, 4.5 s (nunca é mudo)
+pub(crate) const HEART_MIN_T: i32 = 5;   // piso: 600/140 → 5 ticks (~0.7 s reais)
 pub(crate) const HEART_MAX_T: i32 = 33;  // 4500/140 → 33 ticks
 pub(crate) const HEART_FAR_D: i32 = 22;  // d >= 22: o pulso fica no piso (mapa máximo: 88x48)
 

@@ -114,8 +114,10 @@ conhece a casa.
   **primeira mão dos Canais (andar 4) um sempre existe**, às vezes longe
   (≥ 10 passos de rota da escada). Pisa nele para pegar; quem o carrega
   sente o **próprio coração pulsar com a distância DELE até ela** — quanto
-  mais forte e rápido o pulso, mais perto ela está (colo: ~0.6 s por
-  pulso; além da visão: um deslize de ~4.5 s). Sem material nenhum, o
+  mais forte e rápido o pulso, mais perto ela está (colo: ~0.7 s por
+  pulso; além da visão: um deslize de ~4.5 s — o piso de 600 ms de
+  intenção arredonda para cima no relógio de 140 ms). Sem material
+  nenhum, o
   peito fica calado: o pulso não é radar, é uma consequência de carregar
   a matéria errada — **e a coroa, quando sai da água, liga o mesmo
   pulso**.
@@ -262,7 +264,8 @@ seu rastro) · `12` sibilo distante · `13` A BESTA abriu uma porta ·
 coroa/medo e o silêncio proposital de ~1 em 3; volume/pan/brilho pela
 proximidade ficam no JS) · `23` o achado (o açoite frio de pegar o `¤`) ·
 `24` o pulso do seu coração (DECISÃO no WASM, `heart_tick`: intervalo pela
-distância chebyshev até ela — 0.6 s colado a 4.5 s além da visão — só
+distância chebyshev até ela — ~0.7 s colado (piso de 600 ms de intenção,
+arredondado para cima pelo tick) a 4.5 s além da visão — só
 com o fragmento OU a coroa carregados; o lub-dub, volume e pan são do JS) —
 mais o drone ambiente do castelo (engorda enquanto o corpo dela está visível).
 

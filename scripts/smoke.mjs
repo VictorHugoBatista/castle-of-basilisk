@@ -1006,8 +1006,8 @@ let shardOK = false;
     return n;
   };
   let f1 = 0, f2 = 0, f3 = 0, f4 = 0, fundo = 0, seco = true, umSo = true;
-  for (let s = 0; s < 24; s++) {
-    w.pfb_new_game(2000 + s);
+  for (let s = 0; s < 48; s++) {
+    w.pfb_new_game(Math.imul(s + 1, 2654435761) >>> 0);   // sementes espalhadas
     for (const d of [1, 2, 3, 4, 5, 6, 7, 8]) {
       w.pfb_debug_floor(d);
       const n = countShards();
@@ -1024,11 +1024,17 @@ let shardOK = false;
       else if (d === 3) f3 += n;
     }
   }
+  // bandas de 3σ da binomial (48 seeds, p por contrato: .25/.4/.5) —
+  // um desvio de CONSTANTE aqui rejeita no gate, não passa como variância.
+  // seeds ESPALHADAS (multiplicação áurea): o xorshift é linear em GF(2) —
+  // seeds contíguas correlacionam o 1º draw do shard_roll e pintam viés
+  // espurio na varredura (2000..2047 mediu ~2x a taxa real por puro
+  // arranjo de bits baixos; espalhadas, 480 seeds = 22.3/39.8/49.8/100)
   shardOK = umSo && fundo === 0 && seco
-         && f1 >= 2 && f1 <= 20   // 1/4 esperado: ~6 de 24
-         && f2 >= 2 && f2 <= 20   // 2/5 esperado: ~10 de 24
-         && f3 >= 4 && f3 <= 20;  // 1/2 esperado: ~12 de 24
-  console.log(`  fragmento: terreo ${f1}/24 · masmorra ${f2}/24-${f3}/24 · canais(4) ${f4}/24 · fundo ${fundo}${seco ? ' seco' : ' MOLHADO'}${umSo ? ' · único' : ' · DUPLICADO/FALTANTE'}`);
+         && f1 >= 3 && f1 <= 21    // 1/4 esperado: 12/48 (±9)
+         && f2 >= 9 && f2 <= 29    // 2/5 esperado: ~19/48
+         && f3 >= 13 && f3 <= 35;  // 1/2 esperado: 24/48
+  console.log(`  fragmento: terreo ${f1}/48 · masmorra ${f2}/48-${f3}/48 · canais(4) ${f4}/48 · fundo ${fundo}${seco ? ' seco' : ' MOLHADO'}${umSo ? ' · único' : ' · DUPLICADO/FALTANTE'}`);
   console.log(shardOK
     ? 'PASS - fragmento: raro no terreo, garantido no 4, nunca no fundo'
     : 'FAIL - fragmento (nascimento)');

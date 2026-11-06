@@ -53,6 +53,15 @@ pub(crate) fn bas_walkable(x: i32, y: i32) -> bool {
     }
 }
 
+// nascer LIMPO: o teste de TODO spawner (besta, fantasmas, falso B,
+// coroa-fantasma). O tile do fragmento é outro: ninguém NASCE no '¤' —
+// o achado é do ladrão; o que recair ali por sorteio corre para o próximo
+// piso. (Ela ATRAVESSA o '¤' em jogo normalmente — o pulso denunciará;
+// a exclusão aqui é só do NASCER, não do andar.)
+pub(crate) fn spawn_clear(x: i32, y: i32) -> bool {
+    unsafe { walkable(x, y) && tile_at(x as usize, y as usize) != T_SHARD }
+}
+
 // ================= linha de visão =================
 
 pub(crate) fn los(x0: usize, y0: usize, x1: usize, y1: usize) -> bool {

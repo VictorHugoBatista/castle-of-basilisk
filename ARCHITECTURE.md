@@ -389,7 +389,13 @@ terreo.
   4 (um e um só); dos 5 para baixo NUNCA (o fundo já pulsa por si — a coroa
   é a matéria toda). Posição: piso seco em rota (`T_FLOOR`, DMAP >= 10
   passos desde o '<', portas abertas do bfs de player-terrain; escada
-  [10, 1, 0] de fallback). Pisar no `¤` pega-o: `SHARD = true` +
+  [10, 1, 0] de fallback). NINGUÉM nasce sobre ele (`spawn_clear` em
+  grid.rs: nem ela (place_basilisk, com varredura inteira de último
+  recurso), nem fantasma, nem falso B, nem coroa-fantasma — o achado é
+  do ladrão; ela ATRAVESSA o '¤' em jogo normalmente e as mentiras
+  mentem só de longe). `near_tile` já o conta entre os tiles especiais
+  (trava de ordem: dig_pockets roda antes, mas a lista protege).
+  Pisar no `¤` pega-o: `SHARD = true` +
   `EV_SHARD` + o pulso `heart_tick` liga (mesmo efeito da coroa).
   `STATS[20]` expõe "carrega o que chia" (fragmento OU coroa).
 - **Agua** (tile `'='` / attr 13, e fundura `'÷'`= 0xF7 / attr 13): nos CANAIS
@@ -507,8 +513,9 @@ Pilares (constantes tunáveis no topo de `src/consts.rs`, prefixo `FEAR_`/`PH_`)
   base do castelo — sem artefato (`SHARD || CROWN`), nenhum pulso NUNCA.
   Com o que chia (e a coroa é da mesma matéria, então ela também liga), o
   coração do LADRÃO bate com a distância chebyshev até ela: período em
-  ticks entre HEART_MIN_T (5 ticks de 140 ms = piso de 600 ms de intenção,
-  colado) e HEART_MAX_T (33 ticks ≈ 4.5 s, em d >= HEART_FAR_D = 22), com
+  ticks entre HEART_MIN_T (5 ticks de 140 ms = piso de 600 ms DE INTENÇÃO,
+  ~0.7 s de cadência REAL no colo — a régua do tick arredonda para cima)
+  e HEART_MAX_T (33 ticks ≈ 4.5 s, em d >= HEART_FAR_D = 22), com
   sorte miúda (±1 tick) na stream própria `rheart`. A DECISÃO é do RT
   (`game_step` a chama depois de `sibilo_tick`); o SOM é do JS (case 24 do
   playEvent: lub-dub sintetizado, volume/pan pela proximidade). Um draw de
