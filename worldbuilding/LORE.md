@@ -287,6 +287,19 @@ Acabou de vergonha. E vergonha é muda.
 - Quem ganha com a coroa fora dos muros: no papel, **a Liga das Beiras** —
   e é exatamente aí a pergunta que o jogo não toca (lacuna nº 9 da §8: o
   que a Liga quer de fato, e se sabe o que a coroa faz).
+- **O fragmento sombrio (`¤`)** — pílula de terreno, sem texto em tela:
+  pedaço bruto de metal antigo quebrado pelo tempo, com uma marca que
+  devia ter desaparecido e não desapareceu, espalhado pelas ruínas de cima
+  (raro no térreo, menos raro na masmorra, um sempre no primeiro nível dos
+  canais — em nenhum fundo: a matéria toda é só a coroa). Brilha como a
+  coroa porque **é da mesma régua de ferro velo** — o jogo NUNCA diz:
+  quem vê o `¤` brilhar igual ao `§` pode juntar sozinho. E o uso é real,
+  não metáfora: carregando o fragmento — ou a coroa — **o pouco que a
+  beira conta como protocolo da maré vira pulso no próprio peito do
+  ladrão**: quanto mais forte o pulso, mais perto a coisa. O que é isso
+  na fisica do mundo — o metal chamando a coisa, a coisa chamando o
+  metal, ou o peito do ladrão aprendendo a ouvir o que a beira aprende
+  de geração — é lacuna nº 17 (§8).
 
 ---
 
@@ -427,6 +440,7 @@ o que é mecânica e o que é narrativa.
 | 14 | O que aconteceu com a **casa que desceu com o rei**? | Só a conta: "desceu junto, todos à volta" — sem prova | (a) morreram todos no fundo, em pé ao lado do cadáver — ossada é promessa — ou foram os primeiros entregues ao acervo dela; (b) os que sobraram saíram pela beira na mesma noite e sumiram no anel da periferia de vez; (c) ninguém desceu jamais: a coroa sempre esteve no fundo, e a Descida é a história que se conta para explicá-la |
 | 15 | Por que ela **subiu naquela noite** — e por que **caça o Ferro** até hoje? | Só o fato: subiu de vez, e a caça dura desde o Ferro sair da água | (a) a Descida a chamou — endereço, cheiro: a conta da beira empurra as duas ocorrências para uma mesma história; (b) o século de guerra e trânsito a despertou de vez; (c) motivo nenhum humano — ela decidiu; e é a posse inédita do Ferro (primeira vez em um milênio fora da água) o único estímulo que a caça explica |
 | 16 | O que as **pinturas da caverna** retratam? | Nada em tela ainda — o nível é o `andar 6`, pendente | (a) é ELA: a mesma criatura, cultuada antes de qualquer registro; (b) é uma ANCESTRAL dela — a caverna guarda linhagem, não um corpo único; (c) foi CRIADA ou TRAZIDA por aqueles cultistas — o culto fez ou chamou. E nas três, a mesma sombra: quem cultuava, lá embaixo, ia por vontade própria |
+| 17 | O que é o **pulso** do fragmento (e da coroa) — e por que a marca do `¤` não apaga? | Em tela: o `¤` brilha como a coroa e o coração de quem carrega pulsa com a distância dela | (a) ressonância de matéria: metal velo chama metal velo — e a coisa procura o Ferro por algo que o pulso explica sem nomear (reforça a lacuna 15 sem fechá-la: por QUE o ferro chama, fica de pé); (b) o fragmento é de um uso ANTERIOR ao império — a marca é de outro culto (§3, as pinturas): artefato de quem já esteve lá embaixo de vontade própria, e o que pulsa é o próprio aviso do sonho atravessando o metal. Em qualquer leitura, a marca que não apaga é a única coisa em toda a pedra que não cede: nem ao século, nem à água, nem ao esquecimento |
 
 ---
 

@@ -122,6 +122,32 @@ pub(crate) fn phantoms_tick() {
 }
 
 
+// ================= o pulso do fragmento =================
+
+// O coração DELE (do ladrão, não dela): portar o Fragmento Sombrio — ou a
+// coroa, que é da mesma matéria — liga um pulso compassado pela distância
+// chebyshev ATÉ ELA. A decisão de QUANDO bate é do RT (períodos em ticks,
+// CADÊNCIA linear entre os pisos de HEART_MIN_T a HEART_MAX_T, com uma
+// miúda de sorte na stream própria: o seu coração não desgasta o rng do
+// mundo — mesma seção do sibilo). O SOM é todo do JS (case 24 do
+// playEvent: lub-dub sintetizado, volume/pan pela proximidade). Sem
+// fragmento e sem coroa: NENHUM pulso — o silêncio é a linha de base do
+// castelo, o peito parado não é radar grátis.
+pub(crate) fn heart_tick() {
+    unsafe {
+        if !SHARD && !CROWN { return; }
+        HEART_T -= 1;
+        if HEART_T > 0 { return; }
+        let d = cheb(BX, BY, PX, PY).min(HEART_FAR_D).max(0);
+        let span = HEART_MAX_T - HEART_MIN_T;
+        // desliza linear entre os pisos e treme miúdo (±1 tick: pulso vivo,
+        // não metrônomo) — sorteio na stream PRÓPRIA `rheart`
+        HEART_T = (HEART_MIN_T + (d * span + HEART_FAR_D / 2) / HEART_FAR_D + (rheart() % 3) as i32 - 1)
+            .clamp(HEART_MIN_T, HEART_MAX_T);
+        push_event(EV_HEART);
+    }
+}
+
 pub(crate) fn spawn_ghost(lvl: u8) {
     unsafe {
         let max_g = PH_GHOST_MAX[lvl as usize];
@@ -139,7 +165,7 @@ pub(crate) fn spawn_ghost(lvl: u8) {
             let y = rndn(H());
             let d = cheb(x, y, PX, PY);
             if d < min || d > max { continue; }
-            if !walkable(x as i32, y as i32) { continue; }
+            if !spawn_clear(x as i32, y as i32) { continue; }
             if !glimpse && !in_player_sight_ok(x, y, lvl) { continue; }
             for k in 0..4 {
                 if PH_ON[k] { continue; }
@@ -174,7 +200,7 @@ pub(crate) fn spawn_fake_b() {
             let y = rndn(H());
             let d = cheb(x, y, PX, PY);
             if d < 9 || d > 15 { continue; }
-            if !walkable(x as i32, y as i32) { continue; }
+            if !spawn_clear(x as i32, y as i32) { continue; }
             FB_ON = true;
             FB_X = x;
             FB_Y = y;
@@ -194,7 +220,7 @@ pub(crate) fn spawn_phantom_crown() {
             let y = rndn(H());
             let d = cheb(x, y, PX, PY);
             if d < 8 || d > 14 { continue; } // longe o bastante para VOCÊ ACEITAR IR
-            if !walkable(x as i32, y as i32) { continue; }
+            if !spawn_clear(x as i32, y as i32) { continue; } // nem sobre o ¤: a mentira não veste o achado
             // nasce na MEMÓRIA: tile lembrado mas fora do olho atual (senão o
             // render a desenha num buraco negro e ela "não existe")
             if SEEN[(DEPTH as usize - 1) * N_MAX + idx(x, y)] != 1 { continue; }

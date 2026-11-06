@@ -164,7 +164,7 @@ pub(crate) fn attr_of(t: u8) -> u8 {
         T_SHADOW => A_SHADOW,
         T_DOOR => A_DOOR,
         T_DOWN | T_UP => A_STAIR,
-        T_CROWN => A_CROWN,
+        T_CROWN | T_SHARD => A_CROWN, // '§' e '¤': a MESMA matéria (o brilho é igual, o glifo é o que distingue)
         T_PILLAR => A_WALL,
         T_RUBBLE => A_RUBBLE,
         T_WATER | T_SHALLOW => A_WATER,
@@ -228,6 +228,8 @@ pub(crate) fn render() {
             // dica contextual
             let msg: &str = if CROWN {
                 "VOCE TEM A COROA. ELA TEM FOME. FUJA PELO '<' NO TERREO"
+            } else if SHARD {
+                "O FRAGMENTO PULSA. QUANTO MAIS FORTE, MAIS PERTO ELA ESTA"
             } else if tile_at(PX, PY) == T_RUBBLE {
                 "ESCOMBROS. ELA NAO PATRULHA AQUI. NAO FAC BARULHO"
             } else if BST == B_HUNT {
@@ -565,6 +567,9 @@ pub(crate) fn sync_stats() {
         STATS[17] = H().min(255) as u8;            // altura do mapa atual
         STATS[18] = FEAR.clamp(0, 100) as u8;      // HUD: medo (0..100)
         STATS[19] = fear_level();                  // HUD: nível do medo (0..4)
+        // [20]: o pulso — 1 = você carrega o que chia (fragmento OU coroa,
+        // a mesma matéria). Espelho do gate do heart_tick (evento 24)
+        STATS[20] = (SHARD || CROWN) as u8;
         AI_DBG[0] = ROOMT;
         AI_DBG[1] = RTX;
         AI_DBG[2] = RTY;

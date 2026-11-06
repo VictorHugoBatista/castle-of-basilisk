@@ -980,20 +980,90 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
     // ---- becos de escombro: esconderijos que ela não patrulha (por último:
     // escava só em parede, nunca conecta nem encolhe caminhos) ----
     dig_pockets(depth, rub_quota);
+
+    // ---- o FRAGMENTO SOMBRIO — no fim de TUDO, e na stream PRÓPRIA do
+    // achado (spawn_shard): plantas antigas só mudam onde o '¤' pode estar,
+    // nenhum rolagem do mundo desanda ----
+    spawn_shard(depth, seed);
 }
 
 pub(crate) fn set_room_t(x: i32, y: i32, t: u8) {
     unsafe { MAP[idx(x as usize, y as usize)] = t; }
 }
 
+// ================= o fragmento sombrio =================
+
+// xorshift32 da stream PRÓPRIA do achado — o sorteio do '¤' NÃO EMPURRA
+// nada do rng do mundo: nem a sala que o place_basilisk rola logo depois,
+// nem os fantasmas que nascem por lá depois (mesma seção do rsib/rheart;
+// aqui é a do TERRENO). O `place_basilisk` consome a stream do mundo logo
+// após o gen_floor — uma rolagem a mais aqui mudaria a patrulha inteira
+#[inline]
+fn shard_roll(state: &mut u32) -> u32 {
+    *state ^= *state << 13;
+    *state ^= *state >> 17;
+    *state ^= *state << 5;
+    *state
+}
+
+// O achado que o castelo guarda sem começar: um pedaço bruto do MESMO metal
+// da coroa — quem o carrega sente o próprio coração pulsar com a distância
+// dela (o `heart_tick` de fear.rs; a coroa liga o mesmo pulso).
+//
+// Onde nasce: andares 1-4 — RARO no térreo (1/4), menos raro na masmorra
+// (2/5 no 2, 1/2 no 3) e COBERTO no primeiro canal (o andar 4 sempre
+// carrega um, e um só). Dos canais fundos (5+) para baixo nunca: o fundo
+// já pulsa por si — a coroa é a matéria toda.
+//
+// Onde no mapa: piso seco únicamente, em rota desde o '<' (o campo DMAP do
+// bfs de player-terrain já está pronto aqui — portas contam abertas,
+// escombro é pé do ladrão); JAMAIS perto da entrada: no mínimo 10 passos de
+// ROTA do '<', para que o achado não nasça no colo de quem acabou de
+// atravessar o portão — com a escada [10, 1, 0] como fallback (andar grande
+// nunca fica sem candidato seco).
+const SHARD_MIN_ROUTE: i32 = 10;
+
+pub(crate) fn spawn_shard(depth: u8, seed: u32) {
+    if depth > 4 { return; }
+    let mut sr = (seed ^ 0xA4A404A4) | 1;
+    let born = match depth {
+        1 => shard_roll(&mut sr) % 4 == 0,
+        2 => shard_roll(&mut sr) % 5 < 2,
+        3 => shard_roll(&mut sr) % 2 == 0,
+        _ => true,
+    };
+    if !born { return; }
+    unsafe {
+        for min_d in [SHARD_MIN_ROUTE, 1, 0] {
+            let mut n = 0usize;
+            for i in 0..N_MAX {
+                if MAP[i] != T_FLOOR { continue; }
+                if DMAP[i] == 0xFFFF || (min_d > 0 && (DMAP[i] as i32) < min_d) { continue; }
+                n += 1;
+            }
+            if n == 0 { continue; }
+            let pick = (shard_roll(&mut sr) % n as u32) as usize;
+            let mut k = 0usize;
+            for i in 0..N_MAX {
+                if MAP[i] != T_FLOOR { continue; }
+                if DMAP[i] == 0xFFFF || (min_d > 0 && (DMAP[i] as i32) < min_d) { continue; }
+                if k == pick { MAP[i] = T_SHARD; return; }
+                k += 1;
+            }
+        }
+    }
+}
+
 // ================= becos de escombro =================
 
-// algo especial (<, >, §, outro escombro) perto demais do ponto (px,py)?
+// algo especial (<, >, §, ¤, outro escombro) perto demais do ponto (px,py)?
+// (o '¤' entrou na lista como trava: dig_pockets roda ANTES de spawn_shard, então
+// hoje a ordem já os separa — a linha é a proteção se alguém mexer na ordem)
 pub(crate) fn near_tile(px: i32, py: i32, lim: i32) -> bool {
     unsafe {
         for i in 0..N_MAX {
             let t = MAP[i];
-            if t == T_UP || t == T_DOWN || t == T_CROWN || t == T_RUBBLE {
+            if t == T_UP || t == T_DOWN || t == T_CROWN || t == T_RUBBLE || t == T_SHARD {
                 let (ix, iy) = ((i % W()) as i32, (i / W()) as i32);
                 if (ix - px).abs() + (iy - py).abs() <= lim { return true; }
             }
