@@ -817,6 +817,61 @@ const pista = scenario('a pista não contada: o acervo se empilha rumo à coroa'
   return nearD >= 0.65 && farD <= 0.40 && nearD > farD * 1.8;
 });
 
+// ---------- 3a-ter. regressão: a escada de descida nunca nasce perto da entrada ----------
+// A descida '>' / coroa '§' é escolhida POR CAMPO DE DISTÂNCIA desde '<'
+// (bfsImpl no fim de genOnce): LIM por tema 16/16/20/22, o espelho de
+// lim_descida (gen.rs). O cenário varre seeds e andares medindo a distância
+// de ROTA (a métrica do jogo: paredes '#', pilares '0', grades '|' e
+// funduras '÷' não se passam; portas, escombro e água passam) — o mesmo
+// acordo que o walkable() do Rust.
+function plainDist(map, Wd, Hd, from, to) {
+  const seen = new Uint8Array(Wd * Hd);
+  const q = [[from % Wd, (from / Wd) | 0, 0]];
+  seen[from] = 1;
+  while (q.length) {
+    const [x, y, d] = q.shift();
+    if (y * Wd + x === to) return d;
+    for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= Wd || ny >= Hd) continue;
+      const j = ny * Wd + nx;
+      if (seen[j]) continue;
+      const t = map[j];
+      if (t === 35 || t === 48 || t === 124 || t === 0xF7) continue;
+      seen[j] = 1;
+      q.push([nx, ny, d + 1]);
+    }
+  }
+  return 1 / 0;
+}
+const farStairs = (() => {
+  let ok = true;
+  for (let s = 0; s < 24; s++) {
+    w.pfb_new_game(3000 + s * 7919);
+    for (let d = 1; d <= 8; d++) {
+      w.pfb_debug_floor(d);
+      ensureViews();
+      let up = -1, dn = -1;
+      for (let i = 0; i < Wd * Hd; i++) {
+        if (wmap[i] === 0x3C && up < 0) up = i;
+        if ((wmap[i] === 0x3E || wmap[i] === 0xA7) && dn < 0) dn = i;
+      }
+      if (up < 0 || dn < 0) { ok = false; break; }
+      const bd = plainDist(wmap, Wd, Hd, up, dn);
+      const lim = d >= 6 ? 22 : d >= 4 ? 20 : 16; // espelho do lim_descida
+      // forma negativa de propósito: rota INEXISTENTE (plainDist dá 1/0)
+      // tem de reprovar o gate — Infinity >= lim enganaria a checagem;
+      // conectividade é requisito, não cortesia
+      if (!(bd >= lim)) { ok = false; break; }
+    }
+    if (!ok) break;
+  }
+  return ok;
+})();
+console.log(farStairs
+  ? 'PASS - escada longe: a descida nunca nasce colada na entrada'
+  : 'FAIL - escada longe');
+
 
 // ---------- 3a-bis. regressão: a tela de morte nos esgotos ----------
 // Bug real: a tela de morte compunha no stride do andar ATUAL (80 colunas no
@@ -954,6 +1009,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, caveDecor, pista, deadUi, bodyProof, traps === 0, menuOk, konami, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract].every(Boolean);
+const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, caveDecor, pista, farStairs, deadUi, bodyProof, traps === 0, menuOk, konami, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);
