@@ -238,8 +238,13 @@ Decisoes:
   molhado (a carne cede, o grude estopa) — o tile sob os pes decide
   (0xA5/0xB6 via mapview), e correndo o WASM delata em paralelo (r=16/17).
 - **Todos os sons sao sintetizados**: oscillator + gain envelope + StereoPanner.
-  Zero samples (binario web leve). Coracao: intervalo/volume/pitch pela
-  distancia chebyshev; pan pelo sinal de dx (direita/esquerda).
+  Zero samples (binario web leve). Coracao (o pulso do fragmento OU da
+  coroa, decidido no RT —`heart_tick`, evento 24): intervalo/volume/pitch
+  pela distancia chebyshev; pan pelo sinal de dx (direita/esquerda). O
+  lub-dub corta o ar de teto alto do fundo por camada: massa grave em
+  senoide (`74→50` Hz, FORA da faixa do drone 55/58,3) + pele em square
+  (`f*1.8`, harmonicos imparares ~130-400 Hz que o lowpass do vento grave
+  (120 Hz) nao engole) — volume piso 0.09 a pico 0.31.
 
 ### 3.3. Testes headless
 

@@ -761,18 +761,28 @@ function playEvent(ev, pan) {
       noiseBurst({ dur: 0.06, vol: 0.05, f: 4300, q: 6 });
       break;
     case 24: { // EV_HEART: um pulso do SEU coração — intervalo decidido no RT
-      // (heart_tick, pela distância até ela); daqui nasce só o lub-dub:
-      // volume/pan pela proximidade (mesma seção de leitura do caso 22)
+      // (heart_tick, pela distância até ela); daqui nasce só o lub-dub.
+      // PERCEPTÍVEL NO FUNDO DO FUNDO: o batimento vivia exatamente no
+      // armário do drone (55/58,3 Hz) e dentro do lowpass do vento grave
+      // da Bocarra — a senoide pura sumia no rumble. Agora ele sai da
+      // faixa do drone e ganha PELE: um square Miúdo em cima (harmônicos
+      // ímpares ~130-400 Hz) atravessa o vento e dá o ataque do batido;
+      // o volume piso sobe para o coração valer como SOM do corpo, sem
+      // engolir o marketplace do lugar
       const dx = stats[5] - stats[3];
       const dy = stats[6] - stats[4];
       const dist = Math.max(Math.abs(dx), Math.abs(dy));
       const closeness = Math.max(0, Math.min(1, 1 - dist / 24));
-      const vol = 0.045 + closeness * 0.2;
+      const vol = 0.09 + closeness * 0.22;
       const pan = Math.max(-1, Math.min(1, dx / 8));
-      // o batimento em dois tempos: lub (inteiro) e dub (mais miúdo) —
-      // grave e baixo, cresce de perto; longe é um tique no fundo da tela
-      const thump = (delay, v) =>
-        blip({ type: 'sine', f0: 64 - closeness * 12, f1: 28, dur: 0.15, vol: v, delay, pan });
+      // perto: pesado e fundo (50 Hz); longe: 74 Hz, fora do drone
+      const f = 74 - closeness * 24;
+      const thump = (delay, v) => {
+        // a massa grave do batido
+        blip({ type: 'sine', f0: f, f1: 28, dur: 0.15, vol: v, delay, pan });
+        // a pele: harmônicos ímpares que o vento não engole
+        blip({ type: 'square', f0: f * 1.8, f1: 56, dur: 0.09, vol: v * 0.24, delay, pan });
+      };
       thump(0, vol);
       thump(0.11, vol * 0.6);
       break;
