@@ -368,8 +368,8 @@ terreo.
   inancavel: centro caiu em pilar), migra para a sala mais afastada
   registrada no campo; na masmorra, a coluna da galeria sorteada re-rola
   (12 sorteios no maximo) ate dar a distancia. Soft: sem candidato ao
-  limiar, fica o melhor encontrado — nunca trava a planta nem regenera
-  andar por causa disso. O ACERVO da Bocarra enche DEPOIS da escolha da
+  limiar, a ultima sala FICA ONDE ESTA (não migra para a melhor) — nunca
+  trava a planta nem regenera andar por causa disso. O ACERVO da Bocarra enche DEPOIS da escolha da
   coroa (a ancara do gradiente e a coroa de verdade, migrada ou nao).
   Seeds antigas compram plantas novas (RNG reciclado em lugar diferente);
   gate de regressao no smoke ("escada longe") varre seeds x andares.

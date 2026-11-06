@@ -859,7 +859,10 @@ const farStairs = (() => {
       if (up < 0 || dn < 0) { ok = false; break; }
       const bd = plainDist(wmap, Wd, Hd, up, dn);
       const lim = d >= 6 ? 22 : d >= 4 ? 20 : 16; // espelho do lim_descida
-      if (bd < lim) { ok = false; break; }
+      // forma negativa de propósito: rota INEXISTENTE (plainDist dá 1/0)
+      // tem de reprovar o gate — Infinity >= lim enganaria a checagem;
+      // conectividade é requisito, não cortesia
+      if (!(bd >= lim)) { ok = false; break; }
     }
     if (!ok) break;
   }

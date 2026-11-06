@@ -167,13 +167,15 @@ pub(crate) fn gen_floor(depth: u8, seed: u32) {
     }
 }
 
-// piso da distância (ROTA, em passos de bfs desde '<') que a descida '>'
-// (ou a coroa '§') tem de respeitar: a escada de baixo nunca nasce colada
-// na de cima. Por tema — a conta-dimensional já é do andar: palácio e
-// masmorra (56x32 / 64x36) no mesmo piso, a rede imperial (80x44) e o
-// acervo (88x48) pedem mais mundo entre as escadas. Estudo com 80 seeds:
-// o p5 atual nascia a 8-22 passos — o limiar amputa só a cauda curta;
-// quando nenhuma sala chega lá, mantém a melhor (soft, nunca trava planta)
+// Passos de rota (bfs desde '<') que a descida '>' (ou a coroa '§') respeita:
+// a escada de baixo nunca nasce colada na de cima. Por tema — a
+// conta-dimensional já é do andar: palácio e masmorra (56x32 / 64x36) no
+// mesmo piso, a rede imperial (80x44) e o acervo (88x48) pedem mais mundo
+// entre as escadas. Estudo com 80 seeds: o p5 atual nascia a 8-22 passos —
+// o limiar amputa só a cauda curta. Soft por desenho: quando a última sala
+// fica abaixo do limiar E existe outra sala ao completar, a descida migra
+// para ela; quando NÃO existe, a última sala fica ONDE ESTÁ (preserva o
+// desenho de sempre) — nunca trava planta nem regenera andar
 pub(crate) fn lim_descida(th: u8) -> i32 {
     match th {
         TH_SEWER => 20,
@@ -877,7 +879,8 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
     } else {
         // a ÚLTIMA sala mantém preferência — mas se o campo a julga perto
         // (ou isolada: centro em pilar/inalcançável), migra para a sala
-        // mais afastada que o campo registra; sem candidato dotado, fica
+        // mais afastada que o campo registra; sem candidato ao limiar,
+        // a última sala FICA ONDE ESTÁ (comportamento de sempre, soft)
         let mut best = (0u16, rcenter(rn - 1)); // (distância, centro)
         for r in 0..rn {
             let c = rcenter(r);
