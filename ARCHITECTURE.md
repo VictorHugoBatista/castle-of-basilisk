@@ -348,7 +348,7 @@ terreo.
 | # | tema | mapa | geracao | a besta |
 |---|------|------|---------|---------|
 | 1 | TH_CASTLE (Ruinas do castelo) | 56x32 | saloes amplos + pilares | quase adormecida: patrol 6/invest 4/hunt 3, ouvido 60, sibilo 1/90, rastro 7/2 |
-| 2-3 | TH_DUNGEON (Masmorras) | 64x36 | ala de celas: 3 galerias de corredor largo empilhadas, celas 2x2 dos lados (trancada/aberta/meia/lacrada), 3-5 corredores de servico sorteados, descida em galeria/coluna sorteadas, pocas rasas no andar 3 | a cacadora de sempre: 4/3/2, ouvido 42, sibilo 1/47, rastro 14/5 |
+| 2-3 | TH_DUNGEON (Masmorras) | 64x36 | ala de celas: 3 galerias de corredor largo empilhadas, celas 2x2 dos lados (trancada/aberta/meia/lacrada), 3-5 corredores de servico sorteados, descida em galeria/coluna sorteadas (a coluna re-rollada ate o campo de distancia desde o '<' dar a conta — ver "escada longe"), pocas rasas no andar 3 | a cacadora de sempre: 4/3/2, ouvido 42, sibilo 1/47, rastro 14/5 |
 | 4-5 | TH_SEWER (Canais Envenenados) | 80x44 | 1-2 canais imperiais verticais (teto a fundo, largura/posicao sorteadas) com desabamentos (0-2 pedras por canal) e funduras '÷' (1-2 trechos, nao atravesaveis nem por ela); cavernas-bacia cortando o rio (uma garantida por canal, seca sobre a agua) + bacias/cisternas fora dos leitos | CASA dela: 3/2/2, ouvido 30, sibilo 1/23, rastro 21/8, GAZE_R+1 |
 | 6-8 | TH_CAVE (Bocarra Diabolica) | 88x48 | BLOB: 9-12 camaras irregulares (circulo desdentado, centro garantido=piso) ligadas por TUNEIS TORTOS de random-walk (70% passo rumo ao alvo, 30% vaga; emergencia carve reto), pocas/linguas de agua '=' do fundo; o ACERVO tem gradiente: 6-7 ~15% do chao em '¥'/'¶' (nucleos 42-53), e no 8 a densidade por tile CRESCE rumo a sala da coroa (12% longe -> ~58% perto; a cama 7x7 e os nucleos/avrelho fecham os 71-82% medidos perto do Ferro), nucleos 20-31 — a coroa no 8 dorme no MEIO DO MONTE (quadrado 7x7 = 48 tiles de '¶') | A CASA DA CASA: 2/2/2, ouvido 20, sibilo 1/10, rastro 28/12, GAZE_R+2, ganho de medo x1.5, MEDO CRAVADO em 100 na entrada — e não decai lá embaixo |
 
@@ -360,6 +360,19 @@ terreo.
   para `W0/H0` quando `STATE != ST_PLAY` (o JS fora de jogo le o grid como
   56 colunas; morrer no esgoto com stride 80 rasgava a tela em diagonal).
   `gen_once` restaura as dims do andar quando ele regenera.
+- **Escada longe** (`lim_descida` + campo desde `'<'`): a descida `>` (ou a
+  coroa `§`) NUNCA nasce colada na escada de entrada. Um `bfs` roda desde o
+  `<` imediatamente apos o terreno ficar completo, e o LIM por tema (palacio/
+  masmorra 16, esgoto 20, Bocarra 22 passos de ROTA) adjudica o lugar: a
+  ultima sala mantem preferencia, mas se o campo a julga perto (ou
+  inancavel: centro caiu em pilar), migra para a sala mais afastada
+  registrada no campo; na masmorra, a coluna da galeria sorteada re-rola
+  (12 sorteios no maximo) ate dar a distancia. Soft: sem candidato ao
+  limiar, fica o melhor encontrado — nunca trava a planta nem regenera
+  andar por causa disso. O ACERVO da Bocarra enche DEPOIS da escolha da
+  coroa (a ancara do gradiente e a coroa de verdade, migrada ou nao).
+  Seeds antigas compram plantas novas (RNG reciclado em lugar diferente);
+  gate de regressao no smoke ("escada longe") varre seeds x andares.
 - **Agua** (tile `'='` / attr 13, e fundura `'÷'`= 0xF7 / attr 13): nos CANAIS
    IMPERIAIS do esgoto sao 1-2 rios verticais de teto a fundo: leito de 1 a 5
   IMPERIAIS do esgoto sao 1-2 rios verticais de teto a fundo: leito de 1 a 5
@@ -516,6 +529,8 @@ incluem a agua `=` e o acervo (`¥`/`¶`) entre os tiles passaveis),
 "A PISTA NAO CONTADA" (`pfb_debug_floor(8)`: a densidade do acervo proxima
 da coroa d<=10 vs d>=25 tem que vencer a distante por 1.8x, com >65% de
 osso/carne perto e <=40% longe — o gradiente provado em gate),
+"ESCADA LONGE" (varredura seeds x andares: a rota '<' -> '>'/§ nunca
+abaixo do LIM por tema — a regra da descida distante provada em gate),
 fuzz de 6000 ticks contra
 estados impossiveis.
 
@@ -541,7 +556,7 @@ Repo: https://github.com/VictorHugoBatista/castle-of-basilisk
 
 Owner: Victor Hugo Batista
 
-Ultima atualizacao: 2026-11-04
+Ultima atualizacao: 2026-11-06
 
 ## 11. Glossario
 

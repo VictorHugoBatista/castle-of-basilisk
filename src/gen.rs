@@ -167,6 +167,21 @@ pub(crate) fn gen_floor(depth: u8, seed: u32) {
     }
 }
 
+// piso da distância (ROTA, em passos de bfs desde '<') que a descida '>'
+// (ou a coroa '§') tem de respeitar: a escada de baixo nunca nasce colada
+// na de cima. Por tema — a conta-dimensional já é do andar: palácio e
+// masmorra (56x32 / 64x36) no mesmo piso, a rede imperial (80x44) e o
+// acervo (88x48) pedem mais mundo entre as escadas. Estudo com 80 seeds:
+// o p5 atual nascia a 8-22 passos — o limiar amputa só a cauda curta;
+// quando nenhuma sala chega lá, mantém a melhor (soft, nunca trava planta)
+pub(crate) fn lim_descida(th: u8) -> i32 {
+    match th {
+        TH_SEWER => 20,
+        TH_CAVE => 22,
+        _ => 16,
+    }
+}
+
 pub(crate) fn floor_dims(depth: u8) -> (usize, usize) {
     // térreo: o palácio de sempre. Masmorras: a ala de celas. Esgotos: a rede
     // imperial. BOCARRA (6-8): a caverna dela, abaixo dos rios — o mapa maior
@@ -501,46 +516,9 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
                 } else { break; }
             }
         }
-        // ACERVO: caveiras '¥' e corpos '¶' — a DENSIDADE é a pista não
-        // contada. Nos andares 6-7 só "um pouco mais" que hoje (núcleos
-        // 42-53, chão ~15%). No andar 8 (o fundo do fundo, a coroa)
-        // o gradiente é verdade: cada piso tem chance de virar osso/carne
-        // que CRESCE rumo à sala da coroa — longe ~12%, perto até ~58-70%
-        // de chance (a cama do monte fecha os últimos tiles) — os caminhos
-        // se contam em corpos e ninguém ditou nada.
-        // (corpo nasce 1 em 3 e só em PISO: água fica úmida de por si)
-        let deep8 = depth == 8;
-        let (tx, ty, _) = centers[used - 1]; // âncora da DESCIDA/COROA de gen_once
-        for i in 0..N_MAX {
-            if unsafe { MAP[i] != T_FLOOR } { continue; }
-            let x = (i % W()) as i32;
-            let y = (i / W()) as i32;
-            let pct = if deep8 {
-                ((12 + (60 - ((x - tx).abs() + (y - ty).abs())).clamp(0, 60) * 7 / 9) as i32).clamp(12, 70)
-            } else { 15 };
-            if rndn(100) as i32 >= pct { continue; }
-            unsafe { MAP[i] = if rndn(3) == 0 { T_CORPSE } else { T_SKULL }; }
-        }
-        let ncl = if deep8 { 20 + rndn(12) } else { 42 + rndn(12) };
-        for _ in 0..ncl {
-            let cx = rndn(W()) as i32;
-            let cy = rndn(H()) as i32;
-            let i0 = idx(cx as usize, cy as usize);
-            if unsafe { MAP[i0] != T_FLOOR } { continue; }
-            unsafe { MAP[i0] = T_SKULL; }
-            for _ in 0..(2 + rndn(4)) {
-                let dx: i32 = rndn(3) as i32 - 1;
-                let dy: i32 = rndn(3) as i32 - 1;
-                if dx == 0 && dy == 0 { continue; }
-                let x = cx + dx;
-                let y = cy + dy;
-                if x < 1 || y < 1 || x >= W() as i32 - 1 || y >= H() as i32 - 1 { continue; }
-                let i = idx(x as usize, y as usize);
-                if unsafe { MAP[i] == T_FLOOR } {
-                    unsafe { MAP[i] = if rndn(3) == 0 { T_CORPSE } else { T_SKULL }; }
-                }
-            }
-        }
+        // (o ACERVO — o preenchimento de '¥'/'¶' por gradiente rumo à coroa —
+        // corre lá embaixo, DEPOIS de a coroa ter seu lugar escolhido: é ela
+        // a âncora do gradiente, migrada ou não)
     } else {
         // ---- CANAIS IMPERIAIS: 1-2 rios verticais de '=' correndo o andar de
         // cima a baixo — água de 1 (córrego fino) a 5 de largura, FLANQUEADA
@@ -634,13 +612,14 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
 
     let mut rn = unsafe { RN };
     if rn < 2 {
-        // fallback: sala única gigante (DOS centros distintos: '<' e '>' nunca
-        // caem no mesmo tile — a sala 0 é a entrada, a 1 é mais escondida)
+        // fallback: sala única gigante (DOS centros distintos e LONGE: '<' e
+        // '>' nunca caem no mesmo tile nem perto um do outro — a sala 0 é a
+        // entrada, a 1 é o canto mais escondido dela)
         unsafe {
             MAP = [T_WALL; N_MAX];
             for y in 6..26 { for x in 8..48 { MAP[idx(x, y)] = T_FLOOR; } }
             set_room(0, 8, 6, 47, 25);
-            set_room(1, 16, 12, 40, 20);
+            set_room(1, 32, 18, 46, 24);
             RN = 2;
         }
         rn = 2;
@@ -868,16 +847,52 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
     let (ex, ey) = rcenter(0);
     unsafe { MAP[idx(ex as usize, ey as usize)] = T_UP; }
 
+    // ---- campo de distância desde '<' — o mapa já está completo aqui
+    // (pilares, sombras, desabamentos e poças inclusive): é este campo que
+    // adjudica ONDE a descida tem o direito de nascer ----
+    bfs(ex as usize, ey as usize);
+
     // ---- saída '>' (até o andar 7) ou coroa '§' — na BOCARRA, o acervo
     // profundo: a coroa dorme em cama de corpo (o fim de toda descida) ----
-    // ala de celas: a DESCIDA também é sorteada — galeria de 2º/3º andar à
-    // sorte, coluna aleatória do corredor dela: nunca na galeria do '<',
-    // nunca na mesma posição duas vezes
+    // REGRA DA ESCADA LONGE: a descida nasce distante da entrada — o
+    // direito de andar não vale mais só "última sala"; quando o campo a
+    // julga perto demais (abaixo do LIM por tema), ela migra para a sala
+    // mais afastada que o campo registra. Portas contam como abíveis
+    // (o jogador pode abri-las) — a leitura é de ROTA, não de raios
+    let lim = lim_descida(th);
     let (dx, dy) = if th == TH_DUNGEON {
         let byl = 13 + (rndn(2) as i32) * 11; // galeria 2 (linhas 16-18) ou 3 (27-29)
-        (4 + rndn(W() - 9) as i32, byl + 4) // meio do corredor dela, x sorteado
+        let dy = byl + 4; // meio do corredor dela (o eixo vertical o plano de galerias JÁ entrega)
+        // coluna x à sorte, re-rollada enquanto o campo a diz perto:
+        // 12 sorteios no máximo; o melhor ALCANÇÁVEL encontrado vence
+        let mut bx = 4 + rndn(W() - 9) as i32;
+        let mut bd: u16 = unsafe { DMAP[idx(bx as usize, dy as usize)] };
+        for _ in 0..11 {
+            if bd != 0xFFFF && bd as i32 >= lim { break; }
+            let x = 4 + rndn(W() - 9) as i32;
+            let d = unsafe { DMAP[idx(x as usize, dy as usize)] };
+            if d != 0xFFFF && d > bd { bx = x; bd = d; }
+        }
+        (bx, dy)
     } else {
-        rcenter(rn - 1)
+        // a ÚLTIMA sala mantém preferência — mas se o campo a julga perto
+        // (ou isolada: centro em pilar/inalcançável), migra para a sala
+        // mais afastada que o campo registra; sem candidato dotado, fica
+        let mut best = (0u16, rcenter(rn - 1)); // (distância, centro)
+        for r in 0..rn {
+            let c = rcenter(r);
+            let d = unsafe { DMAP[idx(c.0 as usize, c.1 as usize)] };
+            if d != 0xFFFF && d > best.0 { best = (d, c); }
+        }
+        let last = rcenter(rn - 1);
+        let ld = unsafe { DMAP[idx(last.0 as usize, last.1 as usize)] };
+        let near_last = (ld as i32) < lim;
+        // best só ganha distância REAL (d != 0xFFFF): 0 aqui é "nada achável"
+        if ld == 0xFFFF || (near_last && best.0 >= lim as u16) {
+            (best.1.0, best.1.1)
+        } else {
+            last
+        }
     };
     if depth < FLOORS as u8 {
         set_room_t(dx, dy, T_DOWN);
@@ -909,6 +924,51 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
                         let i = idx(tx as usize, ty as usize);
                         if MAP[i] == T_FLOOR { MAP[i] = T_PILLAR; }
                     }
+                }
+            }
+        }
+    }
+
+    // ---- BOCARRA: ACERVO por cima da escolha da coroa — caveiras '¥' e
+    // corpos '¶' cuja DENSIDADE é a pista não contada. Nos andares 6-7
+    // só "um pouco mais" que sempre (chão ~15%). No andar 8 (o fundo do
+    // fundo, a coroa) o gradiente é verdade: cada piso tem chance de virar
+    // osso/carne que CRESCE RUMO À COROA — longe ~12%, perto até ~58-70%
+    // de chance (a cama do monte fecha os últimos tiles) — os caminhos se
+    // contam em corpos e ninguém ditou nada.
+    // (corpo nasce 1 em 3 e só em PISO: água fica úmida de por si;
+    // a âncora do gradiente é a coroa ESCOLHIDA acima, migrada ou não:
+    // nunca mais a última câmara posta por o que der e vier) ----
+    if th == TH_CAVE {
+        let deep8 = depth == 8;
+        let (ax, ay) = (dx, dy); // âncora do gradiente: onde a coroa dorme
+        for i in 0..N_MAX {
+            if unsafe { MAP[i] != T_FLOOR } { continue; }
+            let x = (i % W()) as i32;
+            let y = (i / W()) as i32;
+            let pct = if deep8 {
+                ((12 + (60 - ((x - ax).abs() + (y - ay).abs())).clamp(0, 60) * 7 / 9) as i32).clamp(12, 70)
+            } else { 15 };
+            if rndn(100) as i32 >= pct { continue; }
+            unsafe { MAP[i] = if rndn(3) == 0 { T_CORPSE } else { T_SKULL }; }
+        }
+        let ncl = if deep8 { 20 + rndn(12) } else { 42 + rndn(12) };
+        for _ in 0..ncl {
+            let cx = rndn(W()) as i32;
+            let cy = rndn(H()) as i32;
+            let i0 = idx(cx as usize, cy as usize);
+            if unsafe { MAP[i0] != T_FLOOR } { continue; }
+            unsafe { MAP[i0] = T_SKULL; }
+            for _ in 0..(2 + rndn(4)) {
+                let sdx: i32 = rndn(3) as i32 - 1;
+                let sdy: i32 = rndn(3) as i32 - 1;
+                if sdx == 0 && sdy == 0 { continue; }
+                let x = cx + sdx;
+                let y = cy + sdy;
+                if x < 1 || y < 1 || x >= W() as i32 - 1 || y >= H() as i32 - 1 { continue; }
+                let i = idx(x as usize, y as usize);
+                if unsafe { MAP[i] == T_FLOOR } {
+                    unsafe { MAP[i] = if rndn(3) == 0 { T_CORPSE } else { T_SKULL }; }
                 }
             }
         }

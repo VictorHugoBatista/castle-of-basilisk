@@ -273,7 +273,9 @@ te sustenta)**, pico marcado como cicatriz para o resto da run**,
 (desce os 8 andares na ordem, pega a coroa no acervo da Bocarra, escapa pelo
 portão —
 rotas que evitam a zona de gaze, esquiva geométrica, caminha na água e nos
-corpos), **a BOCARRA DECORADA — corpos `¶`, caveiras `¥` e água úmida `=`
+corpos), **a ESCADA LONGE — a descida `>`/`§` nunca nasce colada na escada
+de entrada** (distância de rota desde o `<` respeita o limiar por tema em
+varredura de seeds e andares), **a BOCARRA DECORADA — corpos `¶`, caveiras `¥` e água úmida `=`
 presentes
 em massa nos andares 6-8** e **A PISTA NÃO CONTADA — a densidade do acervo
 provada a crescer rumo à coroa (d<=10 vs d>=25, 1.8x), `pfb_debug_floor` de
