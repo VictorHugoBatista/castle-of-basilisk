@@ -102,9 +102,17 @@ const uirow = new Uint8Array(w.memory.buffer, w.pfb_ui_ptr(), VW * 2);
 // ÚLTIMA linha (junto do texto). Ela é TODA desenhada dentro do canvas,
 // com margem própria — 100% visível, nada corta nem sobrepõe. O TEXTO da
 // dica fica no espaço que SOBRA à direita dela na barra de UI: cabe →
-// alinhado à esquerda; não cabe → rola em letreiro. HUD_W é a borda
-// direita da placa: o render do texto parte dela (partilhado).
-const HUD_X = 2, HUD_W = 104, HUD_H = 46, HUD_MARGIN = 2;
+// alinhado à esquerda; não cabe → rola em letreiro. A placa é de largura
+// DINÂMICA: sem item ela abraça só a coluna dos medidores; com item abre
+// pra caber a coluna de quadros (e o SEPARADOR — o vão entre as colunas —
+// só existe quando há algo carregado). A largura VIVA sai do hudW(): o
+// render do texto e a própria placa leem a MESMA verdade.
+const HUD_X = 2, HUD_H = 46, HUD_MARGIN = 2;
+const HUD_W_BASE = 46; // placa sem item: ruído/fôlego/medo (margens de 5px)
+const HUD_W_ITEM = 72; // com coluna de itens: + vão 10, quadro 16 e folga 5
+function hudW() {
+  return (stats[8] === 1 || stats[20] === 1) ? HUD_W_ITEM : HUD_W_BASE;
+}
 const mapview = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), N_MAX); // tiles do andar
 // DIFF: o diferencial de render nasce no RUST (diff_pass no fim de render()):
 // [0] flags (bit0 = repinte integral), [1] camX, [2] camY, [3..227] bitmap de
@@ -1128,7 +1136,7 @@ function render(nowMs) {
   // contínuo (2 células/s), recomeçando quando o rabo sai da região.
   if (inPlay) {
     const uiY = (VH - 1) * CELL_H;
-    const x0 = HUD_X + HUD_W + 4, x1 = canvas.width - 4;
+    const x0 = HUD_X + hudW() + 4, x1 = canvas.width - 4;
     // o chão da região é repintado TODO frame: a rolagem muda a posição dos
     // glifos a cada frame — as células de trás não são "mudadas" no diff do
     // Rust, e sem o fill as letras velhas fantasiam no rastro do letreiro
@@ -1189,13 +1197,15 @@ function drawHUD() {
   const fear = stats[18] || 0;
   const fl = stats[19] || 0;
 
-  // ---- placa tripla + slot: ancorada no canto inferior esquerdo ----
+  // ---- placa tripla + coluna de itens: ancorada no canto inferior esquerdo,
+  // largura DINÂMICA (hudW): sem item ela é compacta; com item ela abre ----
   const hx = HUD_X, hy = canvas.height - HUD_H - HUD_MARGIN;
+  const pw = hudW();
   ctx.fillStyle = 'rgba(5,2,0,0.80)';
-  ctx.fillRect(hx, hy, HUD_W, HUD_H);
+  ctx.fillRect(hx, hy, pw, HUD_H);
   ctx.strokeStyle = 'rgba(138,95,0,0.6)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(hx + 0.5, hy + 0.5, HUD_W - 1, HUD_H - 1);
+  ctx.strokeRect(hx + 0.5, hy + 0.5, pw - 1, HUD_H - 1);
 
   // ---- medidor de ruído: 3 casas grossas, acende com o nível ----
   const bw = 10, bh = 14, gap = 3, bx = 7, by = hy + 5;
@@ -1255,7 +1265,9 @@ function drawHUD() {
   if (crownHeld) held.push(0xA7);                     // § coroa
   if (stats[20] === 1 && !crownHeld) held.push(0xA4); // ¤ fragmento (enquanto é ELE)
   for (let i = 0; i < held.length; i++) {
-    const ix = hx + 61, iy = hy + 5 + i * (ITH + IGAP);
+    // coluna depois do VÃO — e o vão só existe SE a coluna existe: placa
+    // compacta não reserva espaço de item fantasma
+    const ix = hx + 51, iy = hy + 5 + i * (ITH + IGAP);
     ctx.strokeStyle = 'rgba(138,95,0,0.70)';
     ctx.strokeRect(ix + 0.5, iy + 0.5, ITW - 1, ITH - 1);
     ctx.fillStyle = 'rgba(107,68,0,0.18)';

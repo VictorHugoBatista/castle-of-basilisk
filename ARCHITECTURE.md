@@ -339,7 +339,9 @@ Pilares (constantes tunaveis no topo de `src/consts.rs`):
   (r=17), ambos `loud=true` — coordenada exata e alcance um tile alem da
   bota (andar/sneak em osso/carne e SO CENARIO: som no playEvent 1, sem
   noise() nenhum — o bot, que nunca corre, nao muda de jogo).
-- **HUD**: no CANTO INFERIOR ESQUERDO, encostado na barra de UI: medidor de
+- **HUD**: no CANTO INFERIOR ESQUERDO, encostado na barra de UI, largura
+  DINÂMICA (sem item abraça os medidores; com item abre pra coluna de
+  quadros — o vão entre colunas só existe quando há item): medidor de
   SOM (3 casas grossas em placa escura com moldura, stats[10] — calar
   discreto/andar ambar/correr laranja PISCANDO no nivel maximo), barra de
   folego (stats[11]), barra de medo (stats[18], treme em nivel alto) e a
