@@ -1243,27 +1243,33 @@ function drawHUD() {
     ctx.fillRect(fx + jx, mfy + jy, Math.max(2, Math.round(fw * fear / 100)), 5);
   }
 
-  // ---- slot do item: o que "chia" aparece quando é PEGO ----
-  // coroa (§) ou fragmento sombrio (¤) — o mesmo glifo existente no
-  // tabuleiro, com o mesmo brilho vivo do attr 5. Vazio: moldura escura
-  // lê-se "bolso vazio"; nada nasce fora do slot (o HUD não mente —
-  // STATS[20] é o espelho honesto da cerca do heart_tick).
-  const isx = hx + 54, isy = by, isw = HUD_W - 54 - 6, ish = bh;
-  ctx.strokeStyle = 'rgba(138,95,0,0.70)';
-  ctx.strokeRect(isx + 0.5, isy + 0.5, isw - 1, ish - 1);
-  ctx.fillStyle = 'rgba(107,68,0,0.18)';
-  ctx.fillRect(isx + 2, isy + 2, isw - 4, ish - 4);
-  const crown = stats[8] === 1; // 1 = a coroa é SUA
-  if (crown || stats[20] === 1) {
-    const ic = crown ? 0xA7 : 0xA4; // § coroa · ¤ fragmento
-    // SÓ o glifo, centrado de verdade no slot (textAlign left desenharia a
-    // partir do meio e o item nasce torto); nome nenhum — o glifo É o nome
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 13px monospace';
-    ctx.fillStyle = colorFor(ic, 5, now);
-    ctx.fillText(String.fromCharCode(ic), isx + isw / 2, isy + ish / 2 + 1);
-    ctx.restore();
+  // ---- itens: cada item é um QUADRO individual ----
+  // grade de molduras sempre visíveis (o envelope lê-se mesmo apagado, igual
+  // às casas do ruído): 2 por linha; item novo no futuro desce pra SEGUNDA
+  // LINHA. O item PEGO acende o glifo com o brilho vivo do attr 5 (§ coroa /
+  // ¤ fragmento — a mesma matéria); nome nenhum: o glifo É o nome. O HUD
+  // não mente — STATS[8]/[20] são o espelho honesto da cerca do heart_tick.
+  const ITW = 16, ITH = 16, IGAP = 3, IPERROW = 2;
+  const crownHeld = stats[8] === 1; // 1 = a coroa é SUA
+  const items = [
+    [crownHeld, 0xA7],                     // § coroa
+    [stats[20] === 1 && !crownHeld, 0xA4], // ¤ fragmento (enquanto é ELE)
+  ];
+  for (let i = 0; i < items.length; i++) {
+    const row = (i / IPERROW) | 0, col = i % IPERROW;
+    const ix = hx + 61 + col * (ITW + IGAP), iy = hy + 5 + row * (ITH + IGAP);
+    ctx.strokeStyle = 'rgba(138,95,0,0.70)';
+    ctx.strokeRect(ix + 0.5, iy + 0.5, ITW - 1, ITH - 1);
+    ctx.fillStyle = 'rgba(107,68,0,0.18)';
+    ctx.fillRect(ix + 2, iy + 2, ITW - 4, ITH - 4);
+    if (items[i][0]) {
+      ctx.save();
+      ctx.textAlign = 'center'; // glifo centrado de verdade (left nasce torto)
+      ctx.font = 'bold 12px monospace';
+      ctx.fillStyle = colorFor(items[i][1], 5, now);
+      ctx.fillText(String.fromCharCode(items[i][1]), ix + ITW / 2, iy + ITH / 2 + 1);
+      ctx.restore();
+    }
   }
   ctx.font = 'bold 15px monospace'; // restaura: o render por células conta com ele
 }
