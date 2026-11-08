@@ -36,7 +36,7 @@ pub(crate) fn write_ui_center(s: &str, a: u8) {
 // silencioso do put_ui — travado EM COMPILE-TIME (o bug real: 'O
 // FRAGMENTO PULSA...' com 57 chars, a dica nascia esquerda e sem o 'A'
 // do ESTA)
-const _: () = assert!("O FRAGMENTO PULSA. MAIS FORTE, MAIS PERTO ELA".len() <= 54);
+const _: () = assert!("O MISTERIOSO FRAGMENTO PULSA".len() <= 54);
 const _: () = assert!("A COROA E SUA. ELA TEM FOME. FUJA PELO '<' NO TERREO".len() <= 54);
 #[allow(dead_code)]
 #[inline]
@@ -236,7 +236,7 @@ pub(crate) fn render() {
             let msg: &str = if CROWN {
                 "A COROA E SUA. ELA TEM FOME. FUJA PELO '<' NO TERREO"
             } else if SHARD {
-                "O FRAGMENTO PULSA. MAIS FORTE, MAIS PERTO ELA"
+                "O MISTERIOSO FRAGMENTO PULSA"
             } else if tile_at(PX, PY) == T_RUBBLE {
                 "ESCOMBROS. ELA NAO PATRULHA AQUI. NAO FAC BARULHO"
             } else if BST == B_HUNT {
