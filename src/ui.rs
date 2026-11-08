@@ -37,7 +37,7 @@ pub(crate) fn write_ui_center(s: &str, a: u8) {
 // FRAGMENTO PULSA...' com 57 chars, a dica nascia esquerda e sem o 'A'
 // do ESTA)
 const _: () = assert!("O FRAGMENTO PULSA. MAIS FORTE, MAIS PERTO ELA".len() <= 54);
-const _: () = assert!("VOCE TEM A COROA. ELA TEM FOME. FUJA PELO '<' NO TERREO".len() <= 54);
+const _: () = assert!("A COROA E SUA. ELA TEM FOME. FUJA PELO '<' NO TERREO".len() <= 54);
 #[allow(dead_code)]
 #[inline]
 pub(crate) fn put_ui_str(x: usize, s: &str, a: u8) {
@@ -234,7 +234,7 @@ pub(crate) fn render() {
 
             // dica contextual
             let msg: &str = if CROWN {
-                "VOCE TEM A COROA, ELA TEM FOME. FUJA PELO '<' NO TERREO"
+                "A COROA E SUA. ELA TEM FOME. FUJA PELO '<' NO TERREO"
             } else if SHARD {
                 "O FRAGMENTO PULSA. MAIS FORTE, MAIS PERTO ELA"
             } else if tile_at(PX, PY) == T_RUBBLE {
