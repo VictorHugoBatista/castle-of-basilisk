@@ -31,6 +31,13 @@ pub(crate) fn write_ui_center(s: &str, a: u8) {
 
 // glifo único na barra de UI (nome do andar, sem centralizar) — usado pelo
 // anúncio de tema ao entrar num piso
+// a barra tem W0 células: dica mais longa que 54 perde o CENTER do
+// inteiro ((W0-n)/2 = 0 nasce esquerda) e acima de 56 esbarra no corte
+// silencioso do put_ui — travado EM COMPILE-TIME (o bug real: 'O
+// FRAGMENTO PULSA...' com 57 chars, a dica nascia esquerda e sem o 'A'
+// do ESTA)
+const _: () = assert!("O FRAGMENTO PULSA. MAIS FORTE, MAIS PERTO ELA".len() <= 54);
+const _: () = assert!("VOCE TEM A COROA. ELA TEM FOME. FUJA PELO '<' NO TERREO".len() <= 54);
 #[allow(dead_code)]
 #[inline]
 pub(crate) fn put_ui_str(x: usize, s: &str, a: u8) {
@@ -227,9 +234,9 @@ pub(crate) fn render() {
 
             // dica contextual
             let msg: &str = if CROWN {
-                "VOCE TEM A COROA. ELA TEM FOME. FUJA PELO '<' NO TERREO"
+                "VOCE TEM A COROA, ELA TEM FOME. FUJA PELO '<' NO TERREO"
             } else if SHARD {
-                "O FRAGMENTO PULSA. QUANTO MAIS FORTE, MAIS PERTO ELA ESTA"
+                "O FRAGMENTO PULSA. MAIS FORTE, MAIS PERTO ELA"
             } else if tile_at(PX, PY) == T_RUBBLE {
                 "ESCOMBROS. ELA NAO PATRULHA AQUI. NAO FAC BARULHO"
             } else if BST == B_HUNT {
