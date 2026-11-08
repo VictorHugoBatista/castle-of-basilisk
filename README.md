@@ -252,8 +252,8 @@ Nada de wasm-bindgen: o módulo expõe funções `#[no_mangle] extern "C"`:
   confirma com o ack
 - `pfb_state()` — 0 título, 1 jogando, 2 morto, 3 vitória, 4 controles,
   5 escolha de andar (o konami)
-- `pfb_debug_*` — ferramentas dos testes (place/bas_place/map/probe/body_ptr/
-  ai/give_crown/**give_shard**/fear/fear_ptr/floor)
+- `pfb_debug_*` — ferramentas dos testes (place/bas_place/map/**dmap**/probe/body_ptr/
+  ai/give_crown/**give_shard**/**shard_reset**/fear/fear_ptr/floor)
 
 O WASM nunca aloca: as views JS são criadas uma vez e ficam válidas.
 

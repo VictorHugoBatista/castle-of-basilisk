@@ -239,6 +239,12 @@ pub extern "C" fn pfb_debug_bas_place(px: u32, py: u32) {
 #[no_mangle]
 pub extern "C" fn pfb_debug_map_ptr() -> u32 { unsafe { MAP.as_ptr() as u32 } }
 
+/// [DEBUG] ponteiro do campo de rota atual (DMAP, u16[N]): a distância de
+/// ROTA que o jogo usa (origens variam — gen, IA, audição). Inspeção do
+/// smoke e das provas de spawn/escada.
+#[no_mangle]
+pub extern "C" fn pfb_debug_dmap_ptr() -> u32 { unsafe { DMAP.as_ptr() as u32 } }
+
 /// [DEBUG] ponteiro do rastro do corpo: [0] = comprimento; depois pares (x, y),
 /// o segmento mais recente (encostado na cabeça) primeiro. Buffer fixo de 49 bytes.
 #[no_mangle]

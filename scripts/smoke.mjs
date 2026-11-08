@@ -15,12 +15,14 @@ function ensureViews() {
   Wd = stats[16]; Hd = stats[17];
   grid = new Uint8Array(w.memory.buffer, w.pfb_grid_ptr(), Wd * Hd * 2);
   wmap = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), Wd * Hd);
+  dmapView = new Uint16Array(w.memory.buffer, w.pfb_debug_dmap_ptr(), N_MAX);
 }
 
 w.pfb_init();
 const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 32);
 let grid = null;
 let wmap = null;
+let dmapView = null;
 ensureViews();
 
 function dump(label) {
@@ -1024,7 +1026,12 @@ let shardOK = false;
       numa_run += n;
       if (d >= 5 && n > 0) runsOk = false; // o fundo: NUNCA
       if (numa_run > 1) runsOk = false;    // dois vivos no castelo: proibido
-      if (n > 0) secoCheck(wmap.indexOf(0xA4));
+      if (n > 0) {
+        secoCheck(wmap.indexOf(0xA4));
+        // a regra de rota é DIRETO NO CAMPO DO JOGO (DMAP: o bfs de
+        // player-terrain que adjudicou o lugar — nada de réguas JS)
+        if (dmapView[wmap.indexOf(0xA4)] < 10) runsOk = false;
+      }
     }
     if (numa_run !== 1) runsOk = false;    // a escada inteira: SEMPRE um
     else runsComAchado++;
@@ -1033,6 +1040,7 @@ let shardOK = false;
   // (B) CONTRATO POR ANDAR — a semente é apagada antes de cada andar isolado:
   // sem isso a unicidade por run engole os irmãos do sweep
   let f1 = 0, f2 = 0, f3 = 0, f4 = 0;
+  const zones = [0, 0, 0, 0, 0, 0, 0, 0, 0]; // 3x3 sobre o mapa: a região varie
   for (let s = 0; s < 48; s++) {
     const seed = Math.imul(s + 1, 2654435761) >>> 0;
     for (const d of [1, 2, 3, 4]) {
@@ -1041,12 +1049,20 @@ let shardOK = false;
       w.pfb_debug_floor(d);
       const n = countShards();
       if (d === 4 && n !== 1) runsOk = false; // o COBERTO isolado também é 1
+      if (n > 0) {
+        const at = wmap.indexOf(0xA4);
+        const z = Math.min(2, (3 * (at % Wd) / Wd) | 0) + 3 * Math.min(2, (3 * ((at / Wd) | 0) / Hd) | 0);
+        zones[z]++;
+        if (dmapView[at] < 10) runsOk = false;  // rota >= 10 no campo do jogo
+      }
       if (d === 1) f1 += n;
       else if (d === 2) f2 += n;
       else if (d === 3) f3 += n;
       else f4 += n;
     }
   }
+  const zLive = zones.filter((z) => z > 0).length;
+  if (zLive < 5) runsOk = false; // a região tem que VAGAR: >= 5 das 9 zonas du chão
 
   // bandas de 3σ da binomial (48 seeds, p por contrato: .25/.4/.5) —
   // um desvio de CONSTANTE aqui rejeita no gate, não passa como variância.
@@ -1059,7 +1075,7 @@ let shardOK = false;
          && f1 >= 3 && f1 <= 21    // 1/4 esperado: 12/48 (±9)
          && f2 >= 9 && f2 <= 29    // 2/5 esperado: ~19/48
          && f3 >= 13 && f3 <= 35;  // 1/2 esperado: 24/48
-  console.log(`  fragmento: ${runsComAchado}/48 runs com o seu um (unicidade) · contrato isolado: térreo ${f1}/48 · masmorra ${f2}/48-${f3}/48 · canais(4) ${f4}/48${dry ? ' · seco' : ' · MOLHADO'}`);
+  console.log(`  fragmento: ${runsComAchado}/48 runs com o seu um (unicidade) · contrato isolado: térreo ${f1}/48 · masmorra ${f2}/48-${f3}/48 · canais(4) ${f4}/48${dry ? ' · seco' : ' · MOLHADO'} · zonas vivas ${zLive}/9`);
   console.log(shardOK
     ? 'PASS - fragmento: UM no castelo inteiro por run, contrato por andar, nunca no fundo'
     : 'FAIL - fragmento (nascimento)');

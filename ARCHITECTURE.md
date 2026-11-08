@@ -102,7 +102,7 @@ Exports (contrato publico — nao quebrar):
 | `pfb_pop_event` | `() u32`                     | consome fila de audio (0 = vazia) |
 | `pfb_diff_ptr`  | `() u32`                     | diff de render (bit0 = repinte integral, [1] camX, [2] camY, [3..227] bitmap de celulas de TELA mudadas) |
 | `pfb_diff_ack`  | `()`                         | confirmacao do consumo: zera flags + bitmap |
-| `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown/give_shard/shard_reset/fear/fear_ptr/floor | somente para testes headless |
+| `pfb_debug_*`   | place/map/**dmap**/probe/body_ptr/ai/give_crown/give_shard/shard_reset/fear/fear_ptr/floor | somente para testes headless |
 
 Layout de memoria:
 - **Grid**: buffer maximo `W_MAX x H_MAX` (88x48) celulas x `[char: u8, attr: u8]`,
@@ -409,19 +409,22 @@ terreo.
   no 3 · COBERTO no 4 (um, e um só — se nada brotou antes: TODES as runs
   do gate saem com o seu um, 48/48); dos 5 para baixo NUNCA (o fundo já
   pulsa por si — a coroa é a matéria toda). Posição em duas caras de
-  aleatoriedade: a ZONA é sorteada em faixa de ROTA — meio (10-16, 5/10) ·
-  fundo (17-24, 3/10) · longe (25+, 2/10; o pick uniforme sobre candidatos
-  pesava a sala grande: o item caía onde o chão é maior, não onde o
-  desenho manda) — e o tier LIMPO proíbe as salas de entrada, de
-  descida/coroa e de nascimento DELA (o item não nasce sob a boca da
-  guarda); piso seco em rota sempre (`T_FLOOR`, DMAP >= 10 do '<'; escada
-  [faixa·limpa, 10+·limpa, 10+, 1+, 0] de fallback). Prova em gate +
-  bancada (480 seeds espalhadas): presença 22.3/39.8/49.8/100% e faixas
-  48/30/22% no lugar 50/30/20.
-  NINGUÉM nasce sobre ele (`spawn_clear` em
-  grid.rs: nem ela (place_basilisk, com varredura inteira de último
-  recurso), nem fantasma, nem falso B, nem coroa-fantasma — o achado é
-  do ladrão; ela ATRAVESSA o '¤' em jogo normalmente e as mentiras
+  aleatoriedade: a ZONA é uma grade 3x3 do mapa (uniforme, 1/9 cada — a
+  REGIÃO de spawn é sorteada por broto e o tile sai de dentro dela; o
+  par de bandas de rota pintava um anel em volta da entrada: 58% à
+  esquerda-alta no andar 4, 1% no canto oposto — pós-zona: 9/9 zonas
+  vivas no gate, share por zona 7-16%) — e a rota >= 10 do '<' é lida no
+  CAMPO FINAL (o gen_once re-corre o bfs depois de dig_pockets: os
+  becos abrem atalhos andáveis e o campo da ordem era rascunho — a
+  regra é sobre o mapa que fica). O tier limpo proíbe as salas de
+  entrada, de descida/coroa e de nascimento DELA (o item não nasce sob
+  a boca da guarda); piso seco em rota sempre (`T_FLOOR`; escada
+  [zona·limpa, limpa, zona, 10+, 0] de fallback). Prova em gate +
+  bancada (480 seeds espalhadas): presença 22.3/39.8/49.8/100%. NINGUÉM
+  nasce sobre ele (`spawn_clear` em grid.rs: nem ela (place_basilisk,
+  com varredura inteira de último recurso), nem fantasma, nem falso B,
+  nem coroa-fantasma — o achado é do ladrão; ela ATRAVESSA o '¤' em jogo
+  normalmente e as mentiras
   mentem só de longe). `near_tile` já o conta entre os tiles especiais
   (trava de ordem: dig_pockets roda antes, mas a lista protege).
   Pisar no `¤` pega-o: `SHARD = true` +

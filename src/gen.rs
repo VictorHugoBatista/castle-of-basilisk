@@ -984,6 +984,12 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
     // ---- o FRAGMENTO SOMBRIO — no fim de TUDO, e na stream PRÓPRIA do
     // achado (spawn_shard): plantas antigas só mudam onde o '¤' pode estar,
     // nenhum rolagem do mundo desanda ----
+    // Campo FINAL de rota primeiro (do '<'): os becos de escombro abrem
+    // ATALHOS andáveis depois do bfs lá em cima — o campo da ordem era
+    // rascunho, e a regra "rota >= 10 desde a entrada" é sobre THE MAPA
+    // QUE FICA (bancada seed 252: o '¤' nascia a 9 passos; o campo velho
+    // dizia 11 — becodo atalho na frente)
+    bfs(ex as usize, ey as usize);
     spawn_shard(depth, seed);
 }
 
@@ -1021,17 +1027,19 @@ fn shard_roll(state: &mut u32) -> u32 {
 //   vizinhas saíam casadas: a varredura 2000..2047 do gate mediu ~2x a
 //   taxa real por puro arranjo de bits baixos). Depois do warm-up o estado
 //   inteiro está misturado; o mod sobre o roll completo fica honesto.
-// - a ZONA: uma faixa de ROTA é sorteada por achado — MEIO (10..16, 5/10) ·
-//   FUNDO (17..24, 3/10) · LONGE (25+, 2/10). O pick uniforme sobre todos
-//   os candidatos pesava o chão maior: o item caía na sala grande, não
-//   onde o desenho manda. A faixa faz o achado vagar o andar.
-//   Piso seco SEMPRE, rota >= 10 do '<' (portas abertas no bfs, escombro é
-//   pé do ladrão). Salas PROIBIDAS no tier limpo: a entrada, a
-//   descida/coroa e a de nascimento DELA — o item com a besta de guarda
-//   desde o spawn não é roleta honesta, é sentença. Quando a faixa fica
-//   vazia (andar pequeno), escada de fallbacks:
-//   [faixa·limpa] -> [10+·limpa] -> [10+] -> [1+] -> [0] —
-//   o COBERTO do 4 sempre acha lugar.
+// - a ZONA: grade 3x3 sobre o mapa (uniforme, 1/9) — a REGIÃO de spawn é
+//   sorteada por broto e o tile sai de dentro dela. O par de bandas de
+//   ROTA (10-24) descrevia um ANEL em volta da entrada e pintava o achado
+//   concentrado (bancada: 58% à esquerda-alta no andar 4, 1% no canto
+//   oposto); a zona espalha a região pelo chão (bancada pós-zona: 9/9
+//   vivas no gate, share por zona 7-16%).
+//   Piso seco SEMPRE, rota >= 10 do '<' lida no CAMPO FINAL (o gen_once
+//   re-corre o bfs depois de dig_pockets: os becos abrem atalhos
+//   andáveis e o campo lá em cima era rascunho — a regra é sobre o mapa
+//   que fica). Salas PROIBIDAS no tier limpo: a entrada, a descida/coroa
+//   e a de nascimento DELA — o item não nasce sob a boca da guarda.
+//   Escada de fallbacks: [zona·limpa] -> [limpa] -> [zona] -> [10+] ->
+//   [0] — o COBERTO do 4 sempre acha lugar.
 const SHARD_MIN_ROUTE: i32 = 10;
 
 pub(crate) fn spawn_shard(depth: u8, seed: u32) {
@@ -1058,12 +1066,24 @@ pub(crate) fn spawn_shard(depth: u8, seed: u32) {
     };
     if !born { return; }
     unsafe {
-        // a faixa de ROTA do achado: meio (5/10) · fundo (3/10) · longe (2/10)
-        let band = shard_roll(&mut sr) % 10;
-        let (band_lo, band_hi): (i32, i32) = match band {
-            0..=4 => (SHARD_MIN_ROUTE, 16),
-            5..=7 => (17, 24),
-            _ => (25, (W() + H()) as i32),
+        // a ZONA do achado: grade 3x3 sobre o mapa (uniforme, 1/9 cada) —
+        // a REGIÃO de spawn vem sorteada por broto, e o tile sai de dentro
+        // dela. O par de faixas de ROTA (10-24) descrevia um ANEL em volta
+        // da entrada e pintava o achado concentrado (bancada: 58% à
+        // esquerda-alta no andar 4, 1% no canto oposto) — a zona 3x3
+        // espalha a região pelo chão inteiro
+        let zi = (shard_roll(&mut sr) % 9) as usize;
+        let zxi = zi % 3;
+        let zyi = zi / 3;
+        let zw = W() / 3;
+        let zh = H() / 3;
+        let in_zone = |i: usize| -> bool {
+            let x = (i % W()) as i32;
+            let y = (i / W()) as i32;
+            x >= (zxi * zw) as i32
+                && (zxi == 2 || x < ((zxi + 1) * zw) as i32)
+                && y >= (zyi * zh) as i32
+                && (zyi == 2 || y < ((zyi + 1) * zh) as i32)
         };
 
         // salas proibidas no tier "limpo" (entrada · descida/coroa · a
@@ -1090,23 +1110,26 @@ pub(crate) fn spawn_shard(depth: u8, seed: u32) {
             if dd > best { bas_r = r; best = dd; }
         }
 
-        // tiers: [faixa·limpa] -> [10+·limpa] -> [10+] -> [1+] -> [0]
-        for (lo, hi, clean) in [
-            (band_lo, band_hi, true),
-            (SHARD_MIN_ROUTE, (W() + H()) as i32, true),
-            (SHARD_MIN_ROUTE, (W() + H()) as i32, false),
-            (1, (W() + H()) as i32, false),
-            (0, (W() + H()) as i32, false),
+        // tiers (rota >= 10 em todos, menos o socorro final):
+        // [zona·limpa] -> [limpa] -> [zona] -> [10+] -> [0]
+        let mut placed = false;
+        for (use_zone, use_clean, min_d) in [
+            (true, true, SHARD_MIN_ROUTE),
+            (false, true, SHARD_MIN_ROUTE),
+            (true, false, SHARD_MIN_ROUTE),
+            (false, false, SHARD_MIN_ROUTE),
+            (false, false, 0),
         ] {
             let mut n = 0usize;
             for i in 0..N_MAX {
                 if MAP[i] != T_FLOOR { continue; }
                 let d = DMAP[i] as i32;
-                if DMAP[i] == 0xFFFF || d < lo || d > hi { continue; }
-                if clean {
+                if DMAP[i] == 0xFFFF || d < min_d { continue; }
+                if use_zone && !in_zone(i) { continue; }
+                if use_clean {
                     let r = room_of((i % W()) as i32, (i / W()) as i32);
                     // guarda r >= 0: se o '<'/'>' não nasceu em sala
-                    // registrada, o id -1 excluíria o corredor INTEIRO
+                    // registrada, o id -1 excluiria o corredor INTEIRO
                     if r >= 0 && (r == up_r || r == down_r || r == bas_r as i32) { continue; }
                 }
                 n += 1;
@@ -1117,18 +1140,21 @@ pub(crate) fn spawn_shard(depth: u8, seed: u32) {
             for i in 0..N_MAX {
                 if MAP[i] != T_FLOOR { continue; }
                 let d = DMAP[i] as i32;
-                if DMAP[i] == 0xFFFF || d < lo || d > hi { continue; }
-                if clean {
+                if DMAP[i] == 0xFFFF || d < min_d { continue; }
+                if use_zone && !in_zone(i) { continue; }
+                if use_clean {
                     let r = room_of((i % W()) as i32, (i / W()) as i32);
                     if r >= 0 && (r == up_r || r == down_r || r == bas_r as i32) { continue; }
                 }
                 if k == pick {
                     MAP[i] = T_SHARD;
                     unsafe { SHARD_FLOOR = depth; } // a semente crava: este é o andar do único
-                    return;
+                    placed = true;
+                    break;
                 }
                 k += 1;
             }
+            if placed { return; }
         }
     }
 }
