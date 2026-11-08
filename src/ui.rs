@@ -31,6 +31,13 @@ pub(crate) fn write_ui_center(s: &str, a: u8) {
 
 // glifo único na barra de UI (nome do andar, sem centralizar) — usado pelo
 // anúncio de tema ao entrar num piso
+// a barra tem W0 células: dica mais longa que 54 perde o CENTER do
+// inteiro ((W0-n)/2 = 0 nasce esquerda) e acima de 56 esbarra no corte
+// silencioso do put_ui — travado EM COMPILE-TIME (o bug real: 'O
+// FRAGMENTO PULSA...' com 57 chars, a dica nascia esquerda e sem o 'A'
+// do ESTA)
+const _: () = assert!("O MISTERIOSO FRAGMENTO PULSA".len() <= 54);
+const _: () = assert!("A COROA E SUA. ELA TEM FOME. FUJA PELO '<' NO TERREO".len() <= 54);
 #[allow(dead_code)]
 #[inline]
 pub(crate) fn put_ui_str(x: usize, s: &str, a: u8) {
@@ -164,7 +171,7 @@ pub(crate) fn attr_of(t: u8) -> u8 {
         T_SHADOW => A_SHADOW,
         T_DOOR => A_DOOR,
         T_DOWN | T_UP => A_STAIR,
-        T_CROWN => A_CROWN,
+        T_CROWN | T_SHARD => A_CROWN, // '§' e '¤': a MESMA matéria (o brilho é igual, o glifo é o que distingue)
         T_PILLAR => A_WALL,
         T_RUBBLE => A_RUBBLE,
         T_WATER | T_SHALLOW => A_WATER,
@@ -227,7 +234,9 @@ pub(crate) fn render() {
 
             // dica contextual
             let msg: &str = if CROWN {
-                "VOCE TEM A COROA. ELA TEM FOME. FUJA PELO '<' NO TERREO"
+                "A COROA E SUA. ELA TEM FOME. FUJA PELO '<' NO TERREO"
+            } else if SHARD {
+                "O MISTERIOSO FRAGMENTO PULSA"
             } else if tile_at(PX, PY) == T_RUBBLE {
                 "ESCOMBROS. ELA NAO PATRULHA AQUI. NAO FAC BARULHO"
             } else if BST == B_HUNT {
@@ -565,6 +574,9 @@ pub(crate) fn sync_stats() {
         STATS[17] = H().min(255) as u8;            // altura do mapa atual
         STATS[18] = FEAR.clamp(0, 100) as u8;      // HUD: medo (0..100)
         STATS[19] = fear_level();                  // HUD: nível do medo (0..4)
+        // [20]: o pulso — 1 = você carrega o que chia (fragmento OU coroa,
+        // a mesma matéria). Espelho do gate do heart_tick (evento 24)
+        STATS[20] = (SHARD || CROWN) as u8;
         AI_DBG[0] = ROOMT;
         AI_DBG[1] = RTX;
         AI_DBG[2] = RTY;

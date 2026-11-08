@@ -36,17 +36,30 @@ pub(crate) fn place_basilisk() {
         }
         let (cx, cy) = rcenter(best.1);
         let (mut bx, mut by) = (cx, cy);
-        // se o centro caiu em pilar, procura piso adjacente na sala
-        if !walkable(bx, by) {
+        // se o centro caiu em pilar (ou no próprio '¤': ninguém NASCE sobre o
+        // achado), procura piso limpo adjacente na sala
+        if !spawn_clear(bx, by) {
             'outer: for dy in -2..=2 {
                 for dx in -2..=2 {
                     let tx = cx + dx;
                     let ty = cy + dy;
-                    if walkable(tx, ty) { bx = tx; by = ty; break 'outer; }
+                    if spawn_clear(tx, ty) { bx = tx; by = ty; break 'outer; }
                 }
             }
         }
-        if !walkable(bx, by) { bx = W() as i32 / 2; by = H() as i32 / 2; }
+        if !spawn_clear(bx, by) {
+            // centro do mapa como último recurso — e se até ELE foi o ¤,
+            // varre o piso inteiro: a run precisa dela em algum lugar limpo
+            bx = W() as i32 / 2;
+            by = H() as i32 / 2;
+            if !spawn_clear(bx, by) {
+                for i in 0..N_MAX {
+                    let x = (i % W()) as i32;
+                    let y = (i / W()) as i32;
+                    if spawn_clear(x, y) { bx = x; by = y; break; }
+                }
+            }
+        }
         BX = bx as usize;
         BY = by as usize;
         BST = B_PATROL;
@@ -174,7 +187,10 @@ pub(crate) fn game_step(input: u32) {
                     NOISEL = 3;
                     break;
                 }
-                // o 2º passo do dash é puro chão: sem gatilhos duplos de descer/ganhar
+                // o 2º passo do dash é puro chão: sem gatilhos duplos de
+                // descer/vencer/pegar — '§' e '¤' NÃO são aterrissagem de dash
+                // (o k=0 já pega o '¤' ao passar; pegar é passo do pé, não
+                // mola da corrida: o item não se colhe por TROPEÇO)
                 if k > 0 && t != T_FLOOR && t != T_SHADOW && t != T_RUBBLE && t != T_DOOR { break; }
                 PX = nx;
                 PY = ny;
@@ -202,6 +218,14 @@ pub(crate) fn game_step(input: u32) {
                         MAP[ni] = T_FLOOR;
                         push_event(EV_CROWN);
                         CFREEZE = 15;
+                    }
+                    T_SHARD => {
+                        // o FRAGMENTO SOMBRIO: acha-se, leva-se — e o peito
+                        // passa a pulsar com a distância dela (heart_tick)
+                        SHARD = true;
+                        MAP[ni] = T_FLOOR;
+                        push_event(EV_SHARD);
+                        HEART_T = 0; // o pulso nasce na mão: bate já
                     }
                     _ => {}
                 }
@@ -239,6 +263,7 @@ pub(crate) fn game_step(input: u32) {
             note_player_room();
             basilisk_turn();
             if STATE == ST_PLAY { sibilo_tick(); } // a fala dela: o olhar dela pode ter matado no passo acima
+            if STATE == ST_PLAY { heart_tick(); }  // o SEU pulso: só com fragmento/coroa no peito
         }
         if STATE != ST_PLAY { return; }
 

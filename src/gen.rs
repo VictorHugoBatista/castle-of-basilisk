@@ -980,20 +980,195 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
     // ---- becos de escombro: esconderijos que ela não patrulha (por último:
     // escava só em parede, nunca conecta nem encolhe caminhos) ----
     dig_pockets(depth, rub_quota);
+
+    // ---- o FRAGMENTO SOMBRIO — no fim de TUDO, e na stream PRÓPRIA do
+    // achado (spawn_shard): plantas antigas só mudam onde o '¤' pode estar,
+    // nenhum rolagem do mundo desanda ----
+    // Campo FINAL de rota primeiro (do '<'): os becos de escombro abrem
+    // ATALHOS andáveis depois do bfs lá em cima — o campo da ordem era
+    // rascunho, e a regra "rota >= 10 desde a entrada" é sobre THE MAPA
+    // QUE FICA (bancada seed 252: o '¤' nascia a 9 passos; o campo velho
+    // dizia 11 — becodo atalho na frente)
+    bfs(ex as usize, ey as usize);
+    spawn_shard(depth, seed);
 }
 
 pub(crate) fn set_room_t(x: i32, y: i32, t: u8) {
     unsafe { MAP[idx(x as usize, y as usize)] = t; }
 }
 
+// ================= o fragmento sombrio =================
+
+// xorshift32 da stream PRÓPRIA do achado — o sorteio do '¤' NÃO EMPURRA
+// nada do rng do mundo: nem a sala que o place_basilisk rola logo depois,
+// nem os fantasmas que nascem por lá depois (mesma seção do rsib/rheart;
+// aqui é a do TERRENO). O `place_basilisk` consome a stream do mundo logo
+// após o gen_floor — uma rolagem a mais aqui mudaria a patrulha inteira
+#[inline]
+fn shard_roll(state: &mut u32) -> u32 {
+    *state ^= *state << 13;
+    *state ^= *state >> 17;
+    *state ^= *state << 5;
+    *state
+}
+
+// O achado que o castelo guarda sem começar: um pedaço bruto do MESMO metal
+// da coroa — quem o carrega sente o próprio coração pulsar com a distância
+// dela (o `heart_tick` de fear.rs; a coroa liga o mesmo pulso).
+//
+// Onde nasce: andares 1-4 — RARO no térreo (1/4), menos raro na masmorra
+// (2/5 no 2, 1/2 no 3) e COBERTO no primeiro canal (o andar 4 sempre
+// carrega um, e um só). Dos canais fundos (5+) para baixo nunca: o fundo
+// já pulsa por si — a coroa é a matéria toda.
+//
+// Onde no mapa (a aleatoriedade tem DUAS caras):
+// - a STREAM: warm-up de 3 descartes antes da primeira decisão — o xorshift
+//   é linear em GF(2) e o 1º draw é função direta dos bits do seed (seeds
+//   vizinhas saíam casadas: a varredura 2000..2047 do gate mediu ~2x a
+//   taxa real por puro arranjo de bits baixos). Depois do warm-up o estado
+//   inteiro está misturado; o mod sobre o roll completo fica honesto.
+// - a ZONA: grade 3x3 sobre o mapa (uniforme, 1/9) — a REGIÃO de spawn é
+//   sorteada por broto e o tile sai de dentro dela. O par de bandas de
+//   ROTA (10-24) descrevia um ANEL em volta da entrada e pintava o achado
+//   concentrado (bancada: 58% à esquerda-alta no andar 4, 1% no canto
+//   oposto); a zona espalha a região pelo chão (bancada pós-zona: 9/9
+//   vivas no gate, share por zona 7-16%).
+//   Piso seco SEMPRE, rota >= 10 do '<' lida no CAMPO FINAL (o gen_once
+//   re-corre o bfs depois de dig_pockets: os becos abrem atalhos
+//   andáveis e o campo lá em cima era rascunho — a regra é sobre o mapa
+//   que fica). Salas PROIBIDAS no tier limpo: a entrada, a descida/coroa
+//   e a de nascimento DELA — o item não nasce sob a boca da guarda.
+//   Escada de fallbacks: [zona·limpa] -> [limpa] -> [zona] -> [10+] ->
+//   [0] — o COBERTO do 4 sempre acha lugar.
+const SHARD_MIN_ROUTE: i32 = 10;
+
+pub(crate) fn spawn_shard(depth: u8, seed: u32) {
+    if depth > 4 { return; }
+    unsafe {
+        if SHARD_FLOOR != 0 && SHARD_FLOOR != depth { return; } // o achado é UM por run: já brotou
+        // em outro andar (visto ou não, pego ou não) — nenhum outro mais.
+        // E se É o andar da semente, ele rebrota a cada regeneração: o
+        // replay do mapa determinístico não perde o achado no retorno
+    }
+    // stream própria do achado (nada do mundo desanda) + WARM-UP: os 3
+    // primeiros draws são descartados — a linearidade do GF(2) faz o 1º
+    // roll casar com os bits do seed
+    let mut sr = (seed ^ 0xA4A404A4) | 1;
+    for _ in 0..3 { shard_roll(&mut sr); }
+    // o retry de conectividade (gen_floor) re-gera o mapa: se a semente já
+    // cravou ESTE andar, o rebrote desconsidera a raridade (não é acordo,
+    // é o mesmo achado de volta)
+    let born = unsafe { SHARD_FLOOR != 0 } || match depth {
+        1 => shard_roll(&mut sr) % 4 == 0,
+        2 => shard_roll(&mut sr) % 5 < 2,
+        3 => shard_roll(&mut sr) % 2 == 0,
+        _ => true,
+    };
+    if !born { return; }
+    unsafe {
+        // a ZONA do achado: grade 3x3 sobre o mapa (uniforme, 1/9 cada) —
+        // a REGIÃO de spawn vem sorteada por broto, e o tile sai de dentro
+        // dela. O par de faixas de ROTA (10-24) descrevia um ANEL em volta
+        // da entrada e pintava o achado concentrado (bancada: 58% à
+        // esquerda-alta no andar 4, 1% no canto oposto) — a zona 3x3
+        // espalha a região pelo chão inteiro
+        let zi = (shard_roll(&mut sr) % 9) as usize;
+        let zxi = zi % 3;
+        let zyi = zi / 3;
+        let zw = W() / 3;
+        let zh = H() / 3;
+        let in_zone = |i: usize| -> bool {
+            let x = (i % W()) as i32;
+            let y = (i / W()) as i32;
+            x >= (zxi * zw) as i32
+                && (zxi == 2 || x < ((zxi + 1) * zw) as i32)
+                && y >= (zyi * zh) as i32
+                && (zyi == 2 || y < ((zyi + 1) * zh) as i32)
+        };
+
+        // salas proibidas no tier "limpo" (entrada · descida/coroa · a
+        // nascimento dela): o item não nasce sob a boca de ninguém
+        let mut up_r = -1i32;
+        let mut down_r = -1i32;
+        for i in 0..N_MAX {
+            match MAP[i] {
+                T_UP => up_r = room_of((i % W()) as i32, (i / W()) as i32),
+                T_DOWN | T_CROWN => down_r = room_of((i % W()) as i32, (i / W()) as i32),
+                _ => {}
+            }
+        }
+        // a sala de nascimento dela: a mais longe da entrada em manhattan
+        // (espelho do place_basilisk, que roda LOGO APÓS o gen_floor)
+        let (ax, ay) = rcenter(0);
+        let mut bas_r = 0usize;
+        let mut best: i32 = -1;
+        let rn = if RN > 1 { RN } else { 1 };
+        for r in 0..rn {
+            if r == 0 { continue; }
+            let (cx, cy) = rcenter(r);
+            let dd = (cx - ax).abs() + (cy - ay).abs();
+            if dd > best { bas_r = r; best = dd; }
+        }
+
+        // tiers (rota >= 10 em todos, menos o socorro final):
+        // [zona·limpa] -> [limpa] -> [zona] -> [10+] -> [0]
+        let mut placed = false;
+        for (use_zone, use_clean, min_d) in [
+            (true, true, SHARD_MIN_ROUTE),
+            (false, true, SHARD_MIN_ROUTE),
+            (true, false, SHARD_MIN_ROUTE),
+            (false, false, SHARD_MIN_ROUTE),
+            (false, false, 0),
+        ] {
+            let mut n = 0usize;
+            for i in 0..N_MAX {
+                if MAP[i] != T_FLOOR { continue; }
+                let d = DMAP[i] as i32;
+                if DMAP[i] == 0xFFFF || d < min_d { continue; }
+                if use_zone && !in_zone(i) { continue; }
+                if use_clean {
+                    let r = room_of((i % W()) as i32, (i / W()) as i32);
+                    // guarda r >= 0: se o '<'/'>' não nasceu em sala
+                    // registrada, o id -1 excluiria o corredor INTEIRO
+                    if r >= 0 && (r == up_r || r == down_r || r == bas_r as i32) { continue; }
+                }
+                n += 1;
+            }
+            if n == 0 { continue; }
+            let pick = (shard_roll(&mut sr) % n as u32) as usize;
+            let mut k = 0usize;
+            for i in 0..N_MAX {
+                if MAP[i] != T_FLOOR { continue; }
+                let d = DMAP[i] as i32;
+                if DMAP[i] == 0xFFFF || d < min_d { continue; }
+                if use_zone && !in_zone(i) { continue; }
+                if use_clean {
+                    let r = room_of((i % W()) as i32, (i / W()) as i32);
+                    if r >= 0 && (r == up_r || r == down_r || r == bas_r as i32) { continue; }
+                }
+                if k == pick {
+                    MAP[i] = T_SHARD;
+                    unsafe { SHARD_FLOOR = depth; } // a semente crava: este é o andar do único
+                    placed = true;
+                    break;
+                }
+                k += 1;
+            }
+            if placed { return; }
+        }
+    }
+}
+
 // ================= becos de escombro =================
 
-// algo especial (<, >, §, outro escombro) perto demais do ponto (px,py)?
+// algo especial (<, >, §, ¤, outro escombro) perto demais do ponto (px,py)?
+// (o '¤' entrou na lista como trava: dig_pockets roda ANTES de spawn_shard, então
+// hoje a ordem já os separa — a linha é a proteção se alguém mexer na ordem)
 pub(crate) fn near_tile(px: i32, py: i32, lim: i32) -> bool {
     unsafe {
         for i in 0..N_MAX {
             let t = MAP[i];
-            if t == T_UP || t == T_DOWN || t == T_CROWN || t == T_RUBBLE {
+            if t == T_UP || t == T_DOWN || t == T_CROWN || t == T_RUBBLE || t == T_SHARD {
                 let (ix, iy) = ((i % W()) as i32, (i / W()) as i32);
                 if (ix - px).abs() + (iy - py).abs() <= lim { return true; }
             }

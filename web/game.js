@@ -756,6 +756,40 @@ function playEvent(ev, pan) {
       noiseBurst({ dur: 0.7, vol: vol * 0.65, f: bright * 1.7, q: 5, delay: 1.6, pan });
       break;
     }
+    case 23: // EV_SHARD: o achado — açoite frio do metal antigo, dissonante e curto
+      blip({ type: 'sine', f0: 2620, f1: 1540, dur: 0.16, vol: 0.1 });
+      noiseBurst({ dur: 0.06, vol: 0.05, f: 4300, q: 6 });
+      break;
+    case 24: { // EV_HEART: um pulso do SEU coração — intervalo decidido no RT
+      // (heart_tick, pela distância até ela); daqui nasce só o lub-dub.
+      // CONTÍNUO no RT: nunca mais devagar que ~1.7s (teto de 12 ticks) —
+      // o pulso é batida DE FRENTE do vento, o despertador do castelo.
+      // O PEITO É O SOM DO SEU CORPO — NÃO PEDE SUBWOOFER: em laptop o
+      // 50-74 Hz fisicamente não sai; o batido que OUVIR EM QUALQUER
+      // ALTO-FALANTE mora na banda da pele de tambor (~165-380 Hz — acima
+      // do rumble, abaixo do silbo). O sub-senoide fica como tranco para
+      // quem tem caixa de verdade. Volume piso 0.13, pico 0.36.
+      const dx = stats[5] - stats[3];
+      const dy = stats[6] - stats[4];
+      const dist = Math.max(Math.abs(dx), Math.abs(dy));
+      const closeness = Math.max(0, Math.min(1, 1 - dist / 24));
+      const vol = 0.13 + closeness * 0.23;
+      const pan = Math.max(-1, Math.min(1, dx / 8));
+      const thump = (delay, v) => {
+        // a PELE do batido (o que você OUVIR de fato): baque curto de
+        // band-noise na banda da pele de tambor — o ataque que nem a
+        // rajada grande engole
+        noiseBurst({ dur: 0.05, vol: v * 0.55, f: 380 - closeness * 90, q: 1.2, delay, pan });
+        // o CORPO do batido: "bomp" em 168 Hz longe (124 colado) com
+        // caída até 72 — a massa que carrega o lub-dub acima do drone
+        blip({ type: 'square', f0: 168 - closeness * 44, f1: 72, dur: 0.11, vol: v * 0.5, delay, pan });
+        // o TRANCO (para caixas com grave): sub-senoide pesando o chão
+        blip({ type: 'sine', f0: 74 - closeness * 24, f1: 28, dur: 0.15, vol: v * 0.8, delay, pan });
+      };
+      thump(0, vol);
+      thump(0.11, vol * 0.6);
+      break;
+    }
   }
 }
 
@@ -869,7 +903,8 @@ function colorFor(ch, attr, nowMs) {
     const p = 0.62 + 0.25 * Math.sin(nowMs * 0.0021) + 0.13 * Math.sin(nowMs * 0.011);
     col = shade(col, Math.max(0.35, Math.min(1.0, p)));
   } else if (a === 5) {
-    // a COROA brilha forte: duas ondas fora de fase, pico ~1.4 (o amarelo
+    // a COROA e o FRAGMENTO SOMBRIO brilham forte (a MESMA matéria — attr 5
+    // por construção): duas ondas fora de fase, pico ~1.4 (o amarelo
     // sangra até perto do branco) e vale MINIMO 0.6 — nunca apaga. No acervo
     // o '¶' osso é estático e baixo (attr 12): é o contraste que salva §
     // da cama de corpos. A coroa-fantasma desenha com o MESMO attr (o RT
@@ -915,9 +950,9 @@ function redrawWorldCell(si, wi, nowMs) {
   const ch = grid[wi * 2];
   const attr = grid[wi * 2 + 1];
   if (ch !== 0 && ch !== 32) {
-    // mesmo halo do loop principal: a coroa (real ou fantasma) nunca perde
-    // o brilho nem quando a serpente passa ao lado (repasse da vizinhança)
-    // — e tile LEMBRADO (DIM) não tem halo: a memória não ilumina
+    // mesmo halo do loop principal: a coroa/fragmento (real ou fantasma)
+    // nunca perde o brilho nem quando a serpente passa ao lado (repasse da
+    // vizinhança) — e tile LEMBRADO (DIM) não tem halo: a memória não ilumina
     if ((attr & 0x7f) === 5 && (attr & DIM_FLAG) === 0) {
       ctx.shadowColor = 'rgba(255,224,138,0.6)';
       ctx.shadowBlur = 9;
@@ -1039,8 +1074,9 @@ function render(nowMs) {
     ctx.fillRect(x, y, CELL_W, CELL_H);
     const c = String.fromCharCode(ch);
     if (ch !== 0 && c !== ' ') {
-      // a COROA tem halo próprio (attr 5 real OU fantasma: a mentira brilha
-      // igual) — o osso '¶' ao redor não tem brilho nenhum: § não se perde.
+      // a COROA e o FRAGMENTO têm halo próprio (attr 5 real OU fantasma: a
+      // mentira brilha igual, e o '¤' guarda da coroa a mesma luz) — o osso
+      // '¶' ao redor não tem brilho nenhum: § não se perde.
       // tile LEMBRADO (DIM) não tem halo: a névoa escurece e o glow não
       // vaza além da célula (a memória não ilumina)
       if ((attr & 0x7f) === 5 && (attr & DIM_FLAG) === 0) {

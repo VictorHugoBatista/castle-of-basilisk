@@ -15,7 +15,7 @@ function ensureViews(d) {
 }
 ensureViews();
 
-const pass = (i) => [0x2E, 0x2C, 0x3E, 0x3C, 0x2B, 0xA7, 0x3D, 0xA5, 0xB6].includes(map[i]); // 0x3D = água '=' · 0xA5 = caveira '¥' · 0xB6 = corpo '¶' (bocarra)
+const pass = (i) => [0x2E, 0x2C, 0x3E, 0x3C, 0x2B, 0xA7, 0x3D, 0xA5, 0xB6, 0xA4].includes(map[i]); // 0x3D = água '=' · 0xA5 = caveira '¥' · 0xB6 = corpo '¶' (bocarra) · 0xA4 = fragmento '¤' (pisável, o achado)
 const findTile = (t) => { for (let i = 0; i < W * H; i++) if (map[i] === t) return i; return -1; };
 
 // zona de perigo: LOS da basilisco <= 9 OU distância <= 3 (junções cegas)

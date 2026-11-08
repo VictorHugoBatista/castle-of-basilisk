@@ -40,6 +40,8 @@ pub extern "C" fn pfb_new_game(seed: u32) {
     unsafe {
         STATE = ST_PLAY;
         CROWN = false;
+        SHARD = false;
+        SHARD_FLOOR = 0; // destino novo: o castelo volta a poder brotar o seu um
         DEPTH = 1;
         TICK = 0;
         ARRIV = 0;
@@ -76,6 +78,8 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         clear_phantoms();
         SIB_T = -(SIB_MAX_MS / TICK_MS);
         R_SIB = ((seed | 1) ^ 0xA5A5A5A5) | 1; // stream própria do sibilo, derivada da seed
+        HEART_T = 0;
+        R_HEART = ((seed | 1) ^ 0xB347B347) | 1; // stream própria do pulso, também derivada da seed
         DIFF = [0; 227];
         DIFF_PREV = [0; W0 * H0 * 2];
         DIFF_ST = 0xFF;
@@ -235,6 +239,12 @@ pub extern "C" fn pfb_debug_bas_place(px: u32, py: u32) {
 #[no_mangle]
 pub extern "C" fn pfb_debug_map_ptr() -> u32 { unsafe { MAP.as_ptr() as u32 } }
 
+/// [DEBUG] ponteiro do campo de rota atual (DMAP, u16[N]): a distância de
+/// ROTA que o jogo usa (origens variam — gen, IA, audição). Inspeção do
+/// smoke e das provas de spawn/escada.
+#[no_mangle]
+pub extern "C" fn pfb_debug_dmap_ptr() -> u32 { unsafe { DMAP.as_ptr() as u32 } }
+
 /// [DEBUG] ponteiro do rastro do corpo: [0] = comprimento; depois pares (x, y),
 /// o segmento mais recente (encostado na cabeça) primeiro. Buffer fixo de 49 bytes.
 #[no_mangle]
@@ -268,6 +278,27 @@ pub extern "C" fn pfb_debug_give_crown() {
         CROWN = true;
         push_event(EV_CROWN);
         sync_stats();
+    }
+}
+
+/// [DEBUG] entrega o Fragmento Sombrio (liga o pulso do peito).
+#[no_mangle]
+pub extern "C" fn pfb_debug_give_shard() {
+    unsafe {
+        SHARD = true;
+        push_event(EV_SHARD);
+        HEART_T = 0; // o pulso nasce na mão: bate já
+        sync_stats();
+    }
+}
+
+/// [DEBUG] apaga a semente do achado (SHARD_FLOOR = 0): a varredura do smoke
+/// mede o contrato POR ANDAR isoladamente — sem isso a unicidade por run
+/// engole os andares seguintes do sweep.
+#[no_mangle]
+pub extern "C" fn pfb_debug_shard_reset() {
+    unsafe {
+        SHARD_FLOOR = 0;
     }
 }
 
