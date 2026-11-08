@@ -393,13 +393,22 @@ terreo.
 - **Fragmento sombrio** (`¤` = 0xA4, attr 5 — o MESMO attr da coroa: o
   MESMO brilho = a MESMA matéria, por construção): o achado da run. Nasce
   no FIM de `gen_once`, na stream PRÓPRIA do achado (`shard_roll`, seed do
-  andar + sal — nenhum rolagem do mundo desanda: a patrulha que o
-  `place_basilisk` rola a seguir fica byte-a-byte igual), nos andares 1-4
+  andar + sal — nenhum rolagem do mundo desanda; e a stream aquece: os 3
+  primeiros draws são descartados pois o 1º roll do xorshift é função
+  LINEAR do seed em GF(2) — seeds vizinhas saíam casadas, a varredura
+  contígua do gate mediu ~2x a taxa real), nos andares 1-4
   com raridade escadinha: 1/4 no térreo · 2/5 no 2 · 1/2 no 3 · COBERTO no
   4 (um e um só); dos 5 para baixo NUNCA (o fundo já pulsa por si — a coroa
-  é a matéria toda). Posição: piso seco em rota (`T_FLOOR`, DMAP >= 10
-  passos desde o '<', portas abertas do bfs de player-terrain; escada
-  [10, 1, 0] de fallback). NINGUÉM nasce sobre ele (`spawn_clear` em
+  é a matéria toda). Posição em duas caras de aleatoriedade: a ZONA é
+  sorteada em faixa de ROTA — meio (10-16, 5/10) · fundo (17-24, 3/10) ·
+  longe (25+, 2/10; o pick uniforme sobre candidatos pesava a sala grande:
+  o item caía onde o chão é maior, não onde o desenho manda) — e o tier
+  LIMPO proíbe as salas de entrada, de descida/coroa e de nascimento
+  DELA (o item não nasce sob a boca da guarda); piso seco em rota sempre
+  (`T_FLOOR`, DMAP >= 10 do '<'; escada [faixa·limpa, 10+·limpa, 10+, 1+,
+  0] de fallback). Prova em gate + bancada (480 seeds espalhadas):
+  presença 22.3/39.8/49.8/100% e faixas 48/30/22% no lugar 50/30/20.
+  NINGUÉM nasce sobre ele (`spawn_clear` em
   grid.rs: nem ela (place_basilisk, com varredura inteira de último
   recurso), nem fantasma, nem falso B, nem coroa-fantasma — o achado é
   do ladrão; ela ATRAVESSA o '¤' em jogo normalmente e as mentiras

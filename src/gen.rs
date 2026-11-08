@@ -1015,17 +1015,32 @@ fn shard_roll(state: &mut u32) -> u32 {
 // carrega um, e um só). Dos canais fundos (5+) para baixo nunca: o fundo
 // já pulsa por si — a coroa é a matéria toda.
 //
-// Onde no mapa: piso seco únicamente, em rota desde o '<' (o campo DMAP do
-// bfs de player-terrain já está pronto aqui — portas contam abertas,
-// escombro é pé do ladrão); JAMAIS perto da entrada: no mínimo 10 passos de
-// ROTA do '<', para que o achado não nasça no colo de quem acabou de
-// atravessar o portão — com a escada [10, 1, 0] como fallback (andar grande
-// nunca fica sem candidato seco).
+// Onde no mapa (a aleatoriedade tem DUAS caras):
+// - a STREAM: warm-up de 3 descartes antes da primeira decisão — o xorshift
+//   é linear em GF(2) e o 1º draw é função direta dos bits do seed (seeds
+//   vizinhas saíam casadas: a varredura 2000..2047 do gate mediu ~2x a
+//   taxa real por puro arranjo de bits baixos). Depois do warm-up o estado
+//   inteiro está misturado; o mod sobre o roll completo fica honesto.
+// - a ZONA: uma faixa de ROTA é sorteada por achado — MEIO (10..16, 5/10) ·
+//   FUNDO (17..24, 3/10) · LONGE (25+, 2/10). O pick uniforme sobre todos
+//   os candidatos pesava o chão maior: o item caía na sala grande, não
+//   onde o desenho manda. A faixa faz o achado vagar o andar.
+//   Piso seco SEMPRE, rota >= 10 do '<' (portas abertas no bfs, escombro é
+//   pé do ladrão). Salas PROIBIDAS no tier limpo: a entrada, a
+//   descida/coroa e a de nascimento DELA — o item com a besta de guarda
+//   desde o spawn não é roleta honesta, é sentença. Quando a faixa fica
+//   vazia (andar pequeno), escada de fallbacks:
+//   [faixa·limpa] -> [10+·limpa] -> [10+] -> [1+] -> [0] —
+//   o COBERTO do 4 sempre acha lugar.
 const SHARD_MIN_ROUTE: i32 = 10;
 
 pub(crate) fn spawn_shard(depth: u8, seed: u32) {
     if depth > 4 { return; }
+    // stream própria do achado (nada do mundo desanda) + WARM-UP: os 3
+    // primeiros draws são descartados — a linearidade do GF(2) faz o 1º
+    // roll casar com os bits do seed
     let mut sr = (seed ^ 0xA4A404A4) | 1;
+    for _ in 0..3 { shard_roll(&mut sr); }
     let born = match depth {
         1 => shard_roll(&mut sr) % 4 == 0,
         2 => shard_roll(&mut sr) % 5 < 2,
@@ -1034,11 +1049,57 @@ pub(crate) fn spawn_shard(depth: u8, seed: u32) {
     };
     if !born { return; }
     unsafe {
-        for min_d in [SHARD_MIN_ROUTE, 1, 0] {
+        // a faixa de ROTA do achado: meio (5/10) · fundo (3/10) · longe (2/10)
+        let band = shard_roll(&mut sr) % 10;
+        let (band_lo, band_hi): (i32, i32) = match band {
+            0..=4 => (SHARD_MIN_ROUTE, 16),
+            5..=7 => (17, 24),
+            _ => (25, (W() + H()) as i32),
+        };
+
+        // salas proibidas no tier "limpo" (entrada · descida/coroa · a
+        // nascimento dela): o item não nasce sob a boca de ninguém
+        let mut up_r = -1i32;
+        let mut down_r = -1i32;
+        for i in 0..N_MAX {
+            match MAP[i] {
+                T_UP => up_r = room_of((i % W()) as i32, (i / W()) as i32),
+                T_DOWN | T_CROWN => down_r = room_of((i % W()) as i32, (i / W()) as i32),
+                _ => {}
+            }
+        }
+        // a sala de nascimento dela: a mais longe da entrada em manhattan
+        // (espelho do place_basilisk, que roda LOGO APÓS o gen_floor)
+        let (ax, ay) = rcenter(0);
+        let mut bas_r = 0usize;
+        let mut best: i32 = -1;
+        let rn = if RN > 1 { RN } else { 1 };
+        for r in 0..rn {
+            if r == 0 { continue; }
+            let (cx, cy) = rcenter(r);
+            let dd = (cx - ax).abs() + (cy - ay).abs();
+            if dd > best { bas_r = r; best = dd; }
+        }
+
+        // tiers: [faixa·limpa] -> [10+·limpa] -> [10+] -> [1+] -> [0]
+        for (lo, hi, clean) in [
+            (band_lo, band_hi, true),
+            (SHARD_MIN_ROUTE, (W() + H()) as i32, true),
+            (SHARD_MIN_ROUTE, (W() + H()) as i32, false),
+            (1, (W() + H()) as i32, false),
+            (0, (W() + H()) as i32, false),
+        ] {
             let mut n = 0usize;
             for i in 0..N_MAX {
                 if MAP[i] != T_FLOOR { continue; }
-                if DMAP[i] == 0xFFFF || (min_d > 0 && (DMAP[i] as i32) < min_d) { continue; }
+                let d = DMAP[i] as i32;
+                if DMAP[i] == 0xFFFF || d < lo || d > hi { continue; }
+                if clean {
+                    let r = room_of((i % W()) as i32, (i / W()) as i32);
+                    // guarda r >= 0: se o '<'/'>' não nasceu em sala
+                    // registrada, o id -1 excluíria o corredor INTEIRO
+                    if r >= 0 && (r == up_r || r == down_r || r == bas_r as i32) { continue; }
+                }
                 n += 1;
             }
             if n == 0 { continue; }
@@ -1046,7 +1107,12 @@ pub(crate) fn spawn_shard(depth: u8, seed: u32) {
             let mut k = 0usize;
             for i in 0..N_MAX {
                 if MAP[i] != T_FLOOR { continue; }
-                if DMAP[i] == 0xFFFF || (min_d > 0 && (DMAP[i] as i32) < min_d) { continue; }
+                let d = DMAP[i] as i32;
+                if DMAP[i] == 0xFFFF || d < lo || d > hi { continue; }
+                if clean {
+                    let r = room_of((i % W()) as i32, (i / W()) as i32);
+                    if r >= 0 && (r == up_r || r == down_r || r == bas_r as i32) { continue; }
+                }
                 if k == pick { MAP[i] = T_SHARD; return; }
                 k += 1;
             }
