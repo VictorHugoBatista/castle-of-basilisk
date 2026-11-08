@@ -1036,12 +1036,21 @@ const SHARD_MIN_ROUTE: i32 = 10;
 
 pub(crate) fn spawn_shard(depth: u8, seed: u32) {
     if depth > 4 { return; }
+    unsafe {
+        if SHARD_FLOOR != 0 && SHARD_FLOOR != depth { return; } // o achado é UM por run: já brotou
+        // em outro andar (visto ou não, pego ou não) — nenhum outro mais.
+        // E se É o andar da semente, ele rebrota a cada regeneração: o
+        // replay do mapa determinístico não perde o achado no retorno
+    }
     // stream própria do achado (nada do mundo desanda) + WARM-UP: os 3
     // primeiros draws são descartados — a linearidade do GF(2) faz o 1º
     // roll casar com os bits do seed
     let mut sr = (seed ^ 0xA4A404A4) | 1;
     for _ in 0..3 { shard_roll(&mut sr); }
-    let born = match depth {
+    // o retry de conectividade (gen_floor) re-gera o mapa: se a semente já
+    // cravou ESTE andar, o rebrote desconsidera a raridade (não é acordo,
+    // é o mesmo achado de volta)
+    let born = unsafe { SHARD_FLOOR != 0 } || match depth {
         1 => shard_roll(&mut sr) % 4 == 0,
         2 => shard_roll(&mut sr) % 5 < 2,
         3 => shard_roll(&mut sr) % 2 == 0,
@@ -1113,7 +1122,11 @@ pub(crate) fn spawn_shard(depth: u8, seed: u32) {
                     let r = room_of((i % W()) as i32, (i / W()) as i32);
                     if r >= 0 && (r == up_r || r == down_r || r == bas_r as i32) { continue; }
                 }
-                if k == pick { MAP[i] = T_SHARD; return; }
+                if k == pick {
+                    MAP[i] = T_SHARD;
+                    unsafe { SHARD_FLOOR = depth; } // a semente crava: este é o andar do único
+                    return;
+                }
                 k += 1;
             }
         }

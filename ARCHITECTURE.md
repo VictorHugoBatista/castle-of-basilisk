@@ -102,7 +102,7 @@ Exports (contrato publico — nao quebrar):
 | `pfb_pop_event` | `() u32`                     | consome fila de audio (0 = vazia) |
 | `pfb_diff_ptr`  | `() u32`                     | diff de render (bit0 = repinte integral, [1] camX, [2] camY, [3..227] bitmap de celulas de TELA mudadas) |
 | `pfb_diff_ack`  | `()`                         | confirmacao do consumo: zera flags + bitmap |
-| `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown/give_shard/fear/fear_ptr/floor | somente para testes headless |
+| `pfb_debug_*`   | place/map/probe/body_ptr/ai/give_crown/give_shard/shard_reset/fear/fear_ptr/floor | somente para testes headless |
 
 Layout de memoria:
 - **Grid**: buffer maximo `W_MAX x H_MAX` (88x48) celulas x `[char: u8, attr: u8]`,
@@ -391,23 +391,33 @@ terreo.
   Seeds antigas compram plantas novas (RNG reciclado em lugar diferente);
   gate de regressao no smoke ("escada longe") varre seeds x andares.
 - **Fragmento sombrio** (`¤` = 0xA4, attr 5 — o MESMO attr da coroa: o
-  MESMO brilho = a MESMA matéria, por construção): o achado da run. Nasce
-  no FIM de `gen_once`, na stream PRÓPRIA do achado (`shard_roll`, seed do
-  andar + sal — nenhum rolagem do mundo desanda; e a stream aquece: os 3
-  primeiros draws são descartados pois o 1º roll do xorshift é função
-  LINEAR do seed em GF(2) — seeds vizinhas saíam casadas, a varredura
-  contígua do gate mediu ~2x a taxa real), nos andares 1-4
-  com raridade escadinha: 1/4 no térreo · 2/5 no 2 · 1/2 no 3 · COBERTO no
-  4 (um e um só); dos 5 para baixo NUNCA (o fundo já pulsa por si — a coroa
-  é a matéria toda). Posição em duas caras de aleatoriedade: a ZONA é
-  sorteada em faixa de ROTA — meio (10-16, 5/10) · fundo (17-24, 3/10) ·
-  longe (25+, 2/10; o pick uniforme sobre candidatos pesava a sala grande:
-  o item caía onde o chão é maior, não onde o desenho manda) — e o tier
-  LIMPO proíbe as salas de entrada, de descida/coroa e de nascimento
-  DELA (o item não nasce sob a boca da guarda); piso seco em rota sempre
-  (`T_FLOOR`, DMAP >= 10 do '<'; escada [faixa·limpa, 10+·limpa, 10+, 1+,
-  0] de fallback). Prova em gate + bancada (480 seeds espalhadas):
-  presença 22.3/39.8/49.8/100% e faixas 48/30/22% no lugar 50/30/20.
+  MESMO brilho = a MESMA matéria, por construção): o achado da run. **O
+  castelo inteiro guarda NO MÁXIMO UM por run** (`SHARD_FLOOR` em
+  state.rs: o u8 guarda O ANDAR que o brotou — 0 = nenhum; a semente
+  morre só no `pfb_new_game` de um destino novo): após o broto, nenhum
+  outro andar o repete — e a semente não olha SEEN: nem visto nem pego,
+  a regra é do broto mesmo. O andar de origem o REBROTA idêntico a cada
+  regeneração; o rebrote desconsidera a raridade — é o MESMO achado de
+  volta — e isso cura o retry da gen_floor, que descartava o mapa de
+  uma tentativa já cravada. Nasce no FIM de `gen_once`, na stream
+  PRÓPRIA do achado
+  (`shard_roll`, seed do andar + sal — nenhum rolagem do mundo desanda; e
+  a stream aquece: os 3 primeiros draws são descartados pois o 1º roll do
+  xorshift é função LINEAR do seed em GF(2) — seeds vizinhas saíam
+  casadas, a varredura contígua do gate mediu ~2x a taxa real),
+  com raridade escadinha nos andares 1-4: 1/4 no térreo · 2/5 no 2 · 1/2
+  no 3 · COBERTO no 4 (um, e um só — se nada brotou antes: TODES as runs
+  do gate saem com o seu um, 48/48); dos 5 para baixo NUNCA (o fundo já
+  pulsa por si — a coroa é a matéria toda). Posição em duas caras de
+  aleatoriedade: a ZONA é sorteada em faixa de ROTA — meio (10-16, 5/10) ·
+  fundo (17-24, 3/10) · longe (25+, 2/10; o pick uniforme sobre candidatos
+  pesava a sala grande: o item caía onde o chão é maior, não onde o
+  desenho manda) — e o tier LIMPO proíbe as salas de entrada, de
+  descida/coroa e de nascimento DELA (o item não nasce sob a boca da
+  guarda); piso seco em rota sempre (`T_FLOOR`, DMAP >= 10 do '<'; escada
+  [faixa·limpa, 10+·limpa, 10+, 1+, 0] de fallback). Prova em gate +
+  bancada (480 seeds espalhadas): presença 22.3/39.8/49.8/100% e faixas
+  48/30/22% no lugar 50/30/20.
   NINGUÉM nasce sobre ele (`spawn_clear` em
   grid.rs: nem ela (place_basilisk, com varredura inteira de último
   recurso), nem fantasma, nem falso B, nem coroa-fantasma — o achado é
@@ -657,10 +667,13 @@ Ultima atualizacao: 2026-11-06
 - **EV_23/24 e STATS[20]**: borda do FRAGMENTO SOMBRIO — `EV_SHARD` (o
   achado) e `EV_HEART` (o pulso do ladrão pela distância dela; decisão no
   RT, `heart_tick` de fear.rs). **Fragmento sombrio** (`¤`, `T_SHARD`,
-  attr 5): o achado da matéria da coroa — como à coroa-fantasma, o brilho
-  é herdado por construção; nasce e o pulso cara no mesmo pulso (1/4 ·
-  2/5 · 1/2 · coberto no 4; nunca dos 5 para baixo; fallback de rota
-  [10, 1, 0]; stream própria `shard_roll`).
+  attr 5): o achado da matéria da coroa — como a coroa-fantasma, o
+  brilho é herdado por construção; um por run (`SHARD_FLOOR`: o u8 da
+  semente guarda o andar que o brotou — os demais ficam vazios, e o
+  andar de origem o rebrota idêntico quando regenera;
+  `pfb_debug_shard_reset` apaga a semente para a varredura por andar do
+  smoke). Raridade: 1/4 · 2/5 · 1/2 · coberto no 4 (se nada brotou
+  antes); nunca dos 5 para baixo.
 - **EV_22 / DIFF**: borda da migração de glue para RT — `EV_SIBILO` é a
   decisão de fala dela (basilisk.rs; a voz é toda do JS) e `DIFF`
   (`pfb_diff_ptr`) é o bitmap de render diff que o Rust produz e o JS pinta

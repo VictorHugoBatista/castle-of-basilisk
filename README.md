@@ -110,10 +110,15 @@ conhece a casa.
 - **`¤` = o fragmento sombrio**: um pedaço bruto de metal antigo, quebrado
   pelo tempo, com uma marca que devia ter desaparecido — e não desaparece.
   **Brilha como a coroa** (o mesmo pulso de luz, o mesmo halo: a matéria é
-  a mesma). Nasce raro nas ruínas do térreo, menos raro na masmorra — e na
-  **primeira mão dos Canais (andar 4) um sempre existe**, às vezes longe
-  (≥ 10 passos de rota da escada). Pisa nele para pegar; quem o carrega
-  sente o **próprio coração pulsar com a distância DELE até ela** — quanto
+  a mesma). **Um único fragmento vive no castelo inteiro por run**: ele
+  brota UMA vez em algum andar da escada — raro no térreo (1/4), menos
+  raro na masmorra (2/5 · 1/2) e, se nada brotou antes, o primeiro canal
+  (andar 4) brota o dele SEM FALTA. Toda run sai do portão com o seu um
+  em algum lugar de 1-4 — e só um: quem desce sem vê-lo não o encontra
+  **repetido** nos andares de baixo; o andar que o brotou o re-draw do
+  mesmo lugar a cada retorno (a run é determinística pelo seed). Pisa
+  nele para pegar; quem o carrega sente o **próprio coração pulsar com a
+  distância DELE até ela** — quanto
   mais forte e rápido o pulso, mais perto ela está (colo: ~0.6 s por
   pulso; e o batimento é **contínuo** — longe, nunca passa de ~1.7 s:
   é um coração descansado que nunca para, o cadenciador do castelo).

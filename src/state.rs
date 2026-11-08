@@ -25,6 +25,12 @@ pub(crate) static mut DEPTH: u8 = 1;
 pub(crate) static mut CROWN: bool = false;
 pub(crate) static mut SHARD: bool = false; // o Fragmento Sombrio: carrega-o e o SEU peito
                                            // pulsa com a distância dela (a coroa também liga)
+pub(crate) static mut SHARD_FLOOR: u8 = 0; // o achado é ÚNICO no castelo: a semente guarda O
+                                           // ANDAR que o brotou (0 = nenhum ainda). Nem
+                                           // visto, nem pego: nenhum outro andar da run
+                                           // o repete — e o andar de origem o re recreated
+                                           // a cada regeneração (a semente morre só no
+                                           // pfb_new_game de um destino novo)
 pub(crate) static mut TICK: i32 = 0;
 pub(crate) static mut GRACE: i32 = 0;
 pub(crate) static mut ARRIV: i32 = 0; // tick de chegada no andar: o nome do piso anuncia-se

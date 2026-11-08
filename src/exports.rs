@@ -41,6 +41,7 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         STATE = ST_PLAY;
         CROWN = false;
         SHARD = false;
+        SHARD_FLOOR = 0; // destino novo: o castelo volta a poder brotar o seu um
         DEPTH = 1;
         TICK = 0;
         ARRIV = 0;
@@ -282,6 +283,16 @@ pub extern "C" fn pfb_debug_give_shard() {
         push_event(EV_SHARD);
         HEART_T = 0; // o pulso nasce na mão: bate já
         sync_stats();
+    }
+}
+
+/// [DEBUG] apaga a semente do achado (SHARD_FLOOR = 0): a varredura do smoke
+/// mede o contrato POR ANDAR isoladamente — sem isso a unicidade por run
+/// engole os andares seguintes do sweep.
+#[no_mangle]
+pub extern "C" fn pfb_debug_shard_reset() {
+    unsafe {
+        SHARD_FLOOR = 0;
     }
 }
 

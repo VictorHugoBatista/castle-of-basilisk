@@ -289,13 +289,15 @@ Acabou de vergonha. E vergonha é muda.
   que a Liga quer de fato, e se sabe o que a coroa faz).
 - **O fragmento sombrio (`¤`)** — pílula de terreno, sem texto em tela:
   pedaço bruto de metal antigo quebrado pelo tempo, com uma marca que
-  devia ter desaparecido e não desapareceu, espalhado pelas ruínas de cima
-  (raro no térreo, menos raro na masmorra, um sempre no primeiro nível dos
-  canais — em nenhum fundo: a matéria toda é só a coroa). Brilha como a
-  coroa porque **é da mesma régua de ferro velo** — o jogo NUNCA diz:
-  quem vê o `¤` brilhar igual ao `§` pode juntar sozinho. E o uso é real,
-  não metáfora: carregando o fragmento — ou a coroa — **o pouco que a
-  beira conta como protocolo da maré vira pulso no próprio peito do
+  devia ter desaparecido e não desapareceu. **Um único fragmento vive em
+  toda a pedra por descida**: a run o brota uma vez (raro nas ruínas de
+  cima, menos raro na masmorra) — e a escada inteira garante o dele: se
+  nada brotou antes, o primeiro nível dos canais brota o seu, sem falta;
+  em nenhum fundo, a matéria toda é só a coroa. Brilha
+  como a coroa porque **é da mesma régua de ferro velo** — o jogo NUNCA
+  diz: quem vê o `¤` brilhar igual ao `§` pode juntar sozinho. E o uso é
+  real, não metáfora: carregando o fragmento — ou a coroa — **o pouco que
+  a beira conta como protocolo da maré vira pulso no próprio peito do
   ladrão**: quanto mais forte o pulso, mais perto a coisa. O que é isso
   na fisica do mundo — o metal chamando a coisa, a coisa chamando o
   metal, ou o peito do ladrão aprendendo a ouvir o que a beira aprende

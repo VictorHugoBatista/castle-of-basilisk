@@ -1005,38 +1005,63 @@ let shardOK = false;
     for (let i = 0; i < Wd * Hd; i++) if (wmap[i] === 0xA4) n++;
     return n;
   };
-  let f1 = 0, f2 = 0, f3 = 0, f4 = 0, fundo = 0, seco = true, umSo = true;
+  const secoCheck = (at) => { // réguas da posição: piso seco (probe bit0)
+    if (!(w.pfb_debug_probe(at % Wd, (at / Wd) | 0) & 1)) dry = false;
+  };
+  let dry = true;
+
+  // (A) UNICIDADE POR RUN: uma descida nova brota o '¤' NO MÁXIMO uma vez no
+  // castelo inteiro — nem visto, nem pego. E a garantia da escada vira
+  // "SEMPRE um em algum lugar de 1..4": o 4 brota o dele só se nada brotou
+  // antes. 48 seeds espalhadas, descida 1..8 em ordem
+  let runsOk = true, runsComAchado = 0;
   for (let s = 0; s < 48; s++) {
-    w.pfb_new_game(Math.imul(s + 1, 2654435761) >>> 0);   // sementes espalhadas
+    w.pfb_new_game(Math.imul(s + 1, 2654435761) >>> 0);
+    let numa_run = 0;
     for (const d of [1, 2, 3, 4, 5, 6, 7, 8]) {
       w.pfb_debug_floor(d);
       const n = countShards();
-      if (d >= 5) { fundo += n; continue; }
-      if (n > 1) umSo = false; // o achado é UM por andar, sempre
-      if (n === 1) {
-        // réguas da posição: piso seco (o probe bit0 é caminhável de pés)
-        const at = wmap.indexOf(0xA4);
-        if (!(w.pfb_debug_probe(at % Wd, (at / Wd) | 0) & 1)) seco = false;
-      }
-      if (d === 4) { if (n === 0) umSo = false; f4 += n; } // o 1º canal é COBERTO
-      else if (d === 1) f1 += n;
+      numa_run += n;
+      if (d >= 5 && n > 0) runsOk = false; // o fundo: NUNCA
+      if (numa_run > 1) runsOk = false;    // dois vivos no castelo: proibido
+      if (n > 0) secoCheck(wmap.indexOf(0xA4));
+    }
+    if (numa_run !== 1) runsOk = false;    // a escada inteira: SEMPRE um
+    else runsComAchado++;
+  }
+
+  // (B) CONTRATO POR ANDAR — a semente é apagada antes de cada andar isolado:
+  // sem isso a unicidade por run engole os irmãos do sweep
+  let f1 = 0, f2 = 0, f3 = 0, f4 = 0;
+  for (let s = 0; s < 48; s++) {
+    const seed = Math.imul(s + 1, 2654435761) >>> 0;
+    for (const d of [1, 2, 3, 4]) {
+      w.pfb_new_game(seed);
+      w.pfb_debug_shard_reset();
+      w.pfb_debug_floor(d);
+      const n = countShards();
+      if (d === 4 && n !== 1) runsOk = false; // o COBERTO isolado também é 1
+      if (d === 1) f1 += n;
       else if (d === 2) f2 += n;
       else if (d === 3) f3 += n;
+      else f4 += n;
     }
   }
+
   // bandas de 3σ da binomial (48 seeds, p por contrato: .25/.4/.5) —
   // um desvio de CONSTANTE aqui rejeita no gate, não passa como variância.
   // seeds ESPALHADAS (multiplicação áurea): o xorshift é linear em GF(2) —
   // seeds contíguas correlacionam o 1º draw do shard_roll e pintam viés
   // espurio na varredura (2000..2047 mediu ~2x a taxa real por puro
   // arranjo de bits baixos; espalhadas, 480 seeds = 22.3/39.8/49.8/100)
-  shardOK = umSo && fundo === 0 && seco
+  shardOK = runsOk && dry
+         && runsComAchado === 48   // TODA run brota seu um — 100% na escada
          && f1 >= 3 && f1 <= 21    // 1/4 esperado: 12/48 (±9)
          && f2 >= 9 && f2 <= 29    // 2/5 esperado: ~19/48
          && f3 >= 13 && f3 <= 35;  // 1/2 esperado: 24/48
-  console.log(`  fragmento: terreo ${f1}/48 · masmorra ${f2}/48-${f3}/48 · canais(4) ${f4}/48 · fundo ${fundo}${seco ? ' seco' : ' MOLHADO'}${umSo ? ' · único' : ' · DUPLICADO/FALTANTE'}`);
+  console.log(`  fragmento: ${runsComAchado}/48 runs com o seu um (unicidade) · contrato isolado: térreo ${f1}/48 · masmorra ${f2}/48-${f3}/48 · canais(4) ${f4}/48${dry ? ' · seco' : ' · MOLHADO'}`);
   console.log(shardOK
-    ? 'PASS - fragmento: raro no terreo, garantido no 4, nunca no fundo'
+    ? 'PASS - fragmento: UM no castelo inteiro por run, contrato por andar, nunca no fundo'
     : 'FAIL - fragmento (nascimento)');
 }
 
