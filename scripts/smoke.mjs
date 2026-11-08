@@ -1042,8 +1042,10 @@ let shardOK = false;
 
 // ---------- 3e. o pulso do fragmento: acha, leva, o peito obedece ----------
 // O coração é o radar honesto: SEM fragmento e SEM coroa NUNCA bate (o
-// silêncio é a linha de base); com o '¤' começa a bater (5 ticks) e
-// desliza até ~33 (4.5 s) quando ela some; a coroa liga o mesmo pulso.
+// silêncio é a linha de base); com o '¤' começa a bater (~0.6 s / 4
+// ticks) e é CONTÍNUO: nunca desacelera além de 12 ticks (~1.7 s) quando
+// ela some — o coração descansado que nunca para; a coroa liga o mesmo
+// pulso.
 let shardPulseOK = false;
 {
   const heartCount = () => evSeen[24] || 0;
@@ -1097,9 +1099,9 @@ let shardPulseOK = false;
         let beatsBase = heartCount();
         const runWindow = (cell, ticksOut) => {
           let tLast = null;
-          for (let s = 0; s < 140 && stats[0] === 1; s++) {
+          for (let s = 0; s < 120 && stats[0] === 1; s++) {
             w.pfb_debug_bas_place(cell.x, cell.y); // ela presa na coleira
-            w.pfb_step(0); pump(); // 140 ticks: ~4 ciclos longe, ~8 perto
+            w.pfb_step(0); pump(); // 120 ticks: ~9 ciclos longe, ~15 perto
             if (heartCount() > beatsBase) {
               beatsBase = heartCount();
               if (tLast !== null) ticksOut.push(s - tLast);
@@ -1112,9 +1114,11 @@ let shardPulseOK = false;
         runWindow(farCell, farInt);
         const med = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[(s.length / 2) | 0] : 0; };
         const nearMed = med(nearInt), farMed = med(farInt);
-        // períodos do RT em ticks: colada 7..12 => 13..19 · longe 22+ => 33
-        const cadOk = nearMed > 0 && farMed > 0 && nearMed < farMed && farMed - nearMed >= 10;
-        console.log(`  cadência: colada(7-12) mediana ${nearMed}t · longe(22+) ${farMed}t ${cadOk ? 'OK' : 'FALHOU'}`);
+        // períodos do RT em ticks: colada 7..12 => 7..9 · longe 22+ => 12
+        // (teto contínuo: o pulso NUNCA desacelera além dele)
+        const cadOk = nearMed > 0 && farMed > 0 && nearMed < farMed
+                   && farMed - nearMed >= 3 && farMed <= 14;
+        console.log(`  cadência: colada(7-12) mediana ${nearMed}t · longe(22+) ${farMed}t (teto contínuo) ${cadOk ? 'OK' : 'FALHOU'}`);
         shardPulseOK = picked && pulsoNasce && cadOk;
       }
     }

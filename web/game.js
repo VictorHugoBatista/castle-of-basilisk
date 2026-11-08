@@ -762,17 +762,18 @@ function playEvent(ev, pan) {
       break;
     case 24: { // EV_HEART: um pulso do SEU coração — intervalo decidido no RT
       // (heart_tick, pela distância até ela); daqui nasce só o lub-dub.
-      // O PEITO É O SOM DO SEU CORPO — NÃO PEDE SUBWOOFER: camadas novas
-      // (74 Hz fora do drone + square miúda) ainda presunham bom falante;
-      // em laptop o sub-grave 50-74 Hz fisicamente não sai. O batido que
-      // OUVIR EM QUALQUER ALTO-FALANTE mora na banda da pele de tambor
-      // (~165-380 Hz — acima do rumble, abaixo do silbo). O sub-senoide
-      // fica como tranco para quem tem caixa de verdade.
+      // CONTÍNUO no RT: nunca mais devagar que ~1.7s (teto de 12 ticks) —
+      // o pulso é batida DE FRENTE do vento, o despertador do castelo.
+      // O PEITO É O SOM DO SEU CORPO — NÃO PEDE SUBWOOFER: em laptop o
+      // 50-74 Hz fisicamente não sai; o batido que OUVIR EM QUALQUER
+      // ALTO-FALANTE mora na banda da pele de tambor (~165-380 Hz — acima
+      // do rumble, abaixo do silbo). O sub-senoide fica como tranco para
+      // quem tem caixa de verdade. Volume piso 0.13, pico 0.36.
       const dx = stats[5] - stats[3];
       const dy = stats[6] - stats[4];
       const dist = Math.max(Math.abs(dx), Math.abs(dy));
       const closeness = Math.max(0, Math.min(1, 1 - dist / 24));
-      const vol = 0.11 + closeness * 0.21;
+      const vol = 0.13 + closeness * 0.23;
       const pan = Math.max(-1, Math.min(1, dx / 8));
       const thump = (delay, v) => {
         // a PELE do batido (o que você OUVIR de fato): baque curto de

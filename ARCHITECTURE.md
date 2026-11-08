@@ -141,8 +141,9 @@ Layout de memoria:
   `20` EV_VANISH (alucinacao evaporou de perto) · `21` EV_VANISH_C (a
   coroa-fantasma evaporou). `23` EV_SHARD (o achado: o acoite frio do metal
   antigo) · `24` EV_HEART (um pulso do SEU coracao: o QUANDO e do RT —
-  `heart_tick` em fear.rs pela distancia chebyshev ate ela, piso 600 ms,
-  teto 4.5 s, stream propria `rheart`, gate = fragmento OU coroa; o
+  `heart_tick` em fear.rs pela distancia chebyshev ate ela, piso ~0.6 s
+  (4 ticks), teto contínuo ~1.7 s (12 ticks), stream propria `rheart`,
+  gate = fragmento OU coroa; o
   lub-dub, volume e pan sao do JS, case 24).
 
 - **Diff de render** (DIFF 227 bytes via `pfb_diff_ptr`): a comparacao
@@ -521,11 +522,14 @@ Pilares (constantes tunáveis no topo de `src/consts.rs`, prefixo `FEAR_`/`PH_`)
 - **O pulso** (`heart_tick`, fear.rs; EV_HEART=24): o SIÊNCIO é a linha de
   base do castelo — sem artefato (`SHARD || CROWN`), nenhum pulso NUNCA.
   Com o que chia (e a coroa é da mesma matéria, então ela também liga), o
-  coração do LADRÃO bate com a distância chebyshev até ela: período em
-  ticks entre HEART_MIN_T (5 ticks de 140 ms = piso de 600 ms DE INTENÇÃO,
-  ~0.7 s de cadência REAL no colo — a régua do tick arredonda para cima)
-  e HEART_MAX_T (33 ticks ≈ 4.5 s, em d >= HEART_FAR_D = 22), com
-  sorte miúda (±1 tick) na stream própria `rheart`. A DECISÃO é do RT
+  coração do LADRÃO bate com a distância chebyshev até ela — e é
+  CONTÍNUO: período em ticks entre HEART_MIN_T (4 ticks de 140 ms ≈
+  0.6 s no colo, a régua do tick acertando o piso de 600 ms de
+  intenção) e HEART_MAX_T (12 ticks ≈ 1.7 s em d >= HEART_FAR_D = 22) —
+  o teto é um coração descansado: nunca desacelera além disso, o batido
+  fica sempre na frente do vento (o teto antigo de 33 ticks/4.5 s
+  engolia o pulso nos andares grandes). Sorte miúda (±1 tick) na
+  stream própria `rheart`. A DECISÃO é do RT
   (`game_step` a chama depois de `sibilo_tick`); o SOM é do JS (case 24 do
   playEvent: lub-dub sintetizado, volume/pan pela proximidade). Um draw de
   `rnd`/`rndn` aqui moveria TODA a aleatoriedade do mundo a partir do
@@ -584,7 +588,8 @@ abaixo do LIM por tema — a regra da descida distante provada em gate),
 contrato — 1/4 no térreo, 2/5 e 1/2 na masmorra, COBERTO e ÚNICO no 4,
 ZERO do 5 para baixo; todo '¤' em piso pisável) e
 "O PULSO" (o bot pega o '¤' andando até ele; o pulso nasce no tick do
-pega; a MEDIANA do intervalo entre batidas colada ~19-20t vs longe 33t;
+pega; a MEDIANA do intervalo entre batidas colada ~7-8t vs longe
+12-13t (contínuo: nunca para);
 CALADO sem artefato nenhum; a COROA sozinha liga o mesmo pulso),
 fuzz de 6000 ticks contra
 estados impossiveis.

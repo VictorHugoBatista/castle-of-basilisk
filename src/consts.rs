@@ -136,13 +136,14 @@ pub(crate) const SIB_FLOOR_MS: i32 = 900;    // o medo aperta o sopro até este 
 pub(crate) const SIB_GAP_PCT: u32 = 38;      // ~1 sopro em 3 não sai (fora da caça com coroa)
 
 // cadência do PULSO (o coração de quem carrega o que chia: o fragmento ou
-// a coroa — a mesma matéria). Decidida no RT, o relógio é o TICK (140 ms):
-// perto desliza até o piso de 600 ms DE INTENÇÃO, que a régua do tick
-// arredonda para cima: 5 ticks = ~0.7 s de cadência real no colo — longe
-// desliza linear até quase parar em d >= HEART_FAR_D, 4.5 s (nunca é mudo)
-pub(crate) const HEART_MIN_T: i32 = 5;   // piso: 600/140 → 5 ticks (~0.7 s reais)
-pub(crate) const HEART_MAX_T: i32 = 33;  // 4500/140 → 33 ticks
-pub(crate) const HEART_FAR_D: i32 = 22;  // d >= 22: o pulso fica no piso (mapa máximo: 88x48)
+// a coroa — a mesma matéria). CONTÍNUO: enquanto você carrega, o batido
+// NUNCA para — perto desliza até o piso (~0.6 s; 4 ticks é a régua do tick
+// de 140 ms acertando o piso de 600 ms de intenção) e longe NUNCA passa do
+// teto de ~1.7 s (12 ticks, um coração descansado): sempre audível, na
+// frente do vento, o cadenciador do castelo o tempo todo
+pub(crate) const HEART_MIN_T: i32 = 4;   // piso: 600/140 → 4 ticks (~0.6 s reais)
+pub(crate) const HEART_MAX_T: i32 = 12;  // teto contínuo: 12 ticks (~1.7 s)
+pub(crate) const HEART_FAR_D: i32 = 22;  // d >= 22: o pulso fica no teto (mapa máximo: 88x48)
 
 // duração de um tick na fronteira WASM↔JS: o loop de web/game.js roda a este
 // passo fixo — o sibilo nasce em ms no RT e vira ticks aqui
