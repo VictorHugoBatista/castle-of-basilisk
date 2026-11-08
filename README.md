@@ -197,8 +197,9 @@ As **alucinações** só existem no render — a lógica do jogo jamais as vê:
 Correr atrás de coroa falsa → ruído alto → ela te encontra → medo sobe: a
 espiral fecha sozinha. No HUD, a placa do canto inferior esquerdo (`ruído /
 fôlego / medo`) tem a barra de medo tremendo em nível alto; o item que você
-pega (`§` coroa / `¤` fragmento) acende um quadro próprio na grade dela, e
-a dica da última linha rola quando não cabe ao lado da placa.
+pega (`§` coroa / `¤` fragmento) ganha um quadro próprio na placa (um
+abaixo do outro; sem item, quadro nenhum), e a dica da última linha rola
+quando não cabe ao lado da placa.
 A partir do **paranoico**, o próprio mundo treme (duas ondas desafinadas —
 nada uniforme, é o corpo respirando errado) e uma **vinheta vermelha** fecha
 nos pulsos do pânico — fora do grid, na pele: informação nenhuma, só espanto.

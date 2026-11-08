@@ -342,9 +342,10 @@ Pilares (constantes tunaveis no topo de `src/consts.rs`):
 - **HUD**: no CANTO INFERIOR ESQUERDO, encostado na barra de UI: medidor de
   SOM (3 casas grossas em placa escura com moldura, stats[10] — calar
   discreto/andar ambar/correr laranja PISCANDO no nivel maximo), barra de
-  folego (stats[11]), barra de medo (stats[18], treme em nivel alto) e GRADE
-  de quadros individuais dos itens (§ coroa / ¤ fragmento, STATS[8]/[20];
-  2 por linha, mais itens descem pra segunda linha) —
+  folego (stats[11]), barra de medo (stats[18], treme em nivel alto) e a
+  coluna de quadros individuais dos itens PEGOS (§ coroa / ¤ fragmento,
+  STATS[8]/[20]; um abaixo do outro, caixa nenhuma quando não carrega
+  nada) —
   desenhados no canvas (fundo do jogo, `drawHUD`), 100% dentro do canvas com
   margem própria. A dica contextual (uirow) mora no ESPAÇO QUE SOBRA da
   última linha à direita da placa: cabe, fica alinhada à esquerda; maior

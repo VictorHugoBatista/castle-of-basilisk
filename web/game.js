@@ -1244,32 +1244,28 @@ function drawHUD() {
   }
 
   // ---- itens: cada item é um QUADRO individual ----
-  // grade de molduras sempre visíveis (o envelope lê-se mesmo apagado, igual
-  // às casas do ruído): 2 por linha; item novo no futuro desce pra SEGUNDA
-  // LINHA. O item PEGO acende o glifo com o brilho vivo do attr 5 (§ coroa /
-  // ¤ fragmento — a mesma matéria); nome nenhum: o glifo É o nome. O HUD
-  // não mente — STATS[8]/[20] são o espelho honesto da cerca do heart_tick.
-  const ITW = 16, ITH = 16, IGAP = 3, IPERROW = 2;
+  // uma coluna, um abaixo do outro, e SÓ do que existe: item pego nasce
+  // com moldura e glifo (§ coroa / ¤ fragmento — a mesma matéria, brilho
+  // vivo do attr 5); sem item coletado, caixa nenhuma aparece (nada de
+  // envelope fantasma). Nome nenhum: o glifo É o nome. O HUD não mente —
+  // STATS[8]/[20] são o espelho honesto da cerca do heart_tick.
+  const ITW = 16, ITH = 16, IGAP = 3;
   const crownHeld = stats[8] === 1; // 1 = a coroa é SUA
-  const items = [
-    [crownHeld, 0xA7],                     // § coroa
-    [stats[20] === 1 && !crownHeld, 0xA4], // ¤ fragmento (enquanto é ELE)
-  ];
-  for (let i = 0; i < items.length; i++) {
-    const row = (i / IPERROW) | 0, col = i % IPERROW;
-    const ix = hx + 61 + col * (ITW + IGAP), iy = hy + 5 + row * (ITH + IGAP);
+  const held = [];
+  if (crownHeld) held.push(0xA7);                     // § coroa
+  if (stats[20] === 1 && !crownHeld) held.push(0xA4); // ¤ fragmento (enquanto é ELE)
+  for (let i = 0; i < held.length; i++) {
+    const ix = hx + 61, iy = hy + 5 + i * (ITH + IGAP);
     ctx.strokeStyle = 'rgba(138,95,0,0.70)';
     ctx.strokeRect(ix + 0.5, iy + 0.5, ITW - 1, ITH - 1);
     ctx.fillStyle = 'rgba(107,68,0,0.18)';
     ctx.fillRect(ix + 2, iy + 2, ITW - 4, ITH - 4);
-    if (items[i][0]) {
-      ctx.save();
-      ctx.textAlign = 'center'; // glifo centrado de verdade (left nasce torto)
-      ctx.font = 'bold 12px monospace';
-      ctx.fillStyle = colorFor(items[i][1], 5, now);
-      ctx.fillText(String.fromCharCode(items[i][1]), ix + ITW / 2, iy + ITH / 2 + 1);
-      ctx.restore();
-    }
+    ctx.save();
+    ctx.textAlign = 'center'; // glifo centrado de verdade (left nasce torto)
+    ctx.font = 'bold 12px monospace';
+    ctx.fillStyle = colorFor(held[i], 5, now);
+    ctx.fillText(String.fromCharCode(held[i]), ix + ITW / 2, iy + ITH / 2 + 1);
+    ctx.restore();
   }
   ctx.font = 'bold 15px monospace'; // restaura: o render por células conta com ele
 }
