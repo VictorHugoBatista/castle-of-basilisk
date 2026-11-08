@@ -98,6 +98,13 @@ const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 32);
 const N_MAX = w.pfb_max_n();
 const grid = new Uint8Array(w.memory.buffer, w.pfb_grid_ptr(), N_MAX * 2);
 const uirow = new Uint8Array(w.memory.buffer, w.pfb_ui_ptr(), VW * 2);
+// ---- HUD inferior: a placa mora no CANTO INFERIOR ESQUERDO, encostada na
+// ÚLTIMA linha (junto do texto). Ela é TODA desenhada dentro do canvas,
+// com margem própria — 100% visível, nada corta nem sobrepõe. O TEXTO da
+// dica fica no espaço que SOBRA à direita dela na barra de UI: cabe →
+// alinhado à esquerda; não cabe → rola em letreiro. HUD_W é a borda
+// direita da placa: o render do texto parte dela (partilhado).
+const HUD_X = 2, HUD_W = 104, HUD_H = 46, HUD_MARGIN = 2;
 const mapview = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), N_MAX); // tiles do andar
 // DIFF: o diferencial de render nasce no RUST (diff_pass no fim de render()):
 // [0] flags (bit0 = repinte integral), [1] camX, [2] camY, [3..227] bitmap de
@@ -1115,16 +1122,48 @@ function render(nowMs) {
   }
   prevSerp = serp;
 
-  // barra de UI: dica contextual fixa na ÚLTIMA LINHA da tela (segue a câmera)
+  // barra de UI: dica contextual na ÚLTIMA LINHA da tela — agora no ESPAÇO
+  // QUE SOBRA à direita da placa do HUD inferior. Cabe → alinhado à esquerda
+  // (o texto ocupa o restante da linha); não cabe → rola em letreiro
+  // contínuo (2 células/s), recomeçando quando o rabo sai da região.
   if (inPlay) {
+    const uiY = (VH - 1) * CELL_H;
+    const x0 = HUD_X + HUD_W + 4, x1 = canvas.width - 4;
+    // o chão da região é repintado TODO frame: a rolagem muda a posição dos
+    // glifos a cada frame — as células de trás não são "mudadas" no diff do
+    // Rust, e sem o fill as letras velhas fantasiam no rastro do letreiro
     ctx.fillStyle = PAL[15];
-    ctx.fillRect(0, (VH - 1) * CELL_H, canvas.width, CELL_H);
-    for (let x = 0; x < VW; x++) {
-      const ch = uirow[x * 2], a = uirow[x * 2 + 1];
-      if (ch !== 0 && ch !== 32) {
-        ctx.fillStyle = colorFor(ch, a, nowMs);
-        ctx.fillText(String.fromCharCode(ch), x * CELL_W + 1, (VH - 1) * CELL_H + CELL_H / 2 + 1);
+    ctx.fillRect(x0, uiY, x1 - x0, CELL_H);
+    let msg = '';
+    const attrs = [];
+    for (let i = 0; i < VW; i++) {
+      const ch = uirow[i * 2];
+      if (ch === 0) break;
+      msg += String.fromCharCode(ch);
+      attrs.push(uirow[i * 2 + 1]);
+    }
+    if (msg) {
+      const region = x1 - x0;
+      const wpx = msg.length * CELL_W;
+      let ox = 0;
+      if (wpx > region) {
+        // letreiro: desliza para a esquerda até o rabo + respiro de 2 células
+        // saírem, e recomeça — mensagem nenhuma é cortada em silêncio
+        const span = wpx - region + CELL_W * 2;
+        ox = -((nowMs * 0.024) % span);
       }
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0, uiY, region, CELL_H);
+      ctx.clip();
+      const bx0 = Math.round(x0 + ox);
+      for (let k = 0; k < msg.length; k++) {
+        const px = bx0 + k * CELL_W;
+        if (px > x1 || px + CELL_W < x0) continue;
+        ctx.fillStyle = colorFor(msg.charCodeAt(k), attrs[k], nowMs);
+        ctx.fillText(msg[k], px + 1, uiY + CELL_H / 2 + 1);
+      }
+      ctx.restore();
     }
   }
 
@@ -1139,8 +1178,10 @@ function render(nowMs) {
 }
 
 // HUD: medidor de som (o "quanto te ouviam agora") + fôlego + MEDO (terceira
-// linha: sobe a cada vislumbre, DESCE devagar demais — e piso 4 não existe:
-// em 100 você morre antes de ver a barra cheia)
+// régua: sobe a cada vislumbre, DESCE devagar demais — e piso 4 não existe:
+// em 100 você morre antes de ver a barra cheia) + slot do ITEM carregado.
+// A placa mora no CANTO INFERIOR ESQUERDO, junto da barra de texto, com
+// margem própria (2px) — 100% visível dentro do canvas, nada a corta.
 function drawHUD() {
   if (stats[0] !== 1) return;
   const now = performance.now();
@@ -1148,15 +1189,16 @@ function drawHUD() {
   const fear = stats[18] || 0;
   const fl = stats[19] || 0;
 
-  // ---- placa tripla: ruído + fôlego + medo, sobre placa escura com moldura ----
+  // ---- placa tripla + slot: ancorada no canto inferior esquerdo ----
+  const hx = HUD_X, hy = canvas.height - HUD_H - HUD_MARGIN;
   ctx.fillStyle = 'rgba(5,2,0,0.80)';
-  ctx.fillRect(2, 1, 46, 47);
+  ctx.fillRect(hx, hy, HUD_W, HUD_H);
   ctx.strokeStyle = 'rgba(138,95,0,0.6)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(2.5, 1.5, 45, 46);
+  ctx.strokeRect(hx + 0.5, hy + 0.5, HUD_W - 1, HUD_H - 1);
 
   // ---- medidor de ruído: 3 casas grossas, acende com o nível ----
-  const bw = 10, bh = 14, gap = 3, bx = 7, by = 5;
+  const bw = 10, bh = 14, gap = 3, bx = 7, by = hy + 5;
   for (let k = 0; k < 3; k++) {
     const x = bx + k * (bw + gap);
     // moldura da casa (sempre visível: lê-se o envelope mesmo apagado)
@@ -1200,6 +1242,29 @@ function drawHUD() {
     ctx.fillStyle = mcol;
     ctx.fillRect(fx + jx, mfy + jy, Math.max(2, Math.round(fw * fear / 100)), 5);
   }
+
+  // ---- slot do item: o que "chia" aparece quando é PEGO ----
+  // coroa (§) ou fragmento sombrio (¤) — o mesmo glifo existente no
+  // tabuleiro, com o mesmo brilho vivo do attr 5. Vazio: moldura escura
+  // lê-se "bolso vazio"; nada nasce fora do slot (o HUD não mente —
+  // STATS[20] é o espelho honesto da cerca do heart_tick).
+  const isx = hx + 54, isy = by, isw = HUD_W - 54 - 6, ish = bh;
+  ctx.strokeStyle = 'rgba(138,95,0,0.70)';
+  ctx.strokeRect(isx + 0.5, isy + 0.5, isw - 1, ish - 1);
+  ctx.fillStyle = 'rgba(107,68,0,0.18)';
+  ctx.fillRect(isx + 2, isy + 2, isw - 4, ish - 4);
+  const crown = stats[8] === 1; // 1 = a coroa é SUA
+  if (crown || stats[20] === 1) {
+    const ic = crown ? 0xA7 : 0xA4; // § coroa · ¤ fragmento
+    ctx.font = 'bold 13px monospace';
+    ctx.fillStyle = colorFor(ic, 5, now);
+    ctx.fillText(String.fromCharCode(ic), isx + isw / 2, isy + ish / 2 + 1);
+    // rótulo sob o slot: nome do que você carrega (o peito não esquece)
+    ctx.font = 'bold 8px monospace';
+    ctx.fillStyle = 'rgba(255,176,0,0.85)';
+    ctx.fillText(crown ? 'COROA' : 'FRAGMENTO', isx + isw / 2, isy + ish + 10);
+  }
+  ctx.font = 'bold 15px monospace'; // restaura: o render por células conta com ele
 }
 
 // ============================================================
