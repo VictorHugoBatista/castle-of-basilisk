@@ -1256,13 +1256,14 @@ function drawHUD() {
   const crown = stats[8] === 1; // 1 = a coroa é SUA
   if (crown || stats[20] === 1) {
     const ic = crown ? 0xA7 : 0xA4; // § coroa · ¤ fragmento
+    // SÓ o glifo, centrado de verdade no slot (textAlign left desenharia a
+    // partir do meio e o item nasce torto); nome nenhum — o glifo É o nome
+    ctx.save();
+    ctx.textAlign = 'center';
     ctx.font = 'bold 13px monospace';
     ctx.fillStyle = colorFor(ic, 5, now);
     ctx.fillText(String.fromCharCode(ic), isx + isw / 2, isy + ish / 2 + 1);
-    // rótulo sob o slot: nome do que você carrega (o peito não esquece)
-    ctx.font = 'bold 8px monospace';
-    ctx.fillStyle = 'rgba(255,176,0,0.85)';
-    ctx.fillText(crown ? 'COROA' : 'FRAGMENTO', isx + isw / 2, isy + ish + 10);
+    ctx.restore();
   }
   ctx.font = 'bold 15px monospace'; // restaura: o render por células conta com ele
 }
