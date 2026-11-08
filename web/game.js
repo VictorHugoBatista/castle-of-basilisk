@@ -1144,7 +1144,11 @@ function render(nowMs) {
     ctx.fillRect(x0, uiY, x1 - x0, CELL_H);
     let msg = '';
     const attrs = [];
-    for (let i = 0; i < VW; i++) {
+    // a dica nasce CENTRALIZADA no buffer (write_ui_center): pular os zeros
+    // à esquerda antes de ler — quebrar no byte 0 apagava a barra inteira
+    let s0 = 0;
+    while (s0 < VW && uirow[s0 * 2] === 0) s0++;
+    for (let i = s0; i < VW; i++) {
       const ch = uirow[i * 2];
       if (ch === 0) break;
       msg += String.fromCharCode(ch);
