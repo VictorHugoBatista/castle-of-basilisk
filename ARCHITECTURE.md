@@ -339,10 +339,20 @@ Pilares (constantes tunaveis no topo de `src/consts.rs`):
   (r=17), ambos `loud=true` — coordenada exata e alcance um tile alem da
   bota (andar/sneak em osso/carne e SO CENARIO: som no playEvent 1, sem
   noise() nenhum — o bot, que nunca corre, nao muda de jogo).
-- **HUD**: medidor de SOM (3 casas grossas em placa escura com moldura,
-  stats[10] — calar discreto/andar ambar/correr laranja PISCANDO no nivel
-  maximo) e barra de folego (stats[11]) desenhados no canvas (fundo do jogo,
-  `drawHUD`).
+- **HUD**: no CANTO INFERIOR ESQUERDO, encostado na barra de UI, largura
+  DINÂMICA (sem item abraça os medidores; com item abre pra coluna de
+  quadros — o vão entre colunas só existe quando há item): medidor de
+  SOM (3 casas grossas em placa escura com moldura, stats[10] — calar
+  discreto/andar ambar/correr laranja PISCANDO no nivel maximo), barra de
+  folego (stats[11]), barra de medo (stats[18], treme em nivel alto) e a
+  coluna de quadros individuais dos itens PEGOS (§ coroa / ¤ fragmento,
+  STATS[8]/[20]; um abaixo do outro, caixa nenhuma quando não carrega
+  nada) —
+  desenhados no canvas (fundo do jogo, `drawHUD`), 100% dentro do canvas com
+  margem própria. A dica contextual (uirow) mora no ESPAÇO QUE SOBRA da
+  última linha à direita da placa: cabe, fica alinhada à esquerda; maior
+  que a região, rola em letreiro (SÓ o render: o WASM continua entregando
+  a barra inteira centralizada).
 - **Echo do castelo** (JS): bus `echoIn` (GainNode) -> DelayNode de 170 ms
   com feedback 0.33 e wet 0.55 manda os passos corridos de volta ao master:
   voce OUVE seus proprios passos repetidos nos corredores vazios. O som do

@@ -98,6 +98,22 @@ const stats = new Uint8Array(w.memory.buffer, w.pfb_stats_ptr(), 32);
 const N_MAX = w.pfb_max_n();
 const grid = new Uint8Array(w.memory.buffer, w.pfb_grid_ptr(), N_MAX * 2);
 const uirow = new Uint8Array(w.memory.buffer, w.pfb_ui_ptr(), VW * 2);
+// ---- HUD inferior: a placa mora no CANTO INFERIOR ESQUERDO, encostada na
+// ÚLTIMA linha (junto do texto). Ela é TODA desenhada dentro do canvas,
+// com margem própria — 100% visível, nada corta nem sobrepõe. O TEXTO da
+// dica fica no espaço que SOBRA à direita dela na barra de UI: cabe →
+// alinhado à esquerda; não cabe → rola em letreiro. A placa é de largura
+// DINÂMICA: sem item ela abraça só a coluna dos medidores; com item abre
+// pra caber a coluna de quadros (e o SEPARADOR — o vão entre as colunas —
+// só existe quando há algo carregado). A largura VIVA sai do hudW(): o
+// render do texto e a própria placa leem a MESMA verdade.
+const HUD_X = 2, HUD_H = 46, HUD_MARGIN = 2;
+const HUD_W_BASE = 46; // placa sem item: ruído/fôlego/medo (margens de 5px)
+const HUD_W_ITEM = 72; // com coluna de itens: + vão 10, quadro 16 e folga 5
+const GAP_TEXT = 12;   // o vão texto-placa: a dica nasce GAP_TEXT depois da borda
+function hudW() {
+  return (stats[8] === 1 || stats[20] === 1) ? HUD_W_ITEM : HUD_W_BASE;
+}
 const mapview = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), N_MAX); // tiles do andar
 // DIFF: o diferencial de render nasce no RUST (diff_pass no fim de render()):
 // [0] flags (bit0 = repinte integral), [1] camX, [2] camY, [3..227] bitmap de
@@ -1115,16 +1131,55 @@ function render(nowMs) {
   }
   prevSerp = serp;
 
-  // barra de UI: dica contextual fixa na ÚLTIMA LINHA da tela (segue a câmera)
+  // barra de UI: dica contextual na ÚLTIMA LINHA da tela — agora no ESPAÇO
+  // QUE SOBRA à direita da placa do HUD inferior. Cabe → alinhado à esquerda
+  // (o texto ocupa o restante da linha); não cabe → rola em letreiro
+  // contínuo (2 células/s), recomeçando quando o rabo sai da região.
   if (inPlay) {
+    const uiY = (VH - 1) * CELL_H;
+    const x0 = HUD_X + hudW() + GAP_TEXT, x1 = canvas.width - 4;
+    // o chão é repintado TODO frame desde a BORDA ESQUERDA: nenhuma costura
+    // sobra — nem o rastro do letreiro (a posição dos glifos muda a cada
+    // frame sem "mudar" bytes no diff do Rust), nem o fantasma da msg
+    // anterior quando a placa abre/fecha, nem a faixa de MAPA que vazava
+    // vazando entre o fim da placa (48) e a região do texto (60) com o x
+    // antigo. O que o chão pinta a mais a placa cobre por cima na frame.
     ctx.fillStyle = PAL[15];
-    ctx.fillRect(0, (VH - 1) * CELL_H, canvas.width, CELL_H);
-    for (let x = 0; x < VW; x++) {
-      const ch = uirow[x * 2], a = uirow[x * 2 + 1];
-      if (ch !== 0 && ch !== 32) {
-        ctx.fillStyle = colorFor(ch, a, nowMs);
-        ctx.fillText(String.fromCharCode(ch), x * CELL_W + 1, (VH - 1) * CELL_H + CELL_H / 2 + 1);
+    ctx.fillRect(HUD_X, uiY, x1 - HUD_X, CELL_H);
+    let msg = '';
+    const attrs = [];
+    // a dica nasce CENTRALIZADA no buffer (write_ui_center): pular os zeros
+    // à esquerda antes de ler — quebrar no byte 0 apagava a barra inteira
+    let s0 = 0;
+    while (s0 < VW && uirow[s0 * 2] === 0) s0++;
+    for (let i = s0; i < VW; i++) {
+      const ch = uirow[i * 2];
+      if (ch === 0) break;
+      msg += String.fromCharCode(ch);
+      attrs.push(uirow[i * 2 + 1]);
+    }
+    if (msg) {
+      const region = x1 - x0;
+      const wpx = msg.length * CELL_W;
+      let ox = 0;
+      if (wpx > region) {
+        // letreiro: desliza para a esquerda até o rabo + respiro de 2 células
+        // saírem, e recomeça — mensagem nenhuma é cortada em silêncio
+        const span = wpx - region + CELL_W * 2;
+        ox = -((nowMs * 0.024) % span);
       }
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0, uiY, region, CELL_H);
+      ctx.clip();
+      const bx0 = Math.round(x0 + ox);
+      for (let k = 0; k < msg.length; k++) {
+        const px = bx0 + k * CELL_W;
+        if (px > x1 || px + CELL_W < x0) continue;
+        ctx.fillStyle = colorFor(msg.charCodeAt(k), attrs[k], nowMs);
+        ctx.fillText(msg[k], px + 1, uiY + CELL_H / 2 + 1);
+      }
+      ctx.restore();
     }
   }
 
@@ -1139,8 +1194,10 @@ function render(nowMs) {
 }
 
 // HUD: medidor de som (o "quanto te ouviam agora") + fôlego + MEDO (terceira
-// linha: sobe a cada vislumbre, DESCE devagar demais — e piso 4 não existe:
-// em 100 você morre antes de ver a barra cheia)
+// régua: sobe a cada vislumbre, DESCE devagar demais — e piso 4 não existe:
+// em 100 você morre antes de ver a barra cheia) + slot do ITEM carregado.
+// A placa mora no CANTO INFERIOR ESQUERDO, junto da barra de texto, com
+// margem própria (2px) — 100% visível dentro do canvas, nada a corta.
 function drawHUD() {
   if (stats[0] !== 1) return;
   const now = performance.now();
@@ -1148,15 +1205,18 @@ function drawHUD() {
   const fear = stats[18] || 0;
   const fl = stats[19] || 0;
 
-  // ---- placa tripla: ruído + fôlego + medo, sobre placa escura com moldura ----
+  // ---- placa tripla + coluna de itens: ancorada no canto inferior esquerdo,
+  // largura DINÂMICA (hudW): sem item ela é compacta; com item ela abre ----
+  const hx = HUD_X, hy = canvas.height - HUD_H - HUD_MARGIN;
+  const pw = hudW();
   ctx.fillStyle = 'rgba(5,2,0,0.80)';
-  ctx.fillRect(2, 1, 46, 47);
+  ctx.fillRect(hx, hy, pw, HUD_H);
   ctx.strokeStyle = 'rgba(138,95,0,0.6)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(2.5, 1.5, 45, 46);
+  ctx.strokeRect(hx + 0.5, hy + 0.5, pw - 1, HUD_H - 1);
 
   // ---- medidor de ruído: 3 casas grossas, acende com o nível ----
-  const bw = 10, bh = 14, gap = 3, bx = 7, by = 5;
+  const bw = 10, bh = 14, gap = 3, bx = 7, by = hy + 5;
   for (let k = 0; k < 3; k++) {
     const x = bx + k * (bw + gap);
     // moldura da casa (sempre visível: lê-se o envelope mesmo apagado)
@@ -1200,6 +1260,36 @@ function drawHUD() {
     ctx.fillStyle = mcol;
     ctx.fillRect(fx + jx, mfy + jy, Math.max(2, Math.round(fw * fear / 100)), 5);
   }
+
+  // ---- itens: cada item é um QUADRO individual ----
+  // uma coluna, um abaixo do outro, e SÓ do que existe: item pego nasce
+  // com moldura e glifo (§ coroa / ¤ fragmento — a mesma matéria, brilho
+  // vivo do attr 5); sem item coletado, caixa nenhuma aparece (nada de
+  // envelope fantasma). Nome nenhum: o glifo É o nome. O HUD não mente —
+  // STATS[8]/[20] são o espelho honesto da cerca do heart_tick.
+  const ITW = 16, ITH = 16, IGAP = 3;
+  const crownHeld = stats[8] === 1; // 1 = a coroa é SUA
+  const held = [];
+  if (crownHeld) held.push(0xA7);                     // § coroa
+  if (stats[20] === 1 && !crownHeld) held.push(0xA4); // ¤ fragmento (enquanto é ELE)
+  for (let i = 0; i < held.length; i++) {
+    // coluna depois do VÃO — e o vão só existe SE a coluna existe: placa
+    // compacta não reserva espaço de item fantasma. O x é DERIVADO do canto
+    // direito da placa com item (17 = a folga de 5 que sobra do quadro),
+    // então mexer no tamanho da placa alinha a coluna sem recalcular nada
+    const ix = hx + (HUD_W_ITEM - ITW - 5), iy = hy + 5 + i * (ITH + IGAP);
+    ctx.strokeStyle = 'rgba(138,95,0,0.70)';
+    ctx.strokeRect(ix + 0.5, iy + 0.5, ITW - 1, ITH - 1);
+    ctx.fillStyle = 'rgba(107,68,0,0.18)';
+    ctx.fillRect(ix + 2, iy + 2, ITW - 4, ITH - 4);
+    ctx.save();
+    ctx.textAlign = 'center'; // glifo centrado de verdade (left nasce torto)
+    ctx.font = 'bold 12px monospace';
+    ctx.fillStyle = colorFor(held[i], 5, now);
+    ctx.fillText(String.fromCharCode(held[i]), ix + ITW / 2, iy + ITH / 2 + 1);
+    ctx.restore();
+  }
+  ctx.font = 'bold 15px monospace'; // restaura: o render por células conta com ele
 }
 
 // ============================================================
