@@ -1137,13 +1137,14 @@ function render(nowMs) {
   if (inPlay) {
     const uiY = (VH - 1) * CELL_H;
     const x0 = HUD_X + hudW() + 12, x1 = canvas.width - 4;
-    // o chão da região é repintado TODO frame a partir do X CONSTANTE da
-    // placa MENOR (sem item): se a placa abrir ao pegar item, o x vivo do
-    // texto andou pra DIREITA e os primeiros glifos da msg ANTERIOR ficariam
-    // fora do repinte, fantasiando como quebra na borda da placa. O que o
-    // chão pinta a mais a placa cobre por cima na mesma frame.
+    // o chão é repintado TODO frame desde a BORDA ESQUERDA: nenhuma costura
+    // sobra — nem o rastro do letreiro (a posição dos glifos muda a cada
+    // frame sem "mudar" bytes no diff do Rust), nem o fantasma da msg
+    // anterior quando a placa abre/fecha, nem a faixa de MAPA que vazava
+    // vazando entre o fim da placa (48) e a região do texto (60) com o x
+    // antigo. O que o chão pinta a mais a placa cobre por cima na frame.
     ctx.fillStyle = PAL[15];
-    ctx.fillRect(HUD_X + HUD_W_BASE + 12, uiY, x1 - (HUD_X + HUD_W_BASE + 12), CELL_H);
+    ctx.fillRect(HUD_X, uiY, x1 - HUD_X, CELL_H);
     let msg = '';
     const attrs = [];
     // a dica nasce CENTRALIZADA no buffer (write_ui_center): pular os zeros
