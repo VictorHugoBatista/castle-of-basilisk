@@ -110,6 +110,7 @@ const uirow = new Uint8Array(w.memory.buffer, w.pfb_ui_ptr(), VW * 2);
 const HUD_X = 2, HUD_H = 46, HUD_MARGIN = 2;
 const HUD_W_BASE = 46; // placa sem item: ruído/fôlego/medo (margens de 5px)
 const HUD_W_ITEM = 72; // com coluna de itens: + vão 10, quadro 16 e folga 5
+const GAP_TEXT = 12;   // o vão texto-placa: a dica nasce GAP_TEXT depois da borda
 function hudW() {
   return (stats[8] === 1 || stats[20] === 1) ? HUD_W_ITEM : HUD_W_BASE;
 }
@@ -1136,7 +1137,7 @@ function render(nowMs) {
   // contínuo (2 células/s), recomeçando quando o rabo sai da região.
   if (inPlay) {
     const uiY = (VH - 1) * CELL_H;
-    const x0 = HUD_X + hudW() + 12, x1 = canvas.width - 4;
+    const x0 = HUD_X + hudW() + GAP_TEXT, x1 = canvas.width - 4;
     // o chão é repintado TODO frame desde a BORDA ESQUERDA: nenhuma costura
     // sobra — nem o rastro do letreiro (a posição dos glifos muda a cada
     // frame sem "mudar" bytes no diff do Rust), nem o fantasma da msg
@@ -1273,8 +1274,10 @@ function drawHUD() {
   if (stats[20] === 1 && !crownHeld) held.push(0xA4); // ¤ fragmento (enquanto é ELE)
   for (let i = 0; i < held.length; i++) {
     // coluna depois do VÃO — e o vão só existe SE a coluna existe: placa
-    // compacta não reserva espaço de item fantasma
-    const ix = hx + 51, iy = hy + 5 + i * (ITH + IGAP);
+    // compacta não reserva espaço de item fantasma. O x é DERIVADO do canto
+    // direito da placa com item (17 = a folga de 5 que sobra do quadro),
+    // então mexer no tamanho da placa alinha a coluna sem recalcular nada
+    const ix = hx + (HUD_W_ITEM - ITW - 5), iy = hy + 5 + i * (ITH + IGAP);
     ctx.strokeStyle = 'rgba(138,95,0,0.70)';
     ctx.strokeRect(ix + 0.5, iy + 0.5, ITW - 1, ITH - 1);
     ctx.fillStyle = 'rgba(107,68,0,0.18)';
