@@ -1137,11 +1137,13 @@ function render(nowMs) {
   if (inPlay) {
     const uiY = (VH - 1) * CELL_H;
     const x0 = HUD_X + hudW() + 12, x1 = canvas.width - 4;
-    // o chão da região é repintado TODO frame: a rolagem muda a posição dos
-    // glifos a cada frame — as células de trás não são "mudadas" no diff do
-    // Rust, e sem o fill as letras velhas fantasiam no rastro do letreiro
+    // o chão da região é repintado TODO frame a partir do X CONSTANTE da
+    // placa MENOR (sem item): se a placa abrir ao pegar item, o x vivo do
+    // texto andou pra DIREITA e os primeiros glifos da msg ANTERIOR ficariam
+    // fora do repinte, fantasiando como quebra na borda da placa. O que o
+    // chão pinta a mais a placa cobre por cima na mesma frame.
     ctx.fillStyle = PAL[15];
-    ctx.fillRect(x0, uiY, x1 - x0, CELL_H);
+    ctx.fillRect(HUD_X + HUD_W_BASE + 12, uiY, x1 - (HUD_X + HUD_W_BASE + 12), CELL_H);
     let msg = '';
     const attrs = [];
     // a dica nasce CENTRALIZADA no buffer (write_ui_center): pular os zeros
