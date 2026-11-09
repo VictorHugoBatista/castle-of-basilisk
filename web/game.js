@@ -1136,7 +1136,7 @@ function render(nowMs) {
   // contínuo (2 células/s), recomeçando quando o rabo sai da região.
   if (inPlay) {
     const uiY = (VH - 1) * CELL_H;
-    const x0 = HUD_X + hudW() + 4, x1 = canvas.width - 4;
+    const x0 = HUD_X + hudW() + 12, x1 = canvas.width - 4;
     // o chão da região é repintado TODO frame: a rolagem muda a posição dos
     // glifos a cada frame — as células de trás não são "mudadas" no diff do
     // Rust, e sem o fill as letras velhas fantasiam no rastro do letreiro
