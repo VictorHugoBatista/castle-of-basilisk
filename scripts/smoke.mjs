@@ -63,10 +63,10 @@ let menuOk;
 {
   const M = { up: 1, down: 2, left: 4, right: 8, ok: 16, back: 64 };
   // cursor > N O GRID: mover para baixo tem que redesenhar (roda render())
-  const gt0 = grid[(21 * Wd + 22) * 2] === 0x3E;         // '>' na linha de INICIAR
+  const gt0 = grid[(24 * Wd + 22) * 2] === 0x3E;         // '>' na linha de INICIAR
   w.pfb_menu(M.down);
-  const gt1 = grid[(23 * Wd + 21) * 2] === 0x3E          // '>' passou p/ CONTROLES
-           && grid[(21 * Wd + 22) * 2] !== 0x3E;         // ... e sumiu de INICIAR
+  const gt1 = grid[(26 * Wd + 21) * 2] === 0x3E          // '>' passou p/ CONTROLES
+           && grid[(24 * Wd + 22) * 2] !== 0x3E;         // ... e sumiu de INICIAR
   const navig = stats[14] === 1 && stats[0] === 0;      // cursor em CONTROLES
   w.pfb_menu(M.ok);
   const ctrl = stats[0] === 4;                          // tela de controles

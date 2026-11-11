@@ -314,18 +314,51 @@ pub(crate) fn render_title() {
     put(0, H() - 2, b'+', A_TITLE);
     put(W() - 1, H() - 2, b'+', A_TITLE);
 
-    // título grande no topo
-    write_big_center(2, "CASTLE OF", A_TITLE);
-    write_big_center(8, "BASILISK", A_BAS);
+    // A LOGO: a boca dela. Os dois olhos vermelhos (o mesmo A_BAS do B em
+    // jogo) pairam acima dos dentes; CASTLE OF é a fileira de dentes de
+    // cima — as presas pendendo dela para a goela — e BASILISK a de baixo,
+    // erguida do escuro. Entre as fileiras, o veneno pinga no escuro.
+    for r in 0..2 {
+        for c in 0..2 {
+            put(W() / 2 - 5 + c, 2 + r, b'#', A_BAS);
+            put(W() / 2 + 3 + c, 2 + r, b'#', A_BAS);
+        }
+    }
+    // a luz dos olhos escorre (dim)
+    put(W() / 2 - 5, 4, b'~', A_BAS | DIM);
+    put(W() / 2 - 4, 4, b'~', A_BAS | DIM);
+    put(W() / 2 + 3, 4, b'~', A_BAS | DIM);
+    put(W() / 2 + 4, 4, b'~', A_BAS | DIM);
 
-    write_center(14, "um conceito de survival horror", A_UI);
-    write_center(16, "nao existe vida. nao existe ouro. existe a besta.", A_UI);
-    write_center(17, "esconda-se. nunca olhe para ela.", A_UI);
+    // dentes de cima: a palavra e as presas que pendem dela
+    write_big_center(5, "CASTLE OF", A_TITLE);
+    let wc = "CASTLE OF".chars().count() * 6 - 1;
+    let xc = (W() - wc) / 2;
+    for k in 0..wc {
+        put(xc + k, 10, if k % 2 == 0 { b'\\' } else { b'/' }, A_TITLE);
+    }
+    // o veneno pinga no escuro da goela
+    put(W() / 2 - 20, 11, 0xB7, A_BAS | DIM);
+    put(W() / 2 - 1, 11, 0xB7, A_BAS | DIM);
+    put(W() / 2 + 17, 11, 0xB7, A_BAS | DIM);
+    put(W() / 2 - 10, 12, 0xB7, A_BAS | DIM);
+    put(W() / 2 + 8, 12, 0xB7, A_BAS | DIM);
+    // dentes de baixo: as presas erguidas recebem a palavra
+    let wb = "BASILISK".chars().count() * 6 - 1;
+    let xb = (W() - wb) / 2;
+    for k in 0..wb {
+        put(xb + k, 13, if k % 2 == 0 { b'/' } else { b'\\' }, A_TITLE);
+    }
+    write_big_center(14, "BASILISK", A_BAS);
+
+    write_center(20, "um conceito de survival horror", A_UI);
+    write_center(21, "nao existe vida. nao existe ouro. existe a besta.", A_UI);
+    write_center(22, "esconda-se. nunca olhe para ela.", A_UI);
 
     // menu centralizado: a opcao com cursor fica em ambar (A_TITLE).
     // SEM alocacao: format! cresceria a memoria do wasm e desanexava as views do JS.
     unsafe {
-        let items = [("INICIAR", 21), ("CONTROLES", 23)];
+        let items = [("INICIAR", 24), ("CONTROLES", 26)];
         for (k, (label, y)) in items.iter().enumerate() {
             let sel = MENU_SEL == k as u8;
             let a = if sel { A_TITLE } else { A_UI };
@@ -339,7 +372,7 @@ pub(crate) fn render_title() {
         }
     }
 
-    write_center(27, "W/S ou setas escolhem · ENTER confirma", A_UI);
+    write_center(28, "W/S ou setas escolhem · ENTER confirma", A_UI);
 }
 
 pub(crate) fn render_controls() {
