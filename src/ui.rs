@@ -314,28 +314,34 @@ pub(crate) fn render_title() {
     put(0, H() - 2, b'+', A_TITLE);
     put(W() - 1, H() - 2, b'+', A_TITLE);
 
-    // A LOGO: a boca dela. Os dois olhos vermelhos (o mesmo A_BAS do B em
-    // jogo) pairam acima dos dentes; CASTLE OF é a fileira de dentes de
-    // cima — as presas pendendo dela para a goela — e BASILISK a de baixo,
-    // erguida do escuro. Entre as fileiras, o veneno pinga no escuro.
+    // A LOGO: a boca dela. As letras SÃO os dentes — nada de fileira avulsa
+    // entre elas. Os dois olhos vermelhos (o mesmo A_BAS do B em jogo) moram
+    // nos VÃOS dos dentes de cima: o primeiro no vão entre o A e o S, o
+    // segundo no vão entre o espaço e o O (cada glifo avança 6 colunas; o
+    // vão entre o glifo k e o k+1 nasce em xc + (k+1)*6 - 1).
+    let wc = "CASTLE OF".chars().count() * 6 - 1;
+    let xc = (W() - wc) / 2;
+    let ea = xc + 2 * 6 - 1; // olho 1: o vão entre o A e o S
+    let eb = xc + 7 * 6 - 1; // olho 2: o vão entre o espaço e o O
     for r in 0..2 {
         for c in 0..2 {
-            put(W() / 2 - 5 + c, 2 + r, b'#', A_BAS);
-            put(W() / 2 + 3 + c, 2 + r, b'#', A_BAS);
+            put(ea + c, 2 + r, b'#', A_BAS);
+            put(eb + c, 2 + r, b'#', A_BAS);
         }
     }
     // a luz dos olhos escorre (dim)
-    put(W() / 2 - 5, 4, b'~', A_BAS | DIM);
-    put(W() / 2 - 4, 4, b'~', A_BAS | DIM);
-    put(W() / 2 + 3, 4, b'~', A_BAS | DIM);
-    put(W() / 2 + 4, 4, b'~', A_BAS | DIM);
+    put(ea, 4, b'~', A_BAS | DIM);
+    put(ea + 1, 4, b'~', A_BAS | DIM);
+    put(eb, 4, b'~', A_BAS | DIM);
+    put(eb + 1, 4, b'~', A_BAS | DIM);
 
-    // dentes de cima: a palavra e as presas que pendem dela
+    // dentes de cima: a palavra; as presas pendem dela para a goela
     write_big_center(5, "CASTLE OF", A_TITLE);
-    let wc = "CASTLE OF".chars().count() * 6 - 1;
-    let xc = (W() - wc) / 2;
-    for k in 0..wc {
-        put(xc + k, 10, if k % 2 == 0 { b'\\' } else { b'/' }, A_TITLE);
+    for f in [1usize, 4, 7] {
+        let fx = xc + f * 6 + 2;
+        put(fx, 10, b'\\', A_TITLE);
+        put(fx + 1, 11, b'\\', A_TITLE);
+        put(fx + 2, 12, b'\\', A_TITLE);
     }
     // o veneno pinga no escuro da goela
     put(W() / 2 - 20, 11, 0xB7, A_BAS | DIM);
@@ -343,13 +349,16 @@ pub(crate) fn render_title() {
     put(W() / 2 + 17, 11, 0xB7, A_BAS | DIM);
     put(W() / 2 - 10, 12, 0xB7, A_BAS | DIM);
     put(W() / 2 + 8, 12, 0xB7, A_BAS | DIM);
-    // dentes de baixo: as presas erguidas recebem a palavra
+    // dentes de baixo: a palavra erguida do escuro; as presas sobem dela
     let wb = "BASILISK".chars().count() * 6 - 1;
     let xb = (W() - wb) / 2;
-    for k in 0..wb {
-        put(xb + k, 13, if k % 2 == 0 { b'/' } else { b'\\' }, A_TITLE);
-    }
     write_big_center(14, "BASILISK", A_BAS);
+    for f in [1usize, 4, 7] {
+        let fx = xb + f * 6 + 2;
+        put(fx, 13, b'/', A_TITLE);
+        put(fx + 1, 12, b'/', A_TITLE);
+        put(fx + 2, 11, b'/', A_TITLE);
+    }
 
     write_center(20, "um conceito de survival horror", A_UI);
     write_center(21, "nao existe vida. nao existe ouro. existe a besta.", A_UI);
