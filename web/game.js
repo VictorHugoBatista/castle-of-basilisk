@@ -945,9 +945,10 @@ function colorFor(ch, attr, nowMs) {
     col = shade(col, p);
   } else if (PULSE_ATTRS.has(a)) {
     // brilho respirando — na tela de título, o '#' com attr 7 é OLHO dela:
-    // piscando (fechou, a cor é o próprio vazio — a célula nasce limpa)
-    if (stats[0] === 0 && ch === 0x23 && eyesClosed(nowMs)) {
-      col = PAL[15];
+    // SEM pulso (o vermelho é firme; a única vida deles é o piscar) —
+    // fechou, a cor é o próprio vazio, a célula nasce limpa
+    if (stats[0] === 0 && ch === 0x23) {
+      if (eyesClosed(nowMs)) col = PAL[15];
     } else {
       const p = 0.75 + 0.25 * Math.sin(nowMs * 0.006);
       col = shade(col, p);
