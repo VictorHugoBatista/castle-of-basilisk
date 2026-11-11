@@ -388,37 +388,34 @@ pub(crate) fn render_title() {
     let eb = xc + 7 * 6 - 1; // olho 2: o vão entre o espaço e o O
     for r in 0..2 {
         for c in 0..2 {
-            put(ea + c, 2 + r, b'#', A_BAS);
-            put(eb + c, 2 + r, b'#', A_BAS);
+            put(ea + c, 3 + r, b'#', A_BAS);
+            put(eb + c, 3 + r, b'#', A_BAS);
         }
     }
     // a luz dos olhos escorre (dim)
-    put(ea, 4, b'~', A_BAS | DIM);
-    put(ea + 1, 4, b'~', A_BAS | DIM);
-    put(eb, 4, b'~', A_BAS | DIM);
-    put(eb + 1, 4, b'~', A_BAS | DIM);
+    put(ea, 5, b'~', A_BAS | DIM);
+    put(ea + 1, 5, b'~', A_BAS | DIM);
+    put(eb, 5, b'~', A_BAS | DIM);
+    put(eb + 1, 5, b'~', A_BAS | DIM);
 
     // dentes de cima: a palavra pende da gengiva
-    write_dente_center(5, "CASTLE OF", A_TITLE, false);
+    write_dente_center(6, "CASTLE OF", A_TITLE, false);
     // o veneno pinga no escuro da goela
-    put(W() / 2 - 20, 11, 0xB7, A_BAS | DIM);
-    put(W() / 2 - 1, 11, 0xB7, A_BAS | DIM);
-    put(W() / 2 + 17, 11, 0xB7, A_BAS | DIM);
-    put(W() / 2 - 10, 12, 0xB7, A_BAS | DIM);
-    put(W() / 2 + 8, 12, 0xB7, A_BAS | DIM);
+    put(W() / 2 - 20, 12, 0xB7, A_BAS | DIM);
+    put(W() / 2 - 1, 12, 0xB7, A_BAS | DIM);
+    put(W() / 2 + 17, 12, 0xB7, A_BAS | DIM);
+    put(W() / 2 - 10, 13, 0xB7, A_BAS | DIM);
+    put(W() / 2 + 8, 13, 0xB7, A_BAS | DIM);
     // dentes de baixo: a palavra ergue do chão do escuro — na MESMA cor do
     // título (ambar, sem vida): o vermelho é só dos olhos, que são os únicos
     // a respirar na boca
-    write_dente_center(13, "BASILISK", A_TITLE, true);
+    write_dente_center(14, "BASILISK", A_TITLE, true);
 
-    write_center(20, "um conceito de survival horror", A_UI);
-    write_center(21, "nao existe vida. nao existe ouro. existe a besta.", A_UI);
-    write_center(22, "esconda-se. nunca olhe para ela.", A_UI);
-
-    // menu centralizado: a opcao com cursor fica em ambar (A_TITLE).
+    // o menu respira no espaço que sobrou: a boca ocupa o topo, o menu
+    // centraliza no vão livre abaixo dela (sem tagline competindo).
     // SEM alocacao: format! cresceria a memoria do wasm e desanexava as views do JS.
     unsafe {
-        let items = [("INICIAR", 24), ("CONTROLES", 26)];
+        let items = [("INICIAR", 22), ("CONTROLES", 24)];
         for (k, (label, y)) in items.iter().enumerate() {
             let sel = MENU_SEL == k as u8;
             let a = if sel { A_TITLE } else { A_UI };
@@ -432,7 +429,7 @@ pub(crate) fn render_title() {
         }
     }
 
-    write_center(28, "W/S ou setas escolhem · ENTER confirma", A_UI);
+    write_center(27, "W/S ou setas escolhem · ENTER confirma", A_UI);
 }
 
 pub(crate) fn render_controls() {
