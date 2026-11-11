@@ -191,7 +191,9 @@ fn dente_sobe(c: u8) -> &'static [&'static str; 6] {
         b'I' => &["..#..", "..#..", "..#..", "..#..", "..#..", ".###."],
         b'K' => &["#..#.", "#.#..", "##...", "#.#..", "#..#.", "#...#"],
         b'L' => &[".#...", "##...", "##...", "##...", "##...", "####."],
-        b'S' => &["####.", "....#", ".###.", "#....", "#....", ".####"],
+        // o S ergue EM PÉ: espelhado, o ziguezague inverte a leitura e o
+        // dente vira um Z (BAZILISK) — de pé ele continua dente e lera
+        b'S' => &[".####", "#....", ".###.", "....#", "....#", "####."],
         _ => &["#####", "#####", "#####", "#####", "#####", "#####"],
     }
 }
@@ -404,8 +406,10 @@ pub(crate) fn render_title() {
     put(W() / 2 + 17, 11, 0xB7, A_BAS | DIM);
     put(W() / 2 - 10, 12, 0xB7, A_BAS | DIM);
     put(W() / 2 + 8, 12, 0xB7, A_BAS | DIM);
-    // dentes de baixo: a palavra ergue do chão do escuro
-    write_dente_center(13, "BASILISK", A_BAS, true);
+    // dentes de baixo: a palavra ergue do chão do escuro — na MESMA cor do
+    // título (ambar, sem vida): o vermelho é só dos olhos, que são os únicos
+    // a respirar na boca
+    write_dente_center(13, "BASILISK", A_TITLE, true);
 
     write_center(20, "um conceito de survival horror", A_UI);
     write_center(21, "nao existe vida. nao existe ouro. existe a besta.", A_UI);

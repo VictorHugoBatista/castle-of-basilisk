@@ -909,6 +909,18 @@ function inputBits() {
 // ============================================================
 // render: diff de grid byte a byte
 // ============================================================
+
+// os olhos dela (na tela de título: os únicos '#' com attr 7 sem dim) fecham
+// de vez em quando — janelas IRREGULARES dentro de um ciclo longo: uma
+// piscada comprida e uma dupla desconfiada, nunca metrônomo. Fechou, ela
+// some no escuro (a cor vira o vazio) — e abre de novo quando quer.
+function eyesClosed(nowMs) {
+  const t = nowMs % 11300;
+  return (t >= 9400 && t < 9860)   // a piscada comprida: ela se permite fechar
+      || (t >= 4100 && t < 4320)   // a dupla rápida: não confia em você
+      || (t >= 4660 && t < 4880);
+}
+
 function colorFor(ch, attr, nowMs) {
   const dim = (attr & DIM_FLAG) !== 0;
   const a = attr & 0x7f;
@@ -932,9 +944,14 @@ function colorFor(ch, attr, nowMs) {
     const p = 0.78 + 0.22 * Math.sin(nowMs * 0.0028);
     col = shade(col, p);
   } else if (PULSE_ATTRS.has(a)) {
-    // brilho respirando
-    const p = 0.75 + 0.25 * Math.sin(nowMs * 0.006);
-    col = shade(col, p);
+    // brilho respirando — na tela de título, o '#' com attr 7 é OLHO dela:
+    // piscando (fechou, a cor é o próprio vazio — a célula nasce limpa)
+    if (stats[0] === 0 && ch === 0x23 && eyesClosed(nowMs)) {
+      col = PAL[15];
+    } else {
+      const p = 0.75 + 0.25 * Math.sin(nowMs * 0.006);
+      col = shade(col, p);
+    }
   } else if (a === BLINK_ATTR) {
     if (Math.floor(nowMs / 320) % 2 === 1) col = '#3a1000';
   }
