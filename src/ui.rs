@@ -164,6 +164,64 @@ pub(crate) fn write_big_center(y: usize, s: &str, a: u8) {
     write_big((W() - width) / 2, y, s, a);
 }
 
+// ================= fonte DENTE (a boca da logo) =================
+// glifos 5x6: cada letra É um dente. Na fileira de CIMA (dente_cima) a letra
+// pende da gengiva — borda de cima reta, a de baixo afina em dente; o T e o
+// F nascem PRESAS (a haste afina em ponta única). Na fileira de BAIXO
+// (dente_sobe) a letra ergue do chão — ponta em cima, base apoiada embaixo.
+// Só as letras que as duas palavras usam existem; o '_' cobre o resto com
+// um bloco (nunca deve ocorrer: as strings são fixas).
+fn dente_cima(c: u8) -> &'static [&'static str; 6] {
+    match c {
+        b'A' => &["#####", "#...#", "#####", "#...#", ".#.#.", "..#.."],
+        b'C' => &[".####", "#....", "#....", "#....", "#....", ".###."],
+        b'E' => &["#####", "#....", "####.", "#....", "#....", "####."],
+        b'F' => &["#####", "#....", "####.", "#....", "##...", ".#..."],
+        b'L' => &["#....", "#....", "#....", "#....", "##...", ".###."],
+        b'O' => &["#####", "#...#", "#...#", "#...#", "#...#", ".###."],
+        b'S' => &[".####", "#....", ".###.", "....#", "....#", "####."],
+        b'T' => &["#####", ".###.", ".###.", "..#..", "..#..", "..#.."],
+        _ => &["#####", "#####", "#####", "#####", "#####", "#####"],
+    }
+}
+fn dente_sobe(c: u8) -> &'static [&'static str; 6] {
+    match c {
+        b'A' => &["..#..", ".#.#.", "#...#", "#####", "#...#", "#...#"],
+        b'B' => &[".###.", "#...#", "#...#", "####.", "#...#", "####."],
+        b'I' => &["..#..", "..#..", "..#..", "..#..", "..#..", ".###."],
+        b'K' => &["#..#.", "#.#..", "##...", "#.#..", "#..#.", "#...#"],
+        b'L' => &[".#...", "##...", "##...", "##...", "##...", "####."],
+        b'S' => &["####.", "....#", ".###.", "#....", "#....", ".####"],
+        _ => &["#####", "#####", "#####", "#####", "#####", "#####"],
+    }
+}
+
+// a fonte dente desenhada na tela: mesmo contrato do write_big (avanço de 6
+// por glifo, sem alocação) com glifos de 6 linhas
+pub(crate) fn write_dente(x: usize, y: usize, s: &str, a: u8, sobe: bool) {
+    let mut cx = x;
+    for chb in s.bytes() {
+        if chb == b' ' {
+            cx += 6;
+            continue;
+        }
+        let g = if sobe { dente_sobe(chb) } else { dente_cima(chb) };
+        for r in 0..6 {
+            for c in 0..5 {
+                if g[r].as_bytes()[c] == b'#' { put(cx + c, y + r, b'#', a); }
+            }
+        }
+        cx += 6;
+    }
+}
+
+// glifos dente centralizados horizontalmente (mesma conta do write_big_center)
+pub(crate) fn write_dente_center(y: usize, s: &str, a: u8, sobe: bool) {
+    let width = s.chars().count() * 6 - 1;
+    if width >= W() { write_dente(0, y, s, a, sobe); return; }
+    write_dente((W() - width) / 2, y, s, a, sobe);
+}
+
 pub(crate) fn attr_of(t: u8) -> u8 {
     match t {
         T_FLOOR => A_FLOOR,
@@ -314,11 +372,14 @@ pub(crate) fn render_title() {
     put(0, H() - 2, b'+', A_TITLE);
     put(W() - 1, H() - 2, b'+', A_TITLE);
 
-    // A LOGO: a boca dela. As letras SÃO os dentes — nada de fileira avulsa
-    // entre elas. Os dois olhos vermelhos (o mesmo A_BAS do B em jogo) moram
-    // nos VÃOS dos dentes de cima: o primeiro no vão entre o A e o S, o
-    // segundo no vão entre o espaço e o O (cada glifo avança 6 colunas; o
-    // vão entre o glifo k e o k+1 nasce em xc + (k+1)*6 - 1).
+    // A LOGO: a boca dela. As letras SÃO os dentes, na fonte dente (5x6): a
+    // fileira de cima PENDE da gengiva — borda reta em cima, afilando em
+    // dente embaixo; o T e o F nascem PRESAS (a haste afina em ponta). A de
+    // baixo ERGUE do chão do escuro — ponta em cima, base apoiada embaixo.
+    // Os dois olhos vermelhos (o mesmo A_BAS do B em jogo) moram nos VÃOS
+    // dos dentes de cima: o primeiro no vão entre o A e o S, o segundo no
+    // vão entre o espaço e o O (cada glifo avança 6 colunas; o vão entre o
+    // glifo k e o k+1 nasce em xc + (k+1)*6 - 1).
     let wc = "CASTLE OF".chars().count() * 6 - 1;
     let xc = (W() - wc) / 2;
     let ea = xc + 2 * 6 - 1; // olho 1: o vão entre o A e o S
@@ -335,30 +396,16 @@ pub(crate) fn render_title() {
     put(eb, 4, b'~', A_BAS | DIM);
     put(eb + 1, 4, b'~', A_BAS | DIM);
 
-    // dentes de cima: a palavra; as presas pendem dela para a goela
-    write_big_center(5, "CASTLE OF", A_TITLE);
-    for f in [1usize, 4, 7] {
-        let fx = xc + f * 6 + 2;
-        put(fx, 10, b'\\', A_TITLE);
-        put(fx + 1, 11, b'\\', A_TITLE);
-        put(fx + 2, 12, b'\\', A_TITLE);
-    }
+    // dentes de cima: a palavra pende da gengiva
+    write_dente_center(5, "CASTLE OF", A_TITLE, false);
     // o veneno pinga no escuro da goela
     put(W() / 2 - 20, 11, 0xB7, A_BAS | DIM);
     put(W() / 2 - 1, 11, 0xB7, A_BAS | DIM);
     put(W() / 2 + 17, 11, 0xB7, A_BAS | DIM);
     put(W() / 2 - 10, 12, 0xB7, A_BAS | DIM);
     put(W() / 2 + 8, 12, 0xB7, A_BAS | DIM);
-    // dentes de baixo: a palavra erguida do escuro; as presas sobem dela
-    let wb = "BASILISK".chars().count() * 6 - 1;
-    let xb = (W() - wb) / 2;
-    write_big_center(14, "BASILISK", A_BAS);
-    for f in [1usize, 4, 7] {
-        let fx = xb + f * 6 + 2;
-        put(fx, 13, b'/', A_TITLE);
-        put(fx + 1, 12, b'/', A_TITLE);
-        put(fx + 2, 11, b'/', A_TITLE);
-    }
+    // dentes de baixo: a palavra ergue do chão do escuro
+    write_dente_center(13, "BASILISK", A_BAS, true);
 
     write_center(20, "um conceito de survival horror", A_UI);
     write_center(21, "nao existe vida. nao existe ouro. existe a besta.", A_UI);
