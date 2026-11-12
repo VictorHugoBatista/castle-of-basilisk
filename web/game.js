@@ -1140,9 +1140,10 @@ function wakeAudio() {
 window.addEventListener('keydown', (e) => {
   wakeAudio();
   // cutscene: enter/espaço pulam direto pro título (antes do menuStep,
-  // senão o Enter vaza pro menu que está por baixo)
+  // senão o Enter vaza pro menu que está por baixo) — mas só depois da
+  // graça: no primeiro segundo, tecla nenhuma pula
   if (cutActive) {
-    if (e.code === 'Enter' || e.code === 'Space') endCutscene();
+    if (cutSkipReady(performance.now()) && (e.code === 'Enter' || e.code === 'Space')) endCutscene();
     e.preventDefault();
     return;
   }
@@ -1166,7 +1167,7 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('pointerdown', () => {
   wakeAudio(); // o clique que foca a página também acorda o castelo
-  if (cutActive) endCutscene(); // ...e pula a cutscene
+  if (cutActive && cutSkipReady(performance.now())) endCutscene(); // ...e pula, após a graça
 });
 window.addEventListener('keyup', (e) => {
   const bit = KEYMAP[e.code];
@@ -1201,6 +1202,10 @@ const CUT_FADE_IN = 900;   // a primeira cena acorda do preto
 const CUT_FADE_CUT = 450;  // virada entre cenas
 const CUT_FADE_END = 700;  // a última cena afunda de volta
 const CUT_SPEED = 60;      // px/s do texto rolando
+const CUT_SKIP_GRACE = 2500; // a pedra exige 2.5s de exibição antes de aceitar skip:
+                             // o clique de foco da aba e o enter reflexo de "começar"
+                             // matavam a abertura no primeiro segundo (e ela nascia
+                             // do preto — parecia que nunca existiu)
 
 let cutActive = true;      // nasce ativa: a pedra vem antes do menu
 let cutScene = 0;
@@ -1222,6 +1227,12 @@ function endCutscene() {
   cutEyes = null;
   forceRedraw();
   setAmbience(); // a trilha do título nasce no fim (se o AC já acordou)
+}
+
+// o skip só vale depois da graça: antes disso, tecla/clique não faz
+// nada (só acordam o som) — a abertura é inpulável no nascer do dia
+function cutSkipReady(nowMs) {
+  return cutStarted && nowMs - cutT0 >= CUT_SKIP_GRACE;
 }
 
 // o que já acendeu nesta cena (fx declarado em web/cutscene.js)
@@ -1290,7 +1301,7 @@ function cutFrame(nowMs) {
   const off = ((t * CUT_SPEED) / 1000) % total;
   ctx.fillText(txt, 8 - off, base);
   ctx.fillText(txt, 8 - off + total, base);
-  if (Math.floor(nowMs / 600) % 2 === 0) {
+  if (cutSkipReady(nowMs) && Math.floor(nowMs / 600) % 2 === 0) {
     ctx.fillStyle = shade(CUT_PAL[8], 0.9);
     ctx.textAlign = 'right';
     ctx.fillText('enter · pular', canvas.width - 8, 30 * CELL_H + 14);
@@ -1764,7 +1775,7 @@ function frame(nowMs) {
   if (cutActive) {
     acc = 0;
     lastState = stats[0];
-    safe(cutFrame, 'cutscene');
+    safe(() => cutFrame(nowMs), 'cutscene'); // closure: o safe chama fn() seco — sem arg
     requestAnimationFrame(frame); // SEMPRE re-agenda: 1 erro não congela os controles
     return;
   }

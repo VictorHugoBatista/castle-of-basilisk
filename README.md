@@ -47,8 +47,10 @@ aceitar (Chrome bloqueia `file://`; use o servidor HTTP).
 
 Na abertura (a cutscene que roda antes do título): quatro vistas da pedra —
 o castelo de cima, as beiras, o portão, os canais — em ASCII, com a história
-rolando na faixa de baixo. **ENTER** (ou um clique) pula direto pro título.
-Ela roda uma vez por carregamento de página: morte e reinício não a repetem.
+rolando na faixa de baixo. Ela exige uns segundos de exibição antes de aceitar
+o pulo (o clique de foco da aba não mata a abertura): **ENTER** (ou um clique)
+pula direto pro título. Ela roda uma vez por carregamento de página: morte e
+reinício não a repetem.
 
 Na tela de título: **W/S ou setas** escolhem entre **INICIAR** e **CONTROLES**,
 **ENTER** confirma. A tela de CONTROLES lista os comandos e permite escolher
