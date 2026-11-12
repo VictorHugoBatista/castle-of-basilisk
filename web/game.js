@@ -297,6 +297,15 @@ function setAmbience(force) {
     const STEP = BEAT / 2; // colcheia do pulso
     const gen4 = musicGen;
     const alive = () => ambTheme === 4 && !!AC && gen4 === musicGen;
+    // relógio congelado (contexto ainda suspenso): re-agenda curto SEM tocar
+    // no relógio — senão duas frases/sinos nascem no MESMO instante quando o
+    // contexto finalmente abre (o seqTick não precisa: o seqNext dele cresce
+    // sozinho, agendando sempre à frente)
+    const aguardaRodando = (rearm) => {
+      if (AC.state === 'running') return false;
+      setTimeout(rearm, 300);
+      return true;
+    };
 
     // drone das muralhas: D2 + A2 + D3 — duas saws desafinadas (batimento
     // lento, o ar "não afina") sob um lowpass que deriva; o corpo respira na
@@ -396,6 +405,7 @@ function setAmbience(force) {
     let lastPh = -1;
     const leadTick = () => {
       if (!alive()) return;
+      if (aguardaRodando(leadTick)) return;
       if (Math.random() < 0.22) {
         setTimeout(leadTick, 6000 + Math.random() * 12000); // a torre cala
         return;
@@ -451,6 +461,7 @@ function setAmbience(force) {
     ambNodes.push(hallG);
     const bellTick = () => {
       if (!alive()) return;
+      if (aguardaRodando(bellTick)) return;
       const f = [587.33, 698.46, 880][Math.floor(Math.random() * 3)];
       const t = AC.currentTime + 0.05;
       for (const [r, v] of [[1, 0.02], [2.76, 0.008], [5.4, 0.004]]) {
@@ -472,6 +483,7 @@ function setAmbience(force) {
 
     const thudTick = () => {
       if (!alive()) return;
+      if (aguardaRodando(thudTick)) return;
       const t = AC.currentTime + 0.05;
       const o = AC.createOscillator();
       o.type = 'sine';
@@ -1097,9 +1109,29 @@ function menuStep(e) {
 // o castelo acorda no PRIMEIRO gesto de qualquer tipo: tecla, clique ou
 // toque. O navegador proíbe som antes de um gesto (a página não pode cantar
 // sozinha ao carregar) — então o primeiro gesto possível e a trilha nasce nele
+let wakeRetry = null; // o retry do despertar (ver abaixo)
 function wakeAudio() {
   audioOn();
-  if (AC && AC.state === 'suspended') AC.resume();
+  if (AC && AC.state !== 'running') {
+    AC.resume().catch(() => {});
+    // o Chrome às vezes IGNORA o resume feito no mesmo task da criação do
+    // contexto (ele fica suspenso até a interação seguinte — a trilha nasce
+    // muda e só "acorda" na 2a tecla, intermitente). A ativação do usuário
+    // fica GRUDADA na página depois do primeiro gesto (sticky activation),
+    // então o retry curto abre o contexto sozinho, sem esperar o jogador
+    // tocar de novo
+    if (!wakeRetry) {
+      let tries = 0;
+      wakeRetry = setInterval(() => {
+        if (!AC || AC.state === 'running' || ++tries > 40) {
+          clearInterval(wakeRetry);
+          wakeRetry = null;
+          return;
+        }
+        AC.resume().catch(() => {});
+      }, 250);
+    }
+  }
   setAmbience(); // sem força: não recomeça se já toca
 }
 
