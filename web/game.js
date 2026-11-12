@@ -1,6 +1,8 @@
 // Castle of Basilisk — glue JS: render (diff que o RUST produz), WebAudio
 // sintetizado, loop de ticks. WASM ABI crua: lemos grid/stats/diff direto da memória exportada.
 
+import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES } from './cutscene.js';
+
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
 const TICK_MS = 140;
@@ -1132,11 +1134,18 @@ function wakeAudio() {
       }, 250);
     }
   }
-  setAmbience(); // sem força: não recomeça se já toca
+  if (!cutActive) setAmbience(); // na cutscene: silêncio absoluto — a trilha nasce no fim
 }
 
 window.addEventListener('keydown', (e) => {
   wakeAudio();
+  // cutscene: enter/espaço pulam direto pro título (antes do menuStep,
+  // senão o Enter vaza pro menu que está por baixo)
+  if (cutActive) {
+    if (e.code === 'Enter' || e.code === 'Space') endCutscene();
+    e.preventDefault();
+    return;
+  }
   // telas de menu (titulo 0, controles 4 e escolha 5): as teclas vao direto pro WASM
   // — nas CONTROLES, o próprio RT rastreia o KONAMI (B/A são bits de menu)
   if (stats[0] === 0 || stats[0] === 4 || stats[0] === 5) {
@@ -1155,7 +1164,10 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { held.add(IN_SNEAK); return; }
   if (RUN_CODES.includes(e.code)) { runHeld.add(e.code); e.preventDefault(); return; }
 });
-window.addEventListener('pointerdown', wakeAudio); // o clique que foca a página também acorda o castelo
+window.addEventListener('pointerdown', () => {
+  wakeAudio(); // o clique que foca a página também acorda o castelo
+  if (cutActive) endCutscene(); // ...e pula a cutscene
+});
 window.addEventListener('keyup', (e) => {
   const bit = KEYMAP[e.code];
   if (bit !== undefined) { held.delete(bit); return; }
@@ -1174,6 +1186,131 @@ function inputBits() {
   if (held.has(IN_SNEAK)) b |= IN_SNEAK;
   if (runHeld.size > 0) b |= IN_RUN; // X e/ou K: um solto, o outro segue correndo
   return b;
+}
+
+// ============================================================
+// cutscene de abertura: a porta antes do título
+// ============================================================
+// Só apresentação — o WASM não sabe que ela existe (decisão no
+// ARCHITECTURE.md). Roda ANTES do título: stats[0]===0 o tempo
+// todo, e o frame() desenha a cutscene por cima do menu adormecido.
+// Silêncio absoluto enquanto ela dura (sem música por enquanto):
+// a trilha do título nasce só no fim, em endCutscene.
+const CUT_AREA_H = 28;     // linhas de arte; o resto da tela é faixa de texto
+const CUT_FADE_IN = 900;   // a primeira cena acorda do preto
+const CUT_FADE_CUT = 450;  // virada entre cenas
+const CUT_FADE_END = 700;  // a última cena afunda de volta
+const CUT_SPEED = 60;      // px/s do texto rolando
+
+let cutActive = true;      // nasce ativa: a pedra vem antes do menu
+let cutScene = 0;
+let cutT0 = 0;             // performance.now() do começo da cutscene
+let cutSkip = 0;           // soma dos durs das cenas já viradas
+let cutStarted = false;
+let cutEyes = null;        // mapa (x,y) -> ms de acendimento da cena de olhos
+let cutEyesScene = -1;
+
+function cutLoadEyes(sc) {
+  if (!sc.eyes) return null;
+  const m = new Map();
+  for (const [x, y, t] of sc.eyes) m.set(y * CUT_W + x, t);
+  return m;
+}
+
+function endCutscene() {
+  cutActive = false;
+  cutEyes = null;
+  forceRedraw();
+  setAmbience(); // a trilha do título nasce no fim (se o AC já acordou)
+}
+
+// o que já acendeu nesta cena (fx declarado em web/cutscene.js)
+function cutVisible(sc, x, y, t) {
+  switch (sc.fx) {
+    case 'dissolve': {
+      const h = ((x * 73 + y * 131) % 97) / 97; // ruído determinístico
+      return t >= h * 1400;
+    }
+    case 'up':   return t >= (1 - y / CUT_AREA_H) * 1100; // acende do rio pra cima
+    case 'down': return t >= (y / CUT_AREA_H) * 1100;     // desce a muralha
+    case 'eyes': return cutEyes ? t >= (cutEyes.get(y * CUT_W + x) ?? Infinity) : true;
+    default:     return true;
+  }
+}
+
+// a nuvem de sombra que passa sobre a planta (cena 1): só escurece,
+// nunca ilumina — o mundo morto não tem sol propremente dito
+function cutSweepDim(x, t) {
+  const cx = (t * 0.0035 * CUT_W) % (CUT_W * 2);
+  let d = Math.abs(x - cx);
+  if (d > CUT_W) d = CUT_W * 2 - d;
+  return d < 7;
+}
+
+function cutFrame(nowMs) {
+  if (!cutStarted) { cutStarted = true; cutT0 = nowMs; }
+  let t = nowMs - cutT0 - cutSkip;
+  while (cutScene < CUT_SCENES.length - 1 && t >= CUT_SCENES[cutScene].dur) {
+    cutSkip += CUT_SCENES[cutScene].dur;
+    cutScene++;
+    t = nowMs - cutT0 - cutSkip;
+  }
+  const sc = CUT_SCENES[cutScene];
+  if (cutScene === CUT_SCENES.length - 1 && t >= sc.dur) { endCutscene(); return; }
+  if (cutEyesScene !== cutScene) { cutEyes = cutLoadEyes(sc); cutEyesScene = cutScene; }
+
+  // a paleta da cutscene veste o colorFor() por um frame (a cena usa
+  // os mesmos attrs "vivos": coroa pulsa, água ondula, pálido respira)
+  const prevPal = PAL;
+  PAL = CUT_PAL;
+  ctx.fillStyle = PAL[15];
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.font = 'bold 15px monospace';
+  for (let y = 0; y < CUT_AREA_H; y++) {
+    const line = sc.art[y] || '';
+    for (let x = 0; x < CUT_W; x++) {
+      const ch = line.charCodeAt(x);
+      if (!(ch > 32)) continue; // vazio/fora: o fundo já está lavado
+      if (!cutVisible(sc, x, y, t)) continue;
+      let attr = sc.map[String.fromCharCode(ch)] ?? sc.def;
+      if (sc.sweep && cutSweepDim(x, t)) attr |= DIM_FLAG;
+      ctx.fillStyle = colorFor(ch, attr, nowMs);
+      ctx.fillText(String.fromCharCode(ch), x * CELL_W + 1, y * CELL_H + CELL_H / 2 + 1);
+    }
+  }
+  PAL = prevPal;
+
+  // faixa de texto: divisória · texto rolando em loop · hint de skip
+  ctx.fillStyle = shade(CUT_PAL[2], 0.85);
+  for (let x = 0; x < CUT_W; x++) ctx.fillText('·', x * CELL_W + 1, 28 * CELL_H + 14);
+  ctx.fillStyle = CUT_PAL[8];
+  const base = 29 * CELL_H + 14;
+  const txt = CUT_TEXT[cutScene];
+  const total = ctx.measureText(txt).width;
+  const off = ((t * CUT_SPEED) / 1000) % total;
+  ctx.fillText(txt, 8 - off, base);
+  ctx.fillText(txt, 8 - off + total, base);
+  if (Math.floor(nowMs / 600) % 2 === 0) {
+    ctx.fillStyle = shade(CUT_PAL[8], 0.9);
+    ctx.textAlign = 'right';
+    ctx.fillText('enter · pular', canvas.width - 8, 30 * CELL_H + 14);
+    ctx.textAlign = 'left';
+  }
+
+  // fades: acordar da primeira cena, viradas, afundar no fim
+  let alpha = 0;
+  if (cutScene === 0) alpha = Math.max(alpha, 1 - Math.min(1, t / CUT_FADE_IN));
+  const rem = sc.dur - t;
+  if (cutScene < CUT_SCENES.length - 1) {
+    if (t < CUT_FADE_CUT) alpha = Math.max(alpha, 1 - t / CUT_FADE_CUT);
+    if (rem < CUT_FADE_CUT) alpha = Math.max(alpha, 1 - rem / CUT_FADE_CUT);
+  } else if (rem < CUT_FADE_END) {
+    alpha = 1 - rem / CUT_FADE_END;
+  }
+  if (alpha > 0.001) {
+    ctx.fillStyle = `rgba(5,2,0,${alpha.toFixed(3)})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
 }
 
 // ============================================================
@@ -1621,6 +1758,16 @@ function frame(nowMs) {
   const dt = nowMs - lastT;
   lastT = nowMs;
   acc += dt;
+
+  // cutscene: o resto do loop dorme — sem tick, sem HUD, sem medo;
+  // o menu de título fica por baixo, intacto, esperando o fim dela
+  if (cutActive) {
+    acc = 0;
+    lastState = stats[0];
+    safe(cutFrame, 'cutscene');
+    requestAnimationFrame(frame); // SEMPRE re-agenda: 1 erro não congela os controles
+    return;
+  }
 
   const st = stats[0];
   if (st === 1) {

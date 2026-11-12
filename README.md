@@ -43,7 +43,12 @@ aceitar (Chrome bloqueia `file://`; use o servidor HTTP).
 | ESPAÇO | esperar (ficar imóvel) |
 | SHIFT | passada silenciosa (calar-se) |
 | X ou K (as duas, sempre) | correr — o eco denuncia você |
-| ENTER | confirmar no menu / começar |
+| ENTER | confirmar no menu / começar / pular a abertura |
+
+Na abertura (a cutscene que roda antes do título): quatro vistas da pedra —
+o castelo de cima, as beiras, o portão, os canais — em ASCII, com a história
+rolando na faixa de baixo. **ENTER** (ou um clique) pula direto pro título.
+Ela roda uma vez por carregamento de página: morte e reinício não a repetem.
 
 Na tela de título: **W/S ou setas** escolhem entre **INICIAR** e **CONTROLES**,
 **ENTER** confirma. A tela de CONTROLES lista os comandos e permite escolher
