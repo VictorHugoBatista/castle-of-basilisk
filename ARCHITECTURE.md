@@ -23,13 +23,15 @@ castle-of-basilisc/
 │   └── exports.rs          # ABI `#[no_mangle]` pub extern "C" + dev tools do smoke
 ├── web/
 │   ├── index.html          # Canvas 672x576 + filtro CRT 100% CSS
+│   ├── cutscene.js         # Dados da abertura: cenas ASCII, paleta, texto rolando
 │   ├── game.js             # Glue JS: tick de 140ms, camera, render diff, WebAudio
 │   └── wasm/
 │       └── castle_of_basilisk.wasm   # Binario compilado (~37 KB), comitado
 ├── scripts/
 │   ├── smoke.mjs           # Gate de testes headless (so merge com "SMOKE OK")
 │   ├── debug6.mjs          # Bancada do bot playthrough (mede taxa de vitoria)
-│   └── fear_bench.mjs      # Bancada do MEDO: telemetria de niveis/alucinacoes
+│   ├── fear_bench.mjs      # Bancada do MEDO: telemetria de niveis/alucinacoes
+│   └── cutscene_preview.mjs # A lente de autoria da cutscene (imprime no terminal)
 ├── build.sh                # cargo build release + copia para web/wasm
 ├── Cargo.toml              # cdylib, zero dependencias
 ├── README.md               # Como jogar
@@ -190,6 +192,23 @@ Decisoes:
   attr): a troca de andar troca a referencia de paleta + `needsFull` — o CRT
   veste a cor do lugar (ambar rico / ambar seco / verde-lodo / pedra umida de
   caverna).
+- **Cutscene de abertura mora INTEIRA no JS** (`web/cutscene.js` = dados;
+  engine em `game.js`): apresentação pura, o WASM não sabe que ela existe —
+  sem estado novo no RT, sem ABI, sem smoke. Roda ANTES do título
+  (`stats[0]===0` o tempo todo; o menu fica por baixo, adormecido).
+  **Interação:** ENTER/espaço revelam a página da caixa de diálogo e, na
+  tecla seguinte, viram a cena; ESC pula tudo — sempre depois de uma graça
+  de 2.5s (o clique de foco da aba e o enter reflexo de "começar" matavam
+  a abertura no primeiro segundo; bug real, morto com prova). As cenas são
+  pixel-art sombreada 56×22 — a CÉLULA é o pixel (12×18), dithering Bayer
+  faz o degradê e meios-blocos (█▓▒░●) são os tons — com paleta própria
+  (`CUT_PAL`, mesmos índices de attr) reusando `colorFor()`: coroa pulsa,
+  água ondula, pálido respira, olho vermelho pisca DE GRAÇA, porque é a
+  mesma régua da tela de título. O texto da lore é a única voz narrativa
+  em tela que conta história — e mesmo assim só cheira: a verdade de
+  bastidor vive no LORE.md (§10), o tabu em tela (§9.3) vale pra ela.
+  Autoria: a mesma arte imprime no terminal (`scripts/cutscene_preview.mjs`),
+  browser é a conferência final.
 - **CRT em CSS puro** (scanlines `repeating-linear-gradient`, vinheta
   `radial-gradient`, flicker por keyframes): custo ZERO de runtime vs shaders.
 - **Paleta monocromatica (familia #ffb000) sobre #050200**; a EXCECAO e a

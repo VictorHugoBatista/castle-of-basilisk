@@ -1,6 +1,8 @@
 // Castle of Basilisk — glue JS: render (diff que o RUST produz), WebAudio
 // sintetizado, loop de ticks. WASM ABI crua: lemos grid/stats/diff direto da memória exportada.
 
+import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES } from './cutscene.js';
+
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
 const TICK_MS = 140;
@@ -1132,11 +1134,22 @@ function wakeAudio() {
       }, 250);
     }
   }
-  setAmbience(); // sem força: não recomeça se já toca
+  if (!cutActive) setAmbience(); // na cutscene: silêncio absoluto — a trilha nasce no fim
 }
 
 window.addEventListener('keydown', (e) => {
   wakeAudio();
+  // cutscene: enter/espaço avançam o texto, esc pula tudo (antes do
+  // menuStep, senão a tecla vaza pro menu que está por baixo) — sempre
+  // depois da graça: no primeiro segundo, tecla nenhuma faz nada
+  if (cutActive) {
+    if (cutSkipReady(performance.now())) {
+      if (e.code === 'Enter' || e.code === 'Space') cutAdvance(performance.now());
+      else if (e.code === 'Escape') endCutscene();
+    }
+    e.preventDefault();
+    return;
+  }
   // telas de menu (titulo 0, controles 4 e escolha 5): as teclas vao direto pro WASM
   // — nas CONTROLES, o próprio RT rastreia o KONAMI (B/A são bits de menu)
   if (stats[0] === 0 || stats[0] === 4 || stats[0] === 5) {
@@ -1174,6 +1187,180 @@ function inputBits() {
   if (held.has(IN_SNEAK)) b |= IN_SNEAK;
   if (runHeld.size > 0) b |= IN_RUN; // X e/ou K: um solto, o outro segue correndo
   return b;
+}
+
+// ============================================================
+// cutscene de abertura: a porta antes do título
+// ============================================================
+// Só apresentação — o WASM não sabe que ela existe (decisão no
+// ARCHITECTURE.md). Roda ANTES do título: stats[0]===0 o tempo
+// todo, e o frame() desenha a cutscene por cima do menu adormecido.
+// Silêncio absoluto enquanto ela dura (sem música por enquanto):
+// a trilha do título nasce só no fim, em endCutscene.
+//
+// O texto vive numa CAIXA DE DIÁLOGO estilo RPG (borda ambar, 3
+// linhas datilografadas sobre as rows 23..31): ENTER/espaço avançam
+// o texto (revela a página; na próxima tecla, vira a cena) e ESC
+// pula a cutscene inteira — todos depois da graça.
+const CUT_AREA_H = 22;     // linhas de arte; rows 23..31 são a caixa de texto
+const CUT_BOX_TOP = 23;    // primeira row da caixa
+const CUT_BOX_BOTTOM = 31; // última row da caixa (borda inferior)
+const CUT_FADE_IN = 900;   // a primeira cena acorda do preto
+const CUT_FADE_CUT = 450;  // virada entre cenas
+const CUT_FADE_END = 700;  // a última cena afunda de volta
+const CUT_CPS = 28;        // caracteres/s do texto datilografado
+const CUT_TEXT_DELAY = 600; // a página espera a cena assentar antes de falar
+const CUT_SKIP_GRACE = 2500; // a pedra exige 2.5s de exibição antes de aceitar
+                             // tecla: o clique de foco da aba e o enter reflexo
+                             // de "começar" matavam a abertura no primeiro segundo
+
+let cutActive = true;      // nasce ativa: a pedra vem antes do menu
+let cutScene = 0;
+let cutT0 = 0;             // performance.now() do começo da cutscene
+let cutSkip = 0;           // soma dos durs das cenas já viradas
+let cutStarted = false;
+let cutRevealDone = false; // a página corrente já foi revelada inteira
+let cutRevealScene = -1;
+let cutEyes = null;        // mapa (x,y) -> ms de acendimento da cena de olhos
+let cutEyesScene = -1;
+
+function cutLoadEyes(sc) {
+  if (!sc.eyes) return null;
+  const m = new Map();
+  for (const [x, y, t] of sc.eyes) m.set(y * CUT_W + x, t);
+  return m;
+}
+
+function endCutscene() {
+  cutActive = false;
+  cutEyes = null;
+  forceRedraw();
+  setAmbience(); // a trilha do título nasce no fim (se o AC já acordou)
+}
+
+// o skip só vale depois da graça: antes disso, tecla/clique não faz
+// nada (só acordam o som) — a abertura é inpulável no nascer do dia
+function cutSkipReady(nowMs) {
+  return cutStarted && nowMs - cutT0 >= CUT_SKIP_GRACE;
+}
+
+// ENTER/espaço na caixa de diálogo: revela a página inteira; na
+// tecla seguinte, vira a cena (ou encerra, na última)
+function cutAdvance(nowMs) {
+  if (!cutSkipReady(nowMs)) return;
+  if (!cutRevealDone) { cutRevealDone = true; return; }
+  if (cutScene === CUT_SCENES.length - 1) { endCutscene(); return; }
+  cutSkip = nowMs - cutT0; // a cena vira COM t=0 (o resto o while consome)
+  cutScene++;
+}
+
+// o que já acendeu nesta cena (fx declarado em web/cutscene.js)
+function cutVisible(sc, x, y, t) {
+  switch (sc.fx) {
+    case 'dissolve': {
+      const h = ((x * 73 + y * 131) % 97) / 97; // ruído determinístico
+      return t >= h * 1400;
+    }
+    case 'up':   return t >= (1 - y / CUT_AREA_H) * 1100; // acende do rio pra cima
+    case 'down': return t >= (y / CUT_AREA_H) * 1100;     // desce a muralha
+    case 'eyes': return cutEyes ? t >= (cutEyes.get(y * CUT_W + x) ?? Infinity) : true;
+    default:     return true;
+  }
+}
+
+// a nuvem de sombra que passa sobre a planta (cena 1): só escurece,
+// nunca ilumina — o mundo morto não tem sol propremente dito
+function cutSweepDim(x, t) {
+  const cx = (t * 0.0035 * CUT_W) % (CUT_W * 2);
+  let d = Math.abs(x - cx);
+  if (d > CUT_W) d = CUT_W * 2 - d;
+  return d < 7;
+}
+
+function cutFrame(nowMs) {
+  if (!cutStarted) { cutStarted = true; cutT0 = nowMs; }
+  let t = nowMs - cutT0 - cutSkip;
+  while (cutScene < CUT_SCENES.length - 1 && t >= CUT_SCENES[cutScene].dur) {
+    cutSkip += CUT_SCENES[cutScene].dur;
+    cutScene++;
+    t = nowMs - cutT0 - cutSkip;
+  }
+  const sc = CUT_SCENES[cutScene];
+  if (cutScene === CUT_SCENES.length - 1 && t >= sc.dur) { endCutscene(); return; }
+  if (cutEyesScene !== cutScene) { cutEyes = cutLoadEyes(sc); cutEyesScene = cutScene; }
+  if (cutRevealScene !== cutScene) { cutRevealDone = false; cutRevealScene = cutScene; }
+
+  // a paleta da cutscene veste o colorFor() por um frame (a cena usa
+  // os mesmos attrs "vivos": coroa pulsa, água ondula, pálido respira)
+  const prevPal = PAL;
+  PAL = CUT_PAL;
+  ctx.fillStyle = PAL[15];
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.font = 'bold 15px monospace';
+  for (let y = 0; y < CUT_AREA_H; y++) {
+    const line = sc.art[y] || '';
+    for (let x = 0; x < CUT_W; x++) {
+      const ch = line.charCodeAt(x);
+      if (!(ch > 32)) continue; // vazio/fora: o fundo já está lavado
+      if (!cutVisible(sc, x, y, t)) continue;
+      let attr = sc.map[String.fromCharCode(ch)] ?? sc.def;
+      if (sc.sweep && cutSweepDim(x, t)) attr |= DIM_FLAG;
+      ctx.fillStyle = colorFor(ch, attr, nowMs);
+      ctx.fillText(String.fromCharCode(ch), x * CELL_W + 1, y * CELL_H + CELL_H / 2 + 1);
+    }
+  }
+  PAL = prevPal;
+
+  // ---- a caixa de diálogo (rows 23..31): borda na régua do título ----
+  ctx.fillStyle = CUT_PAL[0];
+  ctx.fillRect(0, CUT_BOX_TOP * CELL_H, canvas.width, (CUT_BOX_BOTTOM - CUT_BOX_TOP + 1) * CELL_H);
+  ctx.fillStyle = CUT_PAL[1];
+  ctx.fillText('+', 1, CUT_BOX_TOP * CELL_H + 14);
+  ctx.fillText('+', (CUT_W - 1) * CELL_W + 1, CUT_BOX_TOP * CELL_H + 14);
+  ctx.fillText('+', 1, CUT_BOX_BOTTOM * CELL_H + 14);
+  ctx.fillText('+', (CUT_W - 1) * CELL_W + 1, CUT_BOX_BOTTOM * CELL_H + 14);
+  for (let x = 1; x < CUT_W - 1; x++) {
+    ctx.fillText('-', x * CELL_W + 1, CUT_BOX_TOP * CELL_H + 14);
+    ctx.fillText('-', x * CELL_W + 1, CUT_BOX_BOTTOM * CELL_H + 14);
+  }
+  for (let y = CUT_BOX_TOP + 1; y < CUT_BOX_BOTTOM; y++) {
+    ctx.fillText('|', 1, y * CELL_H + 14);
+    ctx.fillText('|', (CUT_W - 1) * CELL_W + 1, y * CELL_H + 14);
+  }
+
+  // ---- o texto datilografado: 3 linhas, orçamento de caracteres ----
+  ctx.fillStyle = CUT_PAL[8];
+  const page = CUT_TEXT[cutScene] ?? [];
+  let budget = cutRevealDone ? Infinity
+    : Math.max(0, Math.floor(((t - CUT_TEXT_DELAY) / 1000) * CUT_CPS));
+  for (let i = 0; i < page.length; i++) {
+    const line = page[i] ?? '';
+    const vis = Math.min(line.length, budget);
+    if (vis > 0) ctx.fillText(line.slice(0, vis), 24, (25 + i * 2) * CELL_H + 14);
+    budget -= vis;
+  }
+  // a dica de teclas: apagadinha no canto da caixa (só depois da graça)
+  if (cutSkipReady(nowMs)) {
+    ctx.fillStyle = shade(CUT_PAL[1], 0.95);
+    ctx.textAlign = 'right';
+    ctx.fillText('enter avança · esc pula', canvas.width - 24, (CUT_BOX_BOTTOM - 1) * CELL_H + 14);
+    ctx.textAlign = 'left';
+  }
+
+  // fades: acordar da primeira cena, viradas, afundar no fim
+  let alpha = 0;
+  if (cutScene === 0) alpha = Math.max(alpha, 1 - Math.min(1, t / CUT_FADE_IN));
+  const rem = sc.dur - t;
+  if (cutScene < CUT_SCENES.length - 1) {
+    if (t < CUT_FADE_CUT) alpha = Math.max(alpha, 1 - t / CUT_FADE_CUT);
+    if (rem < CUT_FADE_CUT) alpha = Math.max(alpha, 1 - rem / CUT_FADE_CUT);
+  } else if (rem < CUT_FADE_END) {
+    alpha = 1 - rem / CUT_FADE_END;
+  }
+  if (alpha > 0.001) {
+    ctx.fillStyle = `rgba(5,2,0,${alpha.toFixed(3)})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
 }
 
 // ============================================================
@@ -1621,6 +1808,16 @@ function frame(nowMs) {
   const dt = nowMs - lastT;
   lastT = nowMs;
   acc += dt;
+
+  // cutscene: o resto do loop dorme — sem tick, sem HUD, sem medo;
+  // o menu de título fica por baixo, intacto, esperando o fim dela
+  if (cutActive) {
+    acc = 0;
+    lastState = stats[0];
+    safe(() => cutFrame(nowMs), 'cutscene'); // closure: o safe chama fn() seco — sem arg
+    requestAnimationFrame(frame); // SEMPRE re-agenda: 1 erro não congela os controles
+    return;
+  }
 
   const st = stats[0];
   if (st === 1) {
