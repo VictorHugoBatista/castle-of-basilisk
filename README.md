@@ -43,13 +43,14 @@ aceitar (Chrome bloqueia `file://`; use o servidor HTTP).
 | ESPAÇO | esperar (ficar imóvel) |
 | SHIFT | passada silenciosa (calar-se) |
 | X ou K (as duas, sempre) | correr — o eco denuncia você |
-| ENTER | confirmar no menu / começar / pular a abertura |
+| ENTER | confirmar no menu / começar / avançar a abertura (ESC pula tudo) |
 
 Na abertura (a cutscene que roda antes do título): quatro vistas da pedra —
-o castelo de cima, as beiras, o portão, os canais — em ASCII, com a história
-rolando na faixa de baixo. Ela exige uns segundos de exibição antes de aceitar
-o pulo (o clique de foco da aba não mata a abertura): **ENTER** (ou um clique)
-pula direto pro título. Ela roda uma vez por carregamento de página: morte e
+o castelo de cima, as beiras, o portão, os canais — em pixel-art sombreada,
+com a história datilografada numa **caixa de diálogo** no rodapé. **ENTER**
+(ou espaço) revela a página e vira a cena; **ESC** pula a abertura inteira.
+As teclas só valem depois dos primeiros segundos (o clique de foco da aba
+não mata a abertura). Ela roda uma vez por carregamento de página: morte e
 reinício não a repetem.
 
 Na tela de título: **W/S ou setas** escolhem entre **INICIAR** e **CONTROLES**,

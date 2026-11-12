@@ -46,8 +46,8 @@ function printScene(si) {
     console.log(out + (line.length !== CUT_W
       ? `  ${DIM}<-- ${line.length} cols${RESET}` : ''));
   }
-  console.log(`\n${DIM}texto rolando:${RESET}`);
-  console.log(DIM + CUT_TEXT[si] + RESET);
+  console.log(`\n${DIM}caixa de texto:${RESET}`);
+  for (const line of CUT_TEXT[si]) console.log(DIM + '  ' + line + RESET);
   if (sc.eyes) {
     console.log(`${DIM}olhos: ${sc.eyes.map(([x, y, t]) => `(${x},${y}) ${t}ms`).join(' · ')}${RESET}`);
   }
@@ -55,7 +55,7 @@ function printScene(si) {
 
 const args = process.argv.slice(2);
 if (args.includes('--texto')) {
-  CUT_TEXT.forEach((t, i) => console.log(`\n[scene ${i}]\n${t}`));
+  CUT_TEXT.forEach((page, i) => console.log(`\n[scene ${i}]\n` + page.map(l => '  ' + l).join('\n')));
 } else {
   const only = args.map(Number).filter(n => !Number.isNaN(n));
   const scenes = only.length ? only : CUT_SCENES.map((_, i) => i);

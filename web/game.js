@@ -1139,11 +1139,14 @@ function wakeAudio() {
 
 window.addEventListener('keydown', (e) => {
   wakeAudio();
-  // cutscene: enter/espaço pulam direto pro título (antes do menuStep,
-  // senão o Enter vaza pro menu que está por baixo) — mas só depois da
-  // graça: no primeiro segundo, tecla nenhuma pula
+  // cutscene: enter/espaço avançam o texto, esc pula tudo (antes do
+  // menuStep, senão a tecla vaza pro menu que está por baixo) — sempre
+  // depois da graça: no primeiro segundo, tecla nenhuma faz nada
   if (cutActive) {
-    if (cutSkipReady(performance.now()) && (e.code === 'Enter' || e.code === 'Space')) endCutscene();
+    if (cutSkipReady(performance.now())) {
+      if (e.code === 'Enter' || e.code === 'Space') cutAdvance(performance.now());
+      else if (e.code === 'Escape') endCutscene();
+    }
     e.preventDefault();
     return;
   }
@@ -1165,10 +1168,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { held.add(IN_SNEAK); return; }
   if (RUN_CODES.includes(e.code)) { runHeld.add(e.code); e.preventDefault(); return; }
 });
-window.addEventListener('pointerdown', () => {
-  wakeAudio(); // o clique que foca a página também acorda o castelo
-  if (cutActive && cutSkipReady(performance.now())) endCutscene(); // ...e pula, após a graça
-});
+window.addEventListener('pointerdown', wakeAudio); // o clique que foca a página também acorda o castelo
 window.addEventListener('keyup', (e) => {
   const bit = KEYMAP[e.code];
   if (bit !== undefined) { held.delete(bit); return; }
@@ -1197,21 +1197,30 @@ function inputBits() {
 // todo, e o frame() desenha a cutscene por cima do menu adormecido.
 // Silêncio absoluto enquanto ela dura (sem música por enquanto):
 // a trilha do título nasce só no fim, em endCutscene.
-const CUT_AREA_H = 28;     // linhas de arte; o resto da tela é faixa de texto
+//
+// O texto vive numa CAIXA DE DIÁLOGO estilo RPG (borda ambar, 3
+// linhas datilografadas sobre as rows 23..31): ENTER/espaço avançam
+// o texto (revela a página; na próxima tecla, vira a cena) e ESC
+// pula a cutscene inteira — todos depois da graça.
+const CUT_AREA_H = 22;     // linhas de arte; rows 23..31 são a caixa de texto
+const CUT_BOX_TOP = 23;    // primeira row da caixa
+const CUT_BOX_BOTTOM = 31; // última row da caixa (borda inferior)
 const CUT_FADE_IN = 900;   // a primeira cena acorda do preto
 const CUT_FADE_CUT = 450;  // virada entre cenas
 const CUT_FADE_END = 700;  // a última cena afunda de volta
-const CUT_SPEED = 60;      // px/s do texto rolando
-const CUT_SKIP_GRACE = 2500; // a pedra exige 2.5s de exibição antes de aceitar skip:
-                             // o clique de foco da aba e o enter reflexo de "começar"
-                             // matavam a abertura no primeiro segundo (e ela nascia
-                             // do preto — parecia que nunca existiu)
+const CUT_CPS = 28;        // caracteres/s do texto datilografado
+const CUT_TEXT_DELAY = 600; // a página espera a cena assentar antes de falar
+const CUT_SKIP_GRACE = 2500; // a pedra exige 2.5s de exibição antes de aceitar
+                             // tecla: o clique de foco da aba e o enter reflexo
+                             // de "começar" matavam a abertura no primeiro segundo
 
 let cutActive = true;      // nasce ativa: a pedra vem antes do menu
 let cutScene = 0;
 let cutT0 = 0;             // performance.now() do começo da cutscene
 let cutSkip = 0;           // soma dos durs das cenas já viradas
 let cutStarted = false;
+let cutRevealDone = false; // a página corrente já foi revelada inteira
+let cutRevealScene = -1;
 let cutEyes = null;        // mapa (x,y) -> ms de acendimento da cena de olhos
 let cutEyesScene = -1;
 
@@ -1233,6 +1242,16 @@ function endCutscene() {
 // nada (só acordam o som) — a abertura é inpulável no nascer do dia
 function cutSkipReady(nowMs) {
   return cutStarted && nowMs - cutT0 >= CUT_SKIP_GRACE;
+}
+
+// ENTER/espaço na caixa de diálogo: revela a página inteira; na
+// tecla seguinte, vira a cena (ou encerra, na última)
+function cutAdvance(nowMs) {
+  if (!cutSkipReady(nowMs)) return;
+  if (!cutRevealDone) { cutRevealDone = true; return; }
+  if (cutScene === CUT_SCENES.length - 1) { endCutscene(); return; }
+  cutSkip = nowMs - cutT0; // a cena vira COM t=0 (o resto o while consome)
+  cutScene++;
 }
 
 // o que já acendeu nesta cena (fx declarado em web/cutscene.js)
@@ -1269,6 +1288,7 @@ function cutFrame(nowMs) {
   const sc = CUT_SCENES[cutScene];
   if (cutScene === CUT_SCENES.length - 1 && t >= sc.dur) { endCutscene(); return; }
   if (cutEyesScene !== cutScene) { cutEyes = cutLoadEyes(sc); cutEyesScene = cutScene; }
+  if (cutRevealScene !== cutScene) { cutRevealDone = false; cutRevealScene = cutScene; }
 
   // a paleta da cutscene veste o colorFor() por um frame (a cena usa
   // os mesmos attrs "vivos": coroa pulsa, água ondula, pálido respira)
@@ -1291,20 +1311,39 @@ function cutFrame(nowMs) {
   }
   PAL = prevPal;
 
-  // faixa de texto: divisória · texto rolando em loop · hint de skip
-  ctx.fillStyle = shade(CUT_PAL[2], 0.85);
-  for (let x = 0; x < CUT_W; x++) ctx.fillText('·', x * CELL_W + 1, 28 * CELL_H + 14);
+  // ---- a caixa de diálogo (rows 23..31): borda na régua do título ----
+  ctx.fillStyle = CUT_PAL[0];
+  ctx.fillRect(0, CUT_BOX_TOP * CELL_H, canvas.width, (CUT_BOX_BOTTOM - CUT_BOX_TOP + 1) * CELL_H);
+  ctx.fillStyle = CUT_PAL[1];
+  ctx.fillText('+', 1, CUT_BOX_TOP * CELL_H + 14);
+  ctx.fillText('+', (CUT_W - 1) * CELL_W + 1, CUT_BOX_TOP * CELL_H + 14);
+  ctx.fillText('+', 1, CUT_BOX_BOTTOM * CELL_H + 14);
+  ctx.fillText('+', (CUT_W - 1) * CELL_W + 1, CUT_BOX_BOTTOM * CELL_H + 14);
+  for (let x = 1; x < CUT_W - 1; x++) {
+    ctx.fillText('-', x * CELL_W + 1, CUT_BOX_TOP * CELL_H + 14);
+    ctx.fillText('-', x * CELL_W + 1, CUT_BOX_BOTTOM * CELL_H + 14);
+  }
+  for (let y = CUT_BOX_TOP + 1; y < CUT_BOX_BOTTOM; y++) {
+    ctx.fillText('|', 1, y * CELL_H + 14);
+    ctx.fillText('|', (CUT_W - 1) * CELL_W + 1, y * CELL_H + 14);
+  }
+
+  // ---- o texto datilografado: 3 linhas, orçamento de caracteres ----
   ctx.fillStyle = CUT_PAL[8];
-  const base = 29 * CELL_H + 14;
-  const txt = CUT_TEXT[cutScene];
-  const total = ctx.measureText(txt).width;
-  const off = ((t * CUT_SPEED) / 1000) % total;
-  ctx.fillText(txt, 8 - off, base);
-  ctx.fillText(txt, 8 - off + total, base);
-  if (cutSkipReady(nowMs) && Math.floor(nowMs / 600) % 2 === 0) {
-    ctx.fillStyle = shade(CUT_PAL[8], 0.9);
+  const page = CUT_TEXT[cutScene] ?? [];
+  let budget = cutRevealDone ? Infinity
+    : Math.max(0, Math.floor(((t - CUT_TEXT_DELAY) / 1000) * CUT_CPS));
+  for (let i = 0; i < page.length; i++) {
+    const line = page[i] ?? '';
+    const vis = Math.min(line.length, budget);
+    if (vis > 0) ctx.fillText(line.slice(0, vis), 24, (25 + i * 2) * CELL_H + 14);
+    budget -= vis;
+  }
+  // a dica de teclas: apagadinha no canto da caixa (só depois da graça)
+  if (cutSkipReady(nowMs)) {
+    ctx.fillStyle = shade(CUT_PAL[1], 0.95);
     ctx.textAlign = 'right';
-    ctx.fillText('enter · pular', canvas.width - 8, 30 * CELL_H + 14);
+    ctx.fillText('enter avança · esc pula', canvas.width - 24, (CUT_BOX_BOTTOM - 1) * CELL_H + 14);
     ctx.textAlign = 'left';
   }
 
