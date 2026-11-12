@@ -336,3 +336,11 @@ um toque mata / Um olhar mata. Cada tema tem o próprio caráter de geração.
 Para o jogo grande: itens de "ruído falso", basilisco aprendendo padrões de
 fuga, salas com rachaduras de teto, e um final que explique porque uma besta
 gigante protege um rei morto.
+
+---
+
+## inspirações
+
+De onde vem a arte do jogo — a OST (dungeon synth à Berlin-School, referência:
+Cimerion *Contresort*), o CRT âmbar, o glifo como objeto e o mito do basilisco:
+[`INSPIRACOES.md`](INSPIRACOES.md).

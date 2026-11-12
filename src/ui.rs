@@ -164,6 +164,66 @@ pub(crate) fn write_big_center(y: usize, s: &str, a: u8) {
     write_big((W() - width) / 2, y, s, a);
 }
 
+// ================= fonte DENTE (a boca da logo) =================
+// glifos 5x6: cada letra É um dente. Na fileira de CIMA (dente_cima) a letra
+// pende da gengiva — borda de cima reta, a de baixo afina em dente; o T e o
+// F nascem PRESAS (a haste afina em ponta única). Na fileira de BAIXO
+// (dente_sobe) a letra ergue do chão — ponta em cima, base apoiada embaixo.
+// Só as letras que as duas palavras usam existem; o '_' cobre o resto com
+// um bloco (nunca deve ocorrer: as strings são fixas).
+fn dente_cima(c: u8) -> &'static [&'static str; 6] {
+    match c {
+        b'A' => &["#####", "#...#", "#####", "#...#", ".#.#.", "..#.."],
+        b'C' => &[".####", "#....", "#....", "#....", "#....", ".###."],
+        b'E' => &["#####", "#....", "####.", "#....", "#....", "####."],
+        b'F' => &["#####", "#....", "####.", "#....", "##...", ".#..."],
+        b'L' => &["#....", "#....", "#....", "#....", "##...", ".###."],
+        b'O' => &["#####", "#...#", "#...#", "#...#", "#...#", ".###."],
+        b'S' => &[".####", "#....", ".###.", "....#", "....#", "####."],
+        b'T' => &["#####", ".###.", ".###.", "..#..", "..#..", "..#.."],
+        _ => &["#####", "#####", "#####", "#####", "#####", "#####"],
+    }
+}
+fn dente_sobe(c: u8) -> &'static [&'static str; 6] {
+    match c {
+        b'A' => &["..#..", ".#.#.", "#...#", "#####", "#...#", "#...#"],
+        b'B' => &[".###.", "#...#", "#...#", "####.", "#...#", "####."],
+        b'I' => &["..#..", "..#..", "..#..", "..#..", "..#..", ".###."],
+        b'K' => &["#..#.", "#.#..", "##...", "#.#..", "#..#.", "#...#"],
+        b'L' => &[".#...", "##...", "##...", "##...", "##...", "####."],
+        // o S ergue EM PÉ: espelhado, o ziguezague inverte a leitura e o
+        // dente vira um Z (BAZILISK) — de pé ele continua dente e lera
+        b'S' => &[".####", "#....", ".###.", "....#", "....#", "####."],
+        _ => &["#####", "#####", "#####", "#####", "#####", "#####"],
+    }
+}
+
+// a fonte dente desenhada na tela: mesmo contrato do write_big (avanço de 6
+// por glifo, sem alocação) com glifos de 6 linhas
+pub(crate) fn write_dente(x: usize, y: usize, s: &str, a: u8, sobe: bool) {
+    let mut cx = x;
+    for chb in s.bytes() {
+        if chb == b' ' {
+            cx += 6;
+            continue;
+        }
+        let g = if sobe { dente_sobe(chb) } else { dente_cima(chb) };
+        for r in 0..6 {
+            for c in 0..5 {
+                if g[r].as_bytes()[c] == b'#' { put(cx + c, y + r, b'#', a); }
+            }
+        }
+        cx += 6;
+    }
+}
+
+// glifos dente centralizados horizontalmente (mesma conta do write_big_center)
+pub(crate) fn write_dente_center(y: usize, s: &str, a: u8, sobe: bool) {
+    let width = s.chars().count() * 6 - 1;
+    if width >= W() { write_dente(0, y, s, a, sobe); return; }
+    write_dente((W() - width) / 2, y, s, a, sobe);
+}
+
 pub(crate) fn attr_of(t: u8) -> u8 {
     match t {
         T_FLOOR => A_FLOOR,
@@ -314,18 +374,48 @@ pub(crate) fn render_title() {
     put(0, H() - 2, b'+', A_TITLE);
     put(W() - 1, H() - 2, b'+', A_TITLE);
 
-    // título grande no topo
-    write_big_center(2, "CASTLE OF", A_TITLE);
-    write_big_center(8, "BASILISK", A_BAS);
+    // A LOGO: a boca dela. As letras SÃO os dentes, na fonte dente (5x6): a
+    // fileira de cima PENDE da gengiva — borda reta em cima, afilando em
+    // dente embaixo; o T e o F nascem PRESAS (a haste afina em ponta). A de
+    // baixo ERGUE do chão do escuro — ponta em cima, base apoiada embaixo.
+    // Os dois olhos vermelhos (o mesmo A_BAS do B em jogo) moram nos VÃOS
+    // dos dentes de cima: o primeiro no vão entre o A e o S, o segundo no
+    // vão entre o espaço e o O (cada glifo avança 6 colunas; o vão entre o
+    // glifo k e o k+1 nasce em xc + (k+1)*6 - 1).
+    let wc = "CASTLE OF".chars().count() * 6 - 1;
+    let xc = (W() - wc) / 2;
+    let ea = xc + 2 * 6 - 1; // olho 1: o vão entre o A e o S
+    let eb = xc + 7 * 6 - 1; // olho 2: o vão entre o espaço e o O
+    for r in 0..2 {
+        for c in 0..2 {
+            put(ea + c, 3 + r, b'#', A_BAS);
+            put(eb + c, 3 + r, b'#', A_BAS);
+        }
+    }
+    // a luz dos olhos escorre (dim)
+    put(ea, 5, b'~', A_BAS | DIM);
+    put(ea + 1, 5, b'~', A_BAS | DIM);
+    put(eb, 5, b'~', A_BAS | DIM);
+    put(eb + 1, 5, b'~', A_BAS | DIM);
 
-    write_center(14, "um conceito de survival horror", A_UI);
-    write_center(16, "nao existe vida. nao existe ouro. existe a besta.", A_UI);
-    write_center(17, "esconda-se. nunca olhe para ela.", A_UI);
+    // dentes de cima: a palavra pende da gengiva
+    write_dente_center(6, "CASTLE OF", A_TITLE, false);
+    // o veneno pinga no escuro da goela
+    put(W() / 2 - 20, 12, 0xB7, A_BAS | DIM);
+    put(W() / 2 - 1, 12, 0xB7, A_BAS | DIM);
+    put(W() / 2 + 17, 12, 0xB7, A_BAS | DIM);
+    put(W() / 2 - 10, 13, 0xB7, A_BAS | DIM);
+    put(W() / 2 + 8, 13, 0xB7, A_BAS | DIM);
+    // dentes de baixo: a palavra ergue do chão do escuro — na MESMA cor do
+    // título (ambar, sem vida): o vermelho é só dos olhos, que são os únicos
+    // a respirar na boca
+    write_dente_center(14, "BASILISK", A_TITLE, true);
 
-    // menu centralizado: a opcao com cursor fica em ambar (A_TITLE).
+    // o menu respira no espaço que sobrou: a boca ocupa o topo, o menu
+    // centraliza no vão livre abaixo dela (sem tagline competindo).
     // SEM alocacao: format! cresceria a memoria do wasm e desanexava as views do JS.
     unsafe {
-        let items = [("INICIAR", 21), ("CONTROLES", 23)];
+        let items = [("INICIAR", 22), ("CONTROLES", 24)];
         for (k, (label, y)) in items.iter().enumerate() {
             let sel = MENU_SEL == k as u8;
             let a = if sel { A_TITLE } else { A_UI };
