@@ -59,7 +59,7 @@ pub(crate) fn bas_walkable(x: i32, y: i32) -> bool {
 // piso. (Ela ATRAVESSA o '¤' em jogo normalmente — o pulso denunciará;
 // a exclusão aqui é só do NASCER, não do andar.)
 pub(crate) fn spawn_clear(x: i32, y: i32) -> bool {
-    unsafe { walkable(x, y) && tile_at(x as usize, y as usize) != T_SHARD }
+    walkable(x, y) && tile_at(x as usize, y as usize) != T_SHARD
 }
 
 // ================= linha de visão =================
