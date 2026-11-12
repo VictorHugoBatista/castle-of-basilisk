@@ -774,9 +774,9 @@ pub(crate) fn gen_once(depth: u8, seed: u32) {
                         }
                     }
                     if a > b { continue; }
-                    let kL = 1 + rndn(3) as i32;
-                    let kR = 1 + rndn(3) as i32;
-                    for x in (a - kL)..=(b + kR) {
+                    let k_l = 1 + rndn(3) as i32;
+                    let k_r = 1 + rndn(3) as i32;
+                    for x in (a - k_l)..=(b + k_r) {
                         if x <= 0 || x >= W() as i32 - 1 { continue; }
                         unsafe { MAP[idx(x as usize, y as usize)] = T_WALL; }
                     }
@@ -1148,7 +1148,7 @@ pub(crate) fn spawn_shard(depth: u8, seed: u32) {
                 }
                 if k == pick {
                     MAP[i] = T_SHARD;
-                    unsafe { SHARD_FLOOR = depth; } // a semente crava: este é o andar do único
+                    SHARD_FLOOR = depth; // a semente crava: este é o andar do único
                     placed = true;
                     break;
                 }

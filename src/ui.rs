@@ -234,7 +234,7 @@ pub(crate) fn attr_of(t: u8) -> u8 {
         T_CROWN | T_SHARD => A_CROWN, // '§' e '¤': a MESMA matéria (o brilho é igual, o glifo é o que distingue)
         T_PILLAR => A_WALL,
         T_RUBBLE => A_RUBBLE,
-        T_WATER | T_SHALLOW => A_WATER,
+        T_WATER => A_WATER, // T_SHALLOW tem o MESMO valor do T_WATER (b'='): o braço único já cobre os dois
         T_BARS => A_WALL,
         T_SKULL | T_CORPSE => A_RUBBLE, // '¥'/'¶': osso e carne do acervo, cor de osso
         _ => A_FLOOR,
