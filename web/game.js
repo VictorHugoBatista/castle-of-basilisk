@@ -1094,10 +1094,17 @@ function menuStep(e) {
   return true;
 }
 
-window.addEventListener('keydown', (e) => {
+// o castelo acorda no PRIMEIRO gesto de qualquer tipo: tecla, clique ou
+// toque. O navegador proíbe som antes de um gesto (a página não pode cantar
+// sozinha ao carregar) — então o primeiro gesto possível e a trilha nasce nele
+function wakeAudio() {
   audioOn();
   if (AC && AC.state === 'suspended') AC.resume();
-  setAmbience(); // o primeiro gesto acorda o castelo: a trilha do menu nasce já (sem força: não recomeça se já toca)
+  setAmbience(); // sem força: não recomeça se já toca
+}
+
+window.addEventListener('keydown', (e) => {
+  wakeAudio();
   // telas de menu (titulo 0, controles 4 e escolha 5): as teclas vao direto pro WASM
   // — nas CONTROLES, o próprio RT rastreia o KONAMI (B/A são bits de menu)
   if (stats[0] === 0 || stats[0] === 4 || stats[0] === 5) {
@@ -1116,6 +1123,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { held.add(IN_SNEAK); return; }
   if (RUN_CODES.includes(e.code)) { runHeld.add(e.code); e.preventDefault(); return; }
 });
+window.addEventListener('pointerdown', wakeAudio); // o clique que foca a página também acorda o castelo
 window.addEventListener('keyup', (e) => {
   const bit = KEYMAP[e.code];
   if (bit !== undefined) { held.delete(bit); return; }
