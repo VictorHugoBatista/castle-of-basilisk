@@ -295,7 +295,8 @@ Acabou de vergonha. E vergonha é muda.
   nada brotou antes, o primeiro nível dos canais brota o seu, sem falta;
   em nenhum fundo, a matéria toda é só a coroa. Brilha
   como a coroa porque **é da mesma régua de ferro velo** — o jogo NUNCA
-  diz: quem vê o `¤` brilhar igual ao `§` pode juntar sozinho. E o uso é
+  diz: quem vê o `¤` brilhar igual ao `§` pode juntar sozinho. (A matéria
+  comum tem raiz mais funda ainda — de bastidor, §10.) E o uso é
   real, não metáfora: carregando o fragmento — ou a coroa — **o pouco que
   a beira conta como protocolo da maré vira pulso no próprio peito do
   ladrão**: quanto mais forte o pulso, mais perto a coisa. O que é isso
@@ -438,11 +439,11 @@ o que é mecânica e o que é narrativa.
 | 10 | **Quem entrou antes dele?** | A cicatriz de medo; o caderno da ladrã; ossadas `¥` | toda ossada do castelo tem chance na teoria de fã de ter sido um ladrão |
 | 11 | O que acontece ao **mundo** quando a coroa sai da Cloaca? | *"...a besta continua, paciente, no escuro"* | a besta sem função provada nenhuma; a coroa chamando por cima da terra; a Regência enfim rompida — e o jogo NUNCA mostra o dia seguinte. Era para ninguém ver |
 | 12 | **Para onde vai a maré dela?** | Só o sinal: a água para de pingar | (a) o alcance dela cobre a bacia, não o castelo: ela patrulha região inteira; (b) ela caça onde o medo acaba — e a beira a alimenta de longe sem saber; (c) a caverna é o porão, não o fim: da cisterna da antessala o caminho dela continua rio abaixo, para um leito ainda mais fundo |
-| 13 | **De onde veio — e o que é de fato?** | Só nomes emprestados: "basilisco" nos livros, "maré" na beira, `B` na tela — e nenhum é dela | versões que toda boca reparte, e nenhuma tem prova: sempre esteve lá esperando; foi ovo e chocou no leito; cresceu dos efluentes de um império inteiro; acordou com o trânsito de guerra; desceu o rio; saiu de fenda do inferno; caiu das estrelas; ou ainda está se transformando — e TODAS podem ser a mesma história. Mistério do calibre da origem da própria humanidade: o edital existe porque a versão não se pôde escrever |
+| 13 | **De onde veio — e o que é de fato?** | Só nomes emprestados: "basilisco" nos livros, "maré" na beira, `B` na tela — e nenhum é dela | versões que toda boca reparte, e nenhuma tem prova: sempre esteve lá esperando; foi ovo e chocou no leito; cresceu dos efluentes de um império inteiro; acordou com o trânsito de guerra; desceu o rio; saiu de fenda do inferno; caiu das estrelas; ou ainda está se transformando — e TODAS podem ser a mesma história. Mistério do calibre da origem da própria humanidade: o edital existe porque a versão não se pôde escrever · **a verdade de bastidor: §10** |
 | 14 | O que aconteceu com a **casa que desceu com o rei**? | Só a conta: "desceu junto, todos à volta" — sem prova | (a) morreram todos no fundo, em pé ao lado do cadáver — ossada é promessa — ou foram os primeiros entregues ao acervo dela; (b) os que sobraram saíram pela beira na mesma noite e sumiram no anel da periferia de vez; (c) ninguém desceu jamais: a coroa sempre esteve no fundo, e a Descida é a história que se conta para explicá-la |
-| 15 | Por que ela **subiu naquela noite** — e por que **caça o Ferro** até hoje? | Só o fato: subiu de vez, e a caça dura desde o Ferro sair da água | (a) a Descida a chamou — endereço, cheiro: a conta da beira empurra as duas ocorrências para uma mesma história; (b) o século de guerra e trânsito a despertou de vez; (c) motivo nenhum humano — ela decidiu; e é a posse inédita do Ferro (primeira vez em um milênio fora da água) o único estímulo que a caça explica |
+| 15 | Por que ela **subiu naquela noite** — e por que **caça o Ferro** até hoje? | Só o fato: subiu de vez, e a caça dura desde o Ferro sair da água | (a) a Descida a chamou — endereço, cheiro: a conta da beira empurra as duas ocorrências para uma mesma história; (b) o século de guerra e trânsito a despertou de vez; (c) motivo nenhum humano — ela decidiu; e é a posse inédita do Ferro (primeira vez em um milênio fora da água) o único estímulo que a caça explica · **a verdade de bastidor: §10** |
 | 16 | O que as **pinturas da caverna** retratam? | Nada em tela ainda — o nível é o `andar 6`, pendente | (a) é ELA: a mesma criatura, cultuada antes de qualquer registro; (b) é uma ANCESTRAL dela — a caverna guarda linhagem, não um corpo único; (c) foi CRIADA ou TRAZIDA por aqueles cultistas — o culto fez ou chamou. E nas três, a mesma sombra: quem cultuava, lá embaixo, ia por vontade própria |
-| 17 | O que é o **pulso** do fragmento (e da coroa) — e por que a marca do `¤` não apaga? | Em tela: o `¤` brilha como a coroa e o coração de quem carrega pulsa com a distância dela | (a) ressonância de matéria: metal velo chama metal velo — e a coisa procura o Ferro por algo que o pulso explica sem nomear (reforça a lacuna 15 sem fechá-la: por QUE o ferro chama, fica de pé); (b) o fragmento é de um uso ANTERIOR ao império — a marca é de outro culto (§3, as pinturas): artefato de quem já esteve lá embaixo de vontade própria, e o que pulsa é o próprio aviso do sonho atravessando o metal. Em qualquer leitura, a marca que não apaga é a única coisa em toda a pedra que não cede: nem ao século, nem à água, nem ao esquecimento |
+| 17 | O que é o **pulso** do fragmento (e da coroa) — e por que a marca do `¤` não apaga? | Em tela: o `¤` brilha como a coroa e o coração de quem carrega pulsa com a distância dela | (a) ressonância de matéria: metal velo chama metal velo — e a coisa procura o Ferro por algo que o pulso explica sem nomear (reforça a lacuna 15 sem fechá-la: por QUE o ferro chama, fica de pé); (b) o fragmento é de um uso ANTERIOR ao império — a marca é de outro culto (§3, as pinturas): artefato de quem já esteve lá embaixo de vontade própria, e o que pulsa é o próprio aviso do sonho atravessando o metal. Em qualquer leitura, a marca que não apaga é a única coisa em toda a pedra que não cede: nem ao século, nem à água, nem ao esquecimento · **a verdade de bastidor: §10** |
 
 ---
 
@@ -468,3 +469,37 @@ o que é mecânica e o que é narrativa.
 6. LORE.md é documento de repositório, não de marketing: **não linkar do
    README, não citar na tela de título, não copiar texto de pílula daqui
    para lá.**
+
+---
+
+## 10. o Ferro do céu (a verdade que fecha lacunas — e que nenhuma tela conta)
+
+> Verdade DE BASTIDOR, definida no PR da cutscene de abertura. O jogo
+> JAMAIS diz isto: nem pílula, nem tela de título, nem morte, nem vitória.
+> A cutscene roça a borda com uma frase só — *"e eles nem sabem o quanto"* —
+> e para nela. Se um dia o jogo contradisser, o jogo vence e este parágrafo
+> muda no mesmo commit (regra 1, §9).
+
+- **O material da coroa é meteorítico.** O ferro velo da coroa pequena —
+  e o mesmo metal do fragmento sombrio `¤` — não veio de mina nenhuma: é
+  ferro de meteorito. Uma peça única de um corpo que cruzou o céu e caiu
+  na bacia, muito antes de qualquer império contar tempo.
+- **O meteorito trouxe a raça nova ao planeta.** A coisa da bacia não é
+  daqui: veio no mesmo corpo celeste de que o Ferro é fragmento. Ela e o
+  metal são da MESMA casa. As pinturas da caverna (§3) ganham leitura nova
+  por baixo: o culto pode ser mais velho que a queda — ou ter nascido dela.
+- O que isto fecha NOS BASTIDORES (e só lá):
+  - **lacuna 13** (de onde veio): a versão *"caiu das estrelas"* era a
+    única literal — e é a verdadeira. As outras continuam de pé COMO
+    boato do mundo: ninguém no canon sabe de nada.
+  - **lacuna 15** (por que caça o Ferro): ela não sabe o que é coroa —
+    mas reconhece a matéria de casa. O século de cerca não é ofício: é o
+    último fragmento do céu dela, submerso.
+  - **lacuna 17** (o pulso): ressonância de origem — metal que veio junto
+    chama metal que veio junto. O pulso no peito do ladrão é o corpo dele
+    aprendendo a ouvir uma casa estrangeira.
+- O que NÃO muda: o tabu em tela (regra 3, §9); as teorias vivas das
+  lacunas (seguem abertas PARA O JOGADOR — a verdade de bastidor não vaza
+  em pílula nenhuma); e a regra de duas leituras (§9.5): §10 fecha a
+  verdade DOS AUTORES, as lacunas seguem abertas no mundo do jogo, porque
+  ninguém lá dentro pode prová-las.
