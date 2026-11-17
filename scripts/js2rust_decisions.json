@@ -1,0 +1,36 @@
+{
+  "decisoes": {
+    "startGame": {
+      "decisao": "manter",
+      "quando": "2026-11-17",
+      "porque": "decisão do mantenedor (--responder)"
+    },
+    "hudW": {
+      "decisao": "manter",
+      "quando": "2026-11-17",
+      "porque": "decisão do mantenedor (--responder)"
+    },
+    "worldAttr": {
+      "decisao": "manter",
+      "quando": "2026-11-17",
+      "porque": "decisão do mantenedor (--responder)"
+    },
+    "tema-stats": {
+      "decisao": "transferir",
+      "quando": "2026-11-17",
+      "porque": "decisão do mantenedor (--responder)"
+    }
+  },
+  "aplicados": {
+    "tema-stats": {
+      "quando": "2026-11-17",
+      "arquivos": [
+        "src/ui.rs",
+        "src/state.rs",
+        "web/game.js",
+        "ARCHITECTURE.md"
+      ]
+    }
+  },
+  "explica": "registro da auditoria js2rust — a decisão é do mantenedor; transferir sem receita = migração manual anotada"
+}

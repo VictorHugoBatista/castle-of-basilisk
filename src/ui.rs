@@ -667,6 +667,10 @@ pub(crate) fn sync_stats() {
         // [20]: o pulso — 1 = você carrega o que chia (fragmento OU coroa,
         // a mesma matéria). Espelho do gate do heart_tick (evento 24)
         STATS[20] = (SHARD || CROWN) as u8;
+        // [21]: tema do andar (índice de PALETA JS 0..3 = castelo/masmorra/
+        // esgoto/Bocarra) — espelho de theme() (consts.rs): os limites de
+        // andar são decisão do RT; o glue lê, nunca re-deriva
+        STATS[21] = theme(DEPTH) - 1;
         AI_DBG[0] = ROOMT;
         AI_DBG[1] = RTX;
         AI_DBG[2] = RTY;

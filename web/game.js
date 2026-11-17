@@ -179,10 +179,11 @@ function audioOn() {
   startDrone();
 }
 
-// tema derivado de DEPTH: 0 castelo · 1 masmorra · 2 esgoto · 3 Bocarra (acervo)
+// tema (índice 0..3: castelo · masmorra · esgoto · Bocarra) publicado NO RT
+// (STATS[21] espelha theme(), consts.rs): os limites de andar não se re-derivam
+// aqui — uma decisão, um lugar
 function ambientTheme() {
-  const d = stats[2];
-  return d <= 1 ? 0 : (d <= 3 ? 1 : (d <= 5 ? 2 : 3));
+  return stats[21];
 }
 
 // troca de trilha ao mudar de andar: fade das velhas, arranque das novas.

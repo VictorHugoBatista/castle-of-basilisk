@@ -31,6 +31,7 @@ castle-of-basilisc/
 │   ├── smoke.mjs           # Gate de testes headless (so merge com "SMOKE OK")
 │   ├── debug6.mjs          # Bancada do bot playthrough (mede taxa de vitoria)
 │   ├── fear_bench.mjs      # Bancada do MEDO: telemetria de niveis/alucinacoes
+│   ├── js2rust.mjs          # Auditoria JS->RUST: candidatos de migracao, decisão do mantenedor
 │   └── cutscene_preview.mjs # A lente de autoria da cutscene (imprime no terminal)
 ├── build.sh                # cargo build release + copia para web/wasm
 ├── Cargo.toml              # cdylib, zero dependencias
@@ -129,7 +130,9 @@ Layout de memoria:
   `[18] medo (0..100)`, `[19] nivel do medo (0..4; 4 = COLAPSO, efeitos
   máximos — e o medo nunca mata)`, `[20] o pulso (0/1 — 1 = carrega o que
   chia: o fragmento sombrio OU a coroa, a mesma matéria; espelho da cerca
-  do heart_tick, evento 24)`.
+  do heart_tick, evento 24)`,
+  `[21] tema do andar (índice de paleta JS 0..3 — espelho de theme() de
+  consts.rs: os limites de andar são decisão do RT; o glue não re-deriva)`.
   **REGRA DE OURO**: qualquer funcao que mude estado (morte/vitoria/eventos)
   DEVE chamar `sync_stats()`. (Dois bugs ja nasceram de stats obsoletos —
   o terceiro: `return` cedo apos descer de andar deixava o bot do smoke
@@ -273,7 +276,8 @@ Decisoes:
 ### 3.3. Testes headless
 
 Nome: `scripts/smoke.mjs` (gate) e `scripts/debug6.mjs` (bancada de vitoria)
-e `scripts/fear_bench.mjs` (bancada do medo)
+e `scripts/fear_bench.mjs` (bancada do medo) e `scripts/js2rust.mjs` (auditoria
+JS->RUST)
 
 Descricao: rodam o MESMO binario do navegador direto no Node. O smoke valida
 regras por cenario e um bot joga do zero ate vencer. Bot: BFS que EVITA a zona
@@ -290,6 +294,18 @@ janela curta. A fidelidade da cadencia (períodos, silencio proposital de 38%)
 vem da DISTRIBUICAO por seed (40 tentativas, padrao dos cenarios brake/
 playthrough), nao do passeio organico. O lado negativo (fala com d > 6 = gate
 do raio quebrado) e checado tick a tick.
+
+Notas sobre a auditoria JS->RUST (`scripts/js2rust.mjs`): varre o glue
+estaticamente (zero deps) e apresenta o que NELE toca decisão de jogo —
+duplicatas de `theme()` (limiares de andar), entropia de browser alimentando
+`pfb_*`, e qualquer escrita do JS em `stats[]` (violação dura: o estado é do
+RT). Cada candidato recebe veredito sugerido com racional, e a decisão é do
+MANTENEDOR (`--decidir` / `--responder`), registrada em
+`scripts/js2rust_decisions.json`; `--aplicar` só executa RECEITA VERIFICADA
+(padroes conferidos antes de qualquer escrita — código mudou por baixo, falha
+limpa sem editar nada), e `--gate` devolve 1 se houver candidato sem decisão.
+Funções de apresentação (áudio/input/render/cutscene) nascem VERDES por
+contrato — o que é glue legítimo mora na KB da ferramenta com o porquê.
 
 Tecnologia e beneficio: o mesmo WASM serve os dois universos — bug de
 navegador reproduz no node (e vice-versa), entao o gate e real, nao simulado.
