@@ -10,8 +10,11 @@
 //
 // Estética: pixel-art sombreada na régua do jogo — a CÉLULA é o
 // pixel (12×18) e o dithering Bayer faz o degradê (lua com halo,
-// silhuetas quase pretas, halos de tocha/lamparina). Os meios-blocos
-// são os tons; cada cena casa char→attr no próprio map. Regras da
+// silhuetas quase pretas, halos de tocha/lamparina). Dois tipos de
+// tom: os SÓLIDOS (CUT_SOLID: █ ▓) são pintados pelo game.js com
+// fillRect — a célula inteira, sem a fresta da fonte (glifo 9px
+// numa célula de 12px rachava a alvenaria em listras) — e os
+// TEXTURIZADOS (▒ ░ ● ◆ ▬ ▄) ficam como glifos por cima. Regras da
 // casa preservadas: o vermelho é sempre "o que ameaça" (#), o ouro
 // pulsa (§ *), a água ondula (░), o pálido respira (o ·) — tudo via
 // colorFor(). '#' com attr 7 herda a régua de piscar da tela de
@@ -28,6 +31,11 @@
 export const CUT_W = 56;  // colunas da cena (o viewport inteiro)
 export const CUT_H = 22;  // linhas de arte; rows 23..31 são a caixa de texto
 
+// os tons que pintam a célula INTEIRA (fillRect no game.js)
+// (≈ e ¤ só existem como marcadores de faixa sólida do túnel — o
+// glifo nunca é desenhado: a célula é pintada inteira)
+export const CUT_SOLID = new Set(['█', '▓', '░', '≈', '¤']);
+
 // Paleta da cutscene: âmbar por base com níveis de brilho pro
 // dithering; mesmos índices de attr de PAL para colorFor() agir.
 // Os níveis escuros são calibrados POR LUMINÂNCIA contra o vazio
@@ -36,7 +44,7 @@ export const CUT_H = 22;  // linhas de arte; rows 23..31 são a caixa de texto
 // nasceu uma vez invisível no browser: pedra quase da cor do fundo).
 export const CUT_PAL = [
   '#0a0600', // 0  interior da caixa de texto
-  '#8a5f00', // 1  âmbar fundura: rim light, borda da caixa (~3.3:1)
+  '#8a5f00', // 1  âmbar fundura: rim light, borda da caixa (~3.7:1)
   '#55401e', // 2  pedra/silhueta base (~2.1:1 — o pé do piso do jogo)
   '#c98a00', // 3  âmbar claro (reflexo, cratera, halo de tocha)
   '#ffdd66', // 4  brilho (borda da lua, halo curto)
@@ -44,10 +52,10 @@ export const CUT_PAL = [
   '#ffd54d', // 6  o ladrao @
   '#ff2e00', // 7  OLHO vermelho # (pisca: regra da tela de título)
   '#b57b00', // 8  texto da caixa
-  '#ff5000', // 9  alerta (reservado)
+  '#5c4a26', // 9  pedra meia-luz (o degrau da abóbada, entre 12 e 2)
   '#a87000', // 10 âmbar médio
-  '#bf1600', // 11 vermelho fundo (reservado)
-  '#655028', // 12 pedra média (dither de forma) / escombro ossada (~2.7:1)
+  '#3f3018', // 11 pedra funda (os anéis do breu)
+  '#655028', // 12 pedra clara (dither de forma / a boca da abóbada)
   '#3f8a76', // 13 água (ondula em colorFor)
   '#c4b080', // 14 pálido: estrela lamparina névoa goteira (respira)
   '#050200', // 15 vazio (fundo da tela / céu)
@@ -165,28 +173,28 @@ const ART3 = [
 ];
 
 const ART4 = [
-  '   ▒▒▒▒█▓█▓▒▒▒▒█▓███▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒█▓███▓▒▒▒▒███▓▒▒▒▒   ',
-  '  ▒▒▒█████▒▒▒█████▒▒▒▒████████████▒▒▒▒█████▒▒▒█████▒▒▒  ',
-  ' ▒▒▒██▓█▒▒▒███▓█▒▒▒███████▓██████████▒▒▒█████▒▒▒██▓█▒▒▒ ',
-  '▒▒▒████▒▒▒█████▒▒`████▒▒▒▒▒▒▒▒▒▒▒▒█████▒▒█████▒▒▒████▒▒▒',
-  '▒▒▒█▓█▒▒▒███▓▒▒▒▓███▒▒██▓███▓███▓█▒▒▓███▒▒▒█▓`█▒▒▒██▓▒▒▒',
-  '▒▒████▒▒██`█▒▒████▒▒██████▒▒▒▒██████▒▒████▒▒████▒▒████▒▒',
-  '▒████▒▒▒██▓▒▒▒▓██▒▒████▒▒██████▒▒████▒▒███▒▒▒███▒▒▒███▓▒',
-  '▒███▒▒▒████▒▒███▒▒███▒▒████▒▒████▒▒███▒▒███▒▒████▒▒▒███▒',
-  '▒███▒▒▒█▓█▒▒▓██▒▒███▒███▒█    █▒▓██▒▓██▒▒███▒▒██▓▒▒▒▓██▒',
-  '████▒▒████▒▒███▒████▒██▒█      █▒██▒████▒███▒▒████▒▒████',
-  '██▓█▒▒▓███▒▒███▒███▒████   ##   ████▒█▓█▒█▓█▒▒▓███▒▒██▓█',
-  '████▒▒████▒████▒███▒███          ███▒███▒████▒████▒▒████',
-  '▓███▒▒██▓█▒█▓██▒▓██▒▓██    ▒░▒   ███▒███▒███▓▒██▓█▒▒▓███',
-  '████▒▒████▒▒███▒███▒████   ▒░▒  ████▒███▒███▒▒████▒▒████',
-  '██▓█▒▒▓███▒▒███▒████▒██▒█  ▒░▒ █▒██▒████▒█▓█▒▒▓███▒▒██▓█',
-  '▒███▒▒▒███▒▒███▒▒███▒███▒█▒░░░▒▒███▒███▒▒███▒▒███▒▒▒███▒',
-  '▒███▒▒▒█▓██▒▒███▒▒██▓▒▒█▓█▒██░▒█▓▒▒█▓█▒▒▓██▒▒███▓▒▒▒▓██▒',
-  '▒████▒▒▒███▒▒▒███▒▒████▒▒▒█░░█░▒▒████▒▒███▒▒▒███▒▒▒████▒',
-  '▒▒▓███▒▒██▓█▒▒▓███▒▒████▒░█░░█░░▒███▒▒▓███▒▒██▓█▒▒▓███▒▒',
-  '▒▒▒███▒▒▒████▒▒▒████▒▒██▒█░░░░█░▒█▒▒████▒▒▒████▒▒▒███▒▒▒',
-  '▒▒▒█▓██▒▒▒██▓██▒▒███▓█▒▒░█░░░░█░░▒██▓██▒▒███▓█▒▒▒███▓▒▒▒',
-  ' ▒▒▒████▒▒▒█████▒▒▒████▒░░░░░░░░░▒███▒▒▒█████▒▒▒████▒▒▒ ',
+  '   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██████████████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ',
+  '  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓████████████████████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  ',
+  ' ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓████████████████████████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ',
+  '▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██`███████████████████████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓▓▓▓██████████████████████████████▓▓`▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓`▓██████████████¤¤¤¤██████████████▓▓▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓▓████████████¤¤¤¤¤¤¤¤¤¤████████████▓▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓▓██████████¤¤¤¤¤¤¤¤¤¤¤¤¤¤██████████▓▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓██████████¤¤¤¤¤¤    ¤¤¤¤¤¤██████████▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓██████████¤¤¤¤¤      ¤¤¤¤¤██████████▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓█████████¤¤¤¤¤   ##   ¤¤¤¤¤█████████▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓█████████¤¤¤¤          ¤¤¤¤█████████▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓█████████¤¤¤¤    ▒░▒   ¤¤¤¤█████████▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓█████████¤¤¤¤¤   ▒░▒  ¤¤¤¤¤█████████▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓██████████¤¤¤¤¤  ▒░▒ ¤¤¤¤¤██████████▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓██████████¤¤¤¤¤¤▒░░░▒¤¤¤¤¤██████████▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓▓██████████¤¤¤¤¤▒░░░▒¤¤¤¤██████████▓▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓▓████████████¤¤▒░░░░░▒¤████████████▓▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓▓▓████████████▒░░░░░░░▒███████████▓▓▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓▓▓▓███████████▒░░░░░░░▒██████████▓▓▓▓▓▓▓▓▓▓▓▓▓',
+  '▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓████████▒░░░░░░░░░▒███████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓',
+  ' ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓███████▒░░░░░░░░░▒██████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ',
 ];
 
 export const CUT_SCENES = [
@@ -200,7 +208,7 @@ export const CUT_SCENES = [
     map: { '·': 14, '*': 5, '@': 6, 'o': 14, '%': 12, '▒': 1, '█': 2, '▄': 3, '◆': 4, '●': 5, '▄': 10, '▓': 12, '░': 13, '·': 14 },
     fx: 'down' },
   { dur: 15000, art: ART4, def: 10,
-    map: { '`': 14, '#': 7, '▒': 1, '█': 2, '▬': 3, '◆': 4, '●': 5, '▄': 10, '▓': 12, '░': 13, '·': 14 },
+    map: { '`': 14, '#': 7, '▒': 1, '█': 2, '▬': 3, '◆': 4, '●': 5, '≈': 9, '▄': 10, '¤': 11, '▓': 12, '░': 13, '·': 14 },
     fx: 'eyes',
     // cada par de olhos acende no seu tempo (ms, cena-local)
     eyes: [

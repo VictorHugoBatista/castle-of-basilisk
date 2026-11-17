@@ -1,7 +1,7 @@
 // Castle of Basilisk — glue JS: render (diff que o RUST produz), WebAudio
 // sintetizado, loop de ticks. WASM ABI crua: lemos grid/stats/diff direto da memória exportada.
 
-import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES } from './cutscene.js';
+import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES, CUT_SOLID } from './cutscene.js';
 
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
@@ -1263,7 +1263,12 @@ function cutVisible(sc, x, y, t) {
     }
     case 'up':   return t >= (1 - y / CUT_AREA_H) * 1100; // acende do rio pra cima
     case 'down': return t >= (y / CUT_AREA_H) * 1100;     // desce a muralha
-    case 'eyes': return cutEyes ? t >= (cutEyes.get(y * CUT_W + x) ?? Infinity) : true;
+    case 'eyes': {
+      // só as células de OLHO são cronometradas; o resto da cena
+      // é sempre visível (o ?? Infinity apagava o túnel inteiro)
+      const t0 = cutEyes?.get(y * CUT_W + x);
+      return t0 === undefined ? true : t >= t0;
+    }
     default:     return true;
   }
 }
@@ -1306,7 +1311,13 @@ function cutFrame(nowMs) {
       let attr = sc.map[String.fromCharCode(ch)] ?? sc.def;
       if (sc.sweep && cutSweepDim(x, t)) attr |= DIM_FLAG;
       ctx.fillStyle = colorFor(ch, attr, nowMs);
-      ctx.fillText(String.fromCharCode(ch), x * CELL_W + 1, y * CELL_H + CELL_H / 2 + 1);
+      if (CUT_SOLID.has(String.fromCharCode(ch))) {
+        // os sólidos pintam a célula INTEIRA: pixel de verdade — o glifo
+        // (9px na célula de 12px) rachava a alvenaria em listras
+        ctx.fillRect(x * CELL_W, y * CELL_H, CELL_W, CELL_H);
+      } else {
+        ctx.fillText(String.fromCharCode(ch), x * CELL_W + 1, y * CELL_H + CELL_H / 2 + 1);
+      }
     }
   }
   PAL = prevPal;
