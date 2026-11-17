@@ -130,7 +130,9 @@ Layout de memoria:
   `[18] medo (0..100)`, `[19] nivel do medo (0..4; 4 = COLAPSO, efeitos
   máximos — e o medo nunca mata)`, `[20] o pulso (0/1 — 1 = carrega o que
   chia: o fragmento sombrio OU a coroa, a mesma matéria; espelho da cerca
-  do heart_tick, evento 24)`.
+  do heart_tick, evento 24)`,
+  `[21] tema do andar (índice de paleta JS 0..3 — espelho de theme() de
+  consts.rs: os limites de andar são decisão do RT; o glue não re-deriva)`.
   **REGRA DE OURO**: qualquer funcao que mude estado (morte/vitoria/eventos)
   DEVE chamar `sync_stats()`. (Dois bugs ja nasceram de stats obsoletos —
   o terceiro: `return` cedo apos descer de andar deixava o bot do smoke

@@ -11,8 +11,9 @@ pub(crate) static mut DIMW: usize = W0;
 pub(crate) static mut DIMH: usize = H0;
 
 pub(crate) static mut GRID: [u8; N_MAX * 2] = [0; N_MAX * 2];
-// STATS: 32 bytes — [18] medo (0..100), [19] nível do medo (0..4). Mudança
-// ADITIVA: os índices [0..17] seguem idênticos; o JS só re-dimensiona a view.
+// STATS: 32 bytes — [18] medo (0..100), [19] nível do medo (0..4), [21] tema
+// (índice de paleta JS 0..3). Mudança ADITIVA: os índices [0..17] seguem
+// idênticos; o JS só re-dimensiona a view.
 pub(crate) static mut STATS: [u8; 32] = [0; 32];
 pub(crate) static mut AUD: [u32; 16] = [0; 16];
 pub(crate) static mut AUD_H: usize = 0;
