@@ -30,10 +30,14 @@ export const CUT_H = 22;  // linhas de arte; rows 23..31 são a caixa de texto
 
 // Paleta da cutscene: âmbar por base com níveis de brilho pro
 // dithering; mesmos índices de attr de PAL para colorFor() agir.
+// Os níveis escuros são calibrados POR LUMINÂNCIA contra o vazio
+// #050200 — o piso do jogo in-game (#6b4400) lê a ~2.4:1 de
+// contraste; a silhueta da cutscene precisa do mesmo pé (a arte
+// nasceu uma vez invisível no browser: pedra quase da cor do fundo).
 export const CUT_PAL = [
   '#0a0600', // 0  interior da caixa de texto
-  '#6b4400', // 1  âmbar fundura: rim light, borda da caixa
-  '#191106', // 2  silhueta escura (corpos, pedra à noite)
+  '#8a5f00', // 1  âmbar fundura: rim light, borda da caixa (~3.3:1)
+  '#55401e', // 2  pedra/silhueta base (~2.1:1 — o pé do piso do jogo)
   '#c98a00', // 3  âmbar claro (reflexo, cratera, halo de tocha)
   '#ffdd66', // 4  brilho (borda da lua, halo curto)
   '#ffe08a', // 5  ouro quente: lua § tocha (pulsa em colorFor)
@@ -43,8 +47,8 @@ export const CUT_PAL = [
   '#ff5000', // 9  alerta (reservado)
   '#a87000', // 10 âmbar médio
   '#bf1600', // 11 vermelho fundo (reservado)
-  '#2e1e0a', // 12 silhueta média (dither de forma) / escombro ossada
-  '#2b5d50', // 13 água (ondula em colorFor)
+  '#655028', // 12 pedra média (dither de forma) / escombro ossada (~2.7:1)
+  '#3f8a76', // 13 água (ondula em colorFor)
   '#c4b080', // 14 pálido: estrela lamparina névoa goteira (respira)
   '#050200', // 15 vazio (fundo da tela / céu)
 ];
