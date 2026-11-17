@@ -51,31 +51,33 @@ export const CUT_PAL = [
 
 // ------------------------------------------------------------------
 // texto da caixa de diálogo: UMA página por cena, 3 linhas
-// (≤ ~57 colunas). Voz do título/morte/vitória: minuscula, sem
-// acento, sem tabu (LORE.md §9.3). A referência do meteorito é a
-// frase que fecha a cena 3 — e NUNCA vai além dela: o canon inteiro
-// vive no LORE.md §10, de bastidor.
+// (≤ ~68 colunas). Voz literária própria da abertura — período
+// longo, maiúscula e acentos (decisão do dono; o resto do jogo
+// segue em minuscula seca) — com os tabus da §9.3 de pé: nenhum
+// nome de época, guerra ou casa; o pagante não aparece. A pista
+// do meteorito é só o metal brilhante da coroa — e NUNCA vai além
+// dela: o canon inteiro vive no LORE.md §10, de bastidor.
 // ------------------------------------------------------------------
 export const CUT_TEXT = [
   [
-    'ha cem anos um reino morreu dentro desta pedra.',
-    'o muro cedeu, as salas se calaram.',
-    'mas o castelo nunca ficou tao vazio como dizem.',
+    'Um século atrás, um reino foi silenciado, pela ganância e cegueira',
+    'dos nobres. Algo sempre se moveu nas águas, mas eles não',
+    'quiseram ver: se matavam uns aos outros, e todos foram acabados.',
   ],
   [
-    'nas beiras, as lamparas seguem acesas:',
-    'um povo que jamais desocupou a terra vive ali.',
-    'ao conselho novo falta so uma coisa: a coroa.',
+    'O povo de fora das muralhas sempre soube da coisa que',
+    'mergulha — e viveu normalmente. Afinal, que diferença',
+    'um rei faz? Com o tempo, a antiga coroa volta a ser desejada.',
   ],
   [
-    'mais uma vez alguem cruza o portao: um ladrao',
-    'pago adiantado para reaver o que o reino perdeu.',
-    'o ferro dela nao veio de mina. e eles nem sabem o quanto.',
+    'E mais uma vez, outro aspirante a ladrão entra pelos',
+    'grandes portões do castelo, à procura da coroa de metal',
+    'brilhante. Mal sabe ele que algo a guarda.',
   ],
   [
-    'embaixo, os canais levam a agua da pedra para a bacia.',
-    'e ninguem anda sozinho por aqui.',
-    'a agua tambem nao.',
+    'A coisa que mergulha, a besta das águas, o basilisco',
+    'observa no escuro, percorre os antigos encanamentos.',
+    'E fica satisfeita quando alguém entra deliberadamente na sua morada.',
   ],
 ];
 
