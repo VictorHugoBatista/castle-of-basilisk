@@ -258,28 +258,48 @@ Decisoes:
 - **`AudioContext` so no primeiro gesto do usuario** (exigencia dos
   navegadores). Drone grave (55/58,3 Hz triangle + lowpass) e o "hum" do castelo.
 - **Ambiente sonoro por tema** (`setAmbience`): troca de andar => fade das
-  trilhas velhas + arranque das novas. A MÚSICA das telas de menu mora em
+  trilhas velhas + arranque das novas. A MÚSICA mora em
   arquivos próprios tocados pelo MAESTRO `web/music/conductor.js`
   (registro de trilhas + fade 0.4 s + geração que mata correntes de scheduler
   velhas; o glue só mapeia estado de jogo → id e chama `setMusic`):
-  `track-titulo.js` (título/controles/escolha de andar) e `track-abertura.js`
+  `track-titulo.js` (título/controles/escolha de andar), `track-abertura.js`
   (a cutscene da porta — nasce no primeiro gesto NA LOGO, a tela que abre a
   página, já que o `AudioContext` só desperta em gesto, e atravessa logo →
   cutscene sem recomeçar; `endCutscene` troca para o título, no fade). A
   abertura tem FIM COMPOSTO: faltando ~6.5 s da última cena, o
   glue chama `musicCoda()` e a trilha executa a cadência escrita que acha
   a tônica junto com o fade (trilha pode expor `coda` no handle,
-  opcionalmente — o título não tem). Primeiro passo da modularização do
+  opcionalmente — o título não tem). O TÉRREO também tem trilha do
+  maestro: `track-terreo.js` (dungeon synth nórdico SEM pulso, Ré menor
+  contínuo com o título — o drone nasce no mesmo D2 e a tônica passa no
+  fade da entrada no jogo), mapeada em `th === 0`, e a MASMORRA também:
+  `track-masmorra.js` (dark ambient de descida ASSOMBRADO — a prisão
+  política da era que caiu: o coração fundo batendo e os sussurros dos
+  calados por dentro voltando, por baixo do SILÊNCIO PERTURBADOR; a
+  tônica desce de andar em andar), mapeada em
+  `th === 1`, e o ESGOTO também: `track-esgoto.js` (dungeon synth
+  aquático e ESTRANHO — a lenda antiga da água: coro pela cor de
+  Phrygia, Eb/Cm por dentro do Dm, melodia que escorrega pra nota e
+  ECO moderado de canal, delay 0.38 s — o gotejar do glue usa o eco do
+  castelo, 0.17 s), mapeada em
+  `th === 2`; a peça do térreo mora DEBAIXO do
+  vento (camadas mais baixas que o título, nenhuma voz na faixa do
+  assobio da fresta). Primeiro passo da modularização do
   glue por domínio; trilha
   nova = arquivo em `web/music/` + 1 linha no `TRACKS` do maestro. A
   ambiência de andar (vento/
   goteiras/acervo) segue inline no glue — extração vem depois.
-  Terreo: VENTO (noise loop bandpass 430 Hz
-  com LFO duplo na frequencia e no volume). Masmorra: SILÊNCIO PERTURBADOR
+  Terreo: VENTO (corpo grave de ruído em lowpass duplo em cascata +
+  assobio de fresta em bandpass 1750 Hz, rajadas irregulares sem LFO de
+  ganho algum; a trilha do maestro entra por baixo). Masmorra: SILÊNCIO PERTURBADOR
   (estalo de pedra a cada 16-40 s; SFX abafados a 0.7 no bus `sfxBus` — o
-  silencio sepulcral contrasta com qualquer barulho). Esgoto: GOTEIRAS (ping
+  silencio sepulcral contrasta com qualquer barulho; a trilha da cripta
+  corre por baixo dele — assombrada (os sussurros dos calados por
+  dentro), mas nunca na frente). Esgoto: GOTEIRAS (ping
   agudo com eco de cisterna, gota dupla ocasional), que PARAM quando ela esta
-  de caca perto. BOCARRA: a morada do TETO ALTO (bus `buildCaveAir`, uma
+  de caca perto — a trilha da lenda aquática corre por baixo, fora da
+  faixa do ping (o eco dela é próprio e moderado: o canal não é
+  catedral). BOCARRA: a morada do TETO ALTO (bus `buildCaveAir`, uma
   vez por visita; tudo morre com a troca de tema e as correntes de timer
   carregam GERACAO — um vai-e-vem rapido de andar nao ressuscita corpo
   velho) — ping gordo (gota grave

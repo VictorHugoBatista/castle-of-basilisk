@@ -5,7 +5,7 @@ import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES, CUT_SOLID } from './cutsce
 // módulos de música versionados na URL (mesma filosofia do ?v= daqui):
 // mudou trilha/maestro, bumpa os ?v= dos imports junto — senão o browser
 // serve maestro/trilha velhos para o glue novo
-import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=12';
+import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=15';
 
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
@@ -193,8 +193,9 @@ function ambientTheme() {
 // troca de trilha ao mudar de andar: fade das velhas, arranque das novas.
 // Os MENUS (título 0, controles 4, escolha 5) têm tema próprio: 4 = a música
 // do título (receita em web/music/track-titulo.js, maestro em
-// music/conductor.js) — atravessa tela em tela sem recomeçar e morre ao
-// entrar no jogo
+// music/conductor.js) — atravessa tela em tela sem recomeçar; ao entrar no
+// jogo ela passa de mão em mão para a trilha do TÉRREO (th 0, receita em
+// web/music/track-terreo.js — o drone continua no mesmo D2, no fade)
 function setAmbience(force) {
   if (!AC) return;
   const th = stats[0] === 1 ? ambientTheme() : (stats[0] === 2 || stats[0] === 3 ? -1 : 4);
@@ -213,15 +214,22 @@ function setAmbience(force) {
   caveGen++; // nova geração: qualquer corrente de timer da visita velha morre
   PAL = PAL_BY_THEME[th < 0 || th === 4 ? 0 : th]; // o CRT respira a cor do lugar (menus vestem o térreo)
   needsFull = true;
-  // a trilha dos MENUS: id escolhido UMA vez aqui — o maestro
-  // (music/conductor.js) decide recomeçar ou não e mata a velha no fade
-  setMusic(th === 4 ? 'titulo' : null, force);
+  // a trilha: id escolhido UMA vez aqui — o maestro (music/conductor.js)
+  // decide recomeçar ou não e mata a velha no fade. MENUS = 'titulo';
+  // TÉRREO (o castelo) = 'terreo', a trilha fria que corre DEBAIXO do
+  // vento; MASMORRA = 'masmorra', a trilha da cripta que corre DEBAIXO do
+  // silêncio; ESGOTO = 'esgoto', a lenda aquática que corre DEBAIXO das
+  // goteiras
+  setMusic(th === 4 ? 'titulo' : th === 0 ? 'terreo' : th === 1 ? 'masmorra' : th === 2 ? 'esgoto' : null, force);
   // SFX abafados na masmorra: o silêncio sepulcral contrasta qualquer som
   sfxBus.gain.setTargetAtTime(th === 1 ? 0.7 : 1.0, now, 0.5);
   if (th === 0) {
     // ---- TÉRREO: VENTO — corpo grave de ruído + assobio de fresta, puxado
     // por rajadas irregulares (sem LFO de amplitude periódico: aquilo soava
-    // como ondas do mar chegando em intervalo constante) ----
+    // como ondas do mar chegando em intervalo constante). A TRILHA do
+    // térreo mora em web/music/track-terreo.js (o maestro já recebeu o
+    // pedido de 'terreo' lá em cima) e entra DEBAIXO deste vento: o dono
+    // do salão é ele ----
     const g = AC.createGain();
     g.gain.value = 0;
 
@@ -299,10 +307,18 @@ function setAmbience(force) {
     // 'titulo' lá em cima e segura registro, fade e geração
   } else if (th === 1) {
     // ---- MASMORRA: SILÊNCIO PERTURBADOR — quase nada; a cada 16-40s um
-    // estalo mínimo de madeira/pedra, só para o ouvido ficar tenso ----
+    // estalo mínimo de madeira/pedra, só para o ouvido ficar tenso. Por
+    // baixo, a TRILHA da cripta (web/music/track-masmorra.js — o maestro
+    // já recebeu o pedido de 'masmorra' lá em cima): o lugar assombrado
+    // da prisão política — o coração fundo batendo e os sussurros dos
+    // calados por dentro voltando ----
     schedSilence();
   } else if (th === 2) {
-    // ---- ESCGOTO: GOTEIRAS — ping agudo com eco de cisterna, irregular
+    // ---- ESCGOTO: GOTEIRAS — ping agudo com eco de cisterna, irregular.
+    // Por baixo, a TRILHA da lenda aquática (web/music/track-esgoto.js —
+    // o maestro já recebeu o pedido de 'esgoto' lá em cima): fora da
+    // faixa do ping, com eco próprio moderado; as goteiras seguem donas
+    // do alerta (param quando ELA caça perto)
     schedDrips();
   } else if (th === 3) {
     // ---- BOCARRA: O ACERVO RESPONDENDO — goteira densa e funda (30 m de
@@ -315,6 +331,8 @@ function setAmbience(force) {
 }
 
 // agendador do silêncio da masmorra: é o que NÃO soa que educa o terror
+// (a trilha da cripta, music/track-masmorra.js, corre por baixo dele —
+// assombrada, mas nunca na frente)
 function schedSilence() {
   if (ambTheme !== 1 || !AC) return;
   ambTimer = setTimeout(() => {

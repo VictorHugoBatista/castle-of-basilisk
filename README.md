@@ -148,9 +148,14 @@ conhece a casa.
   direita/esquerda. Mas ele **só existe de perto** (raio 6 — longe dela é silêncio
   absoluto, sem radar) e às vezes ela **cala no meio da patrulha**: 1 sopro em ~3
   não sai — o silêncio dela também te avisa. Na caça com coroa, ela nunca cala.
-- Ouça o **lugar**: vento lento no térreo; na masmorra quase nada (e qualquer
-  som soa abafado); goteiras com eco no esgoto — que param de pingar quando
-  ela está de caça perto; na Bocarra, o **ar de teto alto**: vento grave
+- Ouça o **lugar**: vento lento no térreo — com uma trilha fria de dungeon
+  synth nórdico correndo DEBAIXO dele (o vento manda, a música acompanha);
+  na masmorra quase nada (e qualquer
+  som soa abafado) — só o estalo de pedra e, por baixo, a trilha
+  assombrada da cripta: o coração fundo batendo e sussurros que voltam
+  de células diferentes; goteiras com eco no esgoto — que param de pingar quando
+  ela está de caça perto (por baixo delas, a lenda aquática e estranha
+  da trilha dos canais, com seu eco próprio e moderado); na Bocarra, o **ar de teto alto**: vento grave
   constante dentro de um eco de caverna que não acha parede nenhuma, a
   respiração do acervo a cada 8-20 s (que também prende quando ela caça) e
   uma **dissonância miúda e constante** (dois pares de senoides desafinadas,

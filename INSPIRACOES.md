@@ -80,15 +80,148 @@
   tônica passa de mão em mão sem costura. Quem pula (esc/enter na última
   página) não tem coda: quem pula abre mão do amanhecer.
 
+### a música do térreo (toca no castelo, o primeiro andar do jogo)
+
+- **Referência primária declarada**: Trollslottet — *Sorgeberget* (2024,
+  Cryo Crypt), faixa **"Nordanvinden"** — dungeon synth / dark ambient
+  nórdico de Pär Boström (o mesmo de Kammarheit, Aindulmedir e Cities Last
+  Broadcast), <https://www.youtube.com/watch?v=wEdRb27q-Dw&t=196s> (a faixa
+  começa nesse ponto). O castelo fora do habitat dela pede exatamente esse
+  clima: frio de seversk, minimalismo de teclado, épico contido — o
+  descrito pelos ouvintes do álbum como "castelos abandonados, vento
+  congelante e uma sombra escura seguindo você".
+- **A tese**: o térreo é o lugar do VENTO, então a trilha é o vento
+  cantando — SEM PULSO nenhum (o pulso de Berlim é do castelo VIVO, o
+  título; aqui nada pulsa, nada dança). Ré menor como o título e a
+  abertura: o drone nasce no MESMO D2 e a tônica passa de mão em mão no
+  fade da entrada no jogo. E a peça mora DEBAIXO do vento: camadas ~15%
+  abaixo do equivalente do título, e nenhuma voz sustentada na faixa do
+  assobio da fresta (1,5-2 kHz) — o assobio não divide octava com ela, o
+  vento segue dono.
+- **A peça**: Ré menor, quatro camadas, tudo em
+  `web/music/track-terreo.js` (contrato de trilha `start(ctx, buses,
+  alive)`; registro no `TRACKS` do maestro; o glue chama `setMusic('terreo')`
+  quando o tema é o castelo):
+  1. **o fôlego do portão** — D2+A2+D1, saws desafinadas sob sine sub,
+     lowpass 260 Hz derivando (~1 volta/5 min) — a pedra respirando frio;
+  2. **o coro do frio** — acordes de longa forma girando pelo lado escuro
+     do Dm (Dm C Bb Am Gm), dois coros desafinados por nota, inchaço de
+     4,5-7,5 s e dissolução de 6-10 s, um a cada ~17-29 s;
+  3. **o canto da fresta** — a MELANCOLIA: frases DESCENDENTES em Dm (a
+     tristeza nórdica cai) de flauta de synth com vibrato miúdo e eco
+     comprido; às vezes a fresta cala, e nunca repete frase;
+  4. **o corno do norte** — a chamada distante (o lur que atravessa o
+     frio): duas saws desafinadas sob lowpass, sopro de 1,4 s, a quinta
+     que cai e morre na tônica; raríssima, uma a cada ~40-85 s — o épico
+     da peça, nunca o dono dela.
+
+### a música da masmorra (toca na Masmorra Assombrada, andares 2-3)
+
+- **Referência primária declarada**: Trollslottet — *Kryptan* (2025,
+  Cryo Crypt), faixa **"Som Vore Det Evigt"** — o MESMO Pär Boström da
+  trilha do térreo, o álbum seguinte:
+  <https://youtu.be/qJraAOi-bD8?t=2440> (a faixa começa nesse ponto). A
+  profecia do Kryptan é a tese da peça: *"Deep and silent, the heart
+  shall beat"* — a descida à cripta, o fundo e calado, o coração que
+  bate: exatamente o que a masmorra pede.
+- **A tese**: a masmorra foi a PRISÃO POLÍTICA da era que caiu — o LORE
+  já guarda isso: as celas trancadas para sempre têm "os que o tribunal
+  recolheu por 'semear o medo'", os que morreram **calados por dentro**,
+  os que tinham razão e não ficaram nem com ossos à vista. A música é o
+  que eles não puderam dizer: o lugar é ASSOMBRADO e a peça expressa —
+  os sussurros voltam em células diferentes e o coro dos mortos canta
+  desafinado. O SILÊNCIO PERTURBADOR continua dono do bus (SFX abafados,
+  estalo de pedra do glue) — a trilha é perceptível e CONTÍNUA: os
+  primeiros eventos chegam de cara (1-5 s depois da porta fechar) e os
+  vãos de silêncio são curtos — atmosfera vazia, lugar morto, nada
+  dança, mas quem desce ouve a música antes do segundo passo. Ré menor —
+  a tônica desce de andar em andar (título → térreo → masmorra, sempre
+  no D), uma oitava de fôlego mais fundo a cada descida.
+- **A peça**: Ré menor, seis camadas, tudo em
+  `web/music/track-masmorra.js` (contrato de trilha `start(ctx, buses,
+  alive)`; registro no `TRACKS` do maestro; o glue chama
+  `setMusic('masmorra')` quando o tema é a masmorra):
+  1. **a pedra funda** — D1+A1+D2 (o "grão da pedra" da abertura, uma
+     oitava de fôlego mais fundo que o portão do térreo), saws
+     desafinadas sob lowpass 230 Hz derivando — a pedra não canta,
+     rumina;
+  2. **o coração fundo** — lub-dub longínquo de sine descendo (52→28 Hz),
+     o segundo sopro mais fraco, um coração a cada ~8-16 s: o metrônomo
+     irregular do terror (a promessa da profecia, batendo);
+  3. **os sussurros** — os calados por dentro falando de novo: noise
+     branco em bandpass estreito de "boca" (o filtro desliza como
+     língua), sussurros de 0.15-0.45 s em PAN aleatório (a voz volta de
+     uma cela diferente a cada vez), em grupos de 1-3, um grupo a cada
+     ~3,5-9 s — sem oscilador tonal: sussurro que afina é voz, sussurro
+     de filtro é conversa de pedra;
+  4. **o coro de baixo** — acordes de longa forma pelo lado mais escuro
+     do Dm (Dm Bb Gm Am — SEM C maior nenhuma: aqui não há clareza), uma
+     oitava abaixo do coro do frio do térreo, um a cada ~16-29 s (o vão
+     entre acordes é curto: o harmônico quase nunca cala);
+  5. **o coro dos mortos** — a assombração em nota: dois coros a SEGUNDA
+     MENOR de distância (F3/E3, D3/C#3, Bb2/A2) inchando juntos e se
+     dissolvendo, uma vez a cada ~27-57 s — quem não tem mais corpo
+     afina errado: o batimento áspero da segunda menor é o coro
+     desafinado dos sem ossos;
+  6. **o lamento da cripta** — frases curtíssimas de duas/três notas
+     descendentes no registro grave (a tristeza aqui não cai de cima
+     como na fresta do térreo: afunda); vem quase sempre — o silêncio
+     longo morreu aqui.
+
+### a música dos canais (toca no esgoto imperial, andares 4-5)
+
+- **Referência primária declarada**: Trollslottet — *Kryptan* (2025,
+  Cryo Crypt), faixa **"I Forna Legender"** — o MESMO Pär Boström das
+  trilhas do térreo e da masmorra:
+  <https://youtu.be/qJraAOi-bD8?t=409> (a faixa começa nesse ponto).
+- **A tese**: o canal é um lugar de LENDA ANTIGA — a água conta o que
+  ali afundou, e o que ali afundou não era coisa normal. A vibe é
+  AQUÁTICA e ESTRANHA: o coro gira pela cor de Phrygia (Eb e Cm por
+  dentro do Dm — a segunda menor que não pertence a nenhum andar de
+  cima) e a melodia ESCORREGA pra nota (portamento líquido: cada plop
+  de nota cai na água em vez de ser atacada). ECO, SEM EXAGERO: o canal
+  é grande mas não é catedral — delay 0.38 s, feedback 0.35, wet 0.4 (o
+  gotejar do glue usa o eco do castelo, 0.17 s: as duas águas de eco não
+  se confundem). As GOTEIRAS seguem donas do alerta (param quando ela
+  caça perto): a música mora DEBAIXO delas e fora da faixa do ping
+  (1,1-1,8 kHz). Ré menor — a tônica desce de andar em andar (título →
+  térreo → masmorra → esgoto, sempre no D).
+- **A peça**: Ré menor (pintado de Phrygia), quatro camadas, tudo em
+  `web/music/track-esgoto.js` (contrato de trilha `start(ctx, buses,
+  alive)`; registro no `TRACKS` do maestro; o glue chama
+  `setMusic('esgoto')` quando o tema é o esgoto):
+  1. **a água parada** — D2+A2+D1, saws desafinadas (o batimento lento,
+     ~0.5 Hz, é o reflexo da água tremendo) sob lowpass 380 Hz — mais
+     brilho que a pedra da masmorra, mas bem antes do ping;
+  2. **a lenda** — acordes de longa forma Dm/Eb/Cm/Gm (a Eb é a segunda
+     estranha), inchaço de 5-8 s e dissolução de 6-9 s, um a cada
+     ~20-32 s; uma parcela miúda do acorde manda pro eco (0.15: a lenda
+     repete na água, muda);
+  3. **o plop** — algo caiu nos canais: sine caindo duas oitavas
+     (260→70 Hz) com respingo de ruído lowpass, raro (a cada ~18-40 s)
+     e discreto — o par grave do ping: o que cai por cima é água, o
+     que cai aqui embaixo não se sabe;
+  4. **a lenda contada** — a melodia: frases de 4-6 notas em Dm pintado
+     de Eb (D4-Eb4-F4-E4-D4; A3-C4-Eb4-D4; F4-Eb4-D4-Bb3-A3; e a rara
+     D5-C5-Bb4-A4), cada nota nascendo 8% abaixo e ESCORREGANDO pra
+     afinada, eco do canal por cima; frases curtas, chegam de cara e
+     voltam sempre.
+
 ### o ambiente por andar (não é música: é o lugar soando — `setAmbience`)
 
 - **Térreo**: o VENTO — corpo grave de ruído + assobio de fresta, puxado por
   rajadas irregulares (subida/descida/espaçamento sorteados: nunca o mesmo
-  intervalo duas vezes).
+  intervalo duas vezes) — e, por baixo dele, a TRILHA do térreo (seção
+  acima, `track-terreo.js`): o vento manda, a música acompanha.
 - **Masmorra**: o SILÊNCIO PERTURBADOR — quase nada; um estalo de pedra a
-  cada 16-40 s para o ouvido ficar tenso; SFX abafados no bus.
+  cada 16-40 s para o ouvido ficar tenso; SFX abafados no bus — e, por
+  baixo do silêncio, a TRILHA da cripta (seção acima,
+  `track-masmorra.js`): o lugar assombrado da prisão política — o
+  coração fundo batendo e os sussurros dos calados por dentro voltando.
 - **Canais (esgoto)**: GOTEIRAS — ping agudo com eco de cisterna, gota dupla
-  ocasional; o ping **para quando ela está de caça perto** (o silêncio avisa).
+  ocasional; o ping **para quando ela está de caça perto** (o silêncio
+  avisa) — e, por baixo dele, a TRILHA da lenda aquática (seção acima,
+  `track-esgoto.js`): estranha, com eco moderado, fora da faixa do ping.
 - **Bocarra Diabólica**: a morada do TETO ALTO — ping gordo com eco de lago,
   vento fundo com deriva de afinação, dissonância de pares desafinados e a
   RESPIRAÇÃO do acervo (rumor que sobe e desce a cada 8-20 s). Tudo prende
