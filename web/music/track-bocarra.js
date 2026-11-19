@@ -62,7 +62,7 @@ export const trackBocarra = {
     // degrau (150 → 255 Hz: a caverna acorda com a peça)
     const padG = AC.createGain();
     padG.gain.value = 0;
-    padG.gain.setTargetAtTime(0.03, AC.currentTime, 2.5);
+    padG.gain.setTargetAtTime(0.045, AC.currentTime, 2.5);
     const padLp = AC.createBiquadFilter();
     padLp.type = 'lowpass';
     padLp.frequency.value = 150;
@@ -134,7 +134,7 @@ export const trackBocarra = {
           o.detune.value = cents;
           const g = AC.createGain();
           g.gain.setValueAtTime(0.0001, t);
-          g.gain.linearRampToValueAtTime(0.008 + nivel * 0.002 + extra, t + sobe);
+          g.gain.linearRampToValueAtTime(0.012 + nivel * 0.003 + extra, t + sobe);
           g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
           o.connect(g);
           g.connect(coroG);
@@ -192,8 +192,8 @@ export const trackBocarra = {
         return;
       }
       const t = AC.currentTime + 0.05;
-      drumHit(t, 0.05);
-      if (nivel >= 3) drumHit(t + 0.35, 0.03); // no pico: o dub do coração grande
+      drumHit(t, 0.07);
+      if (nivel >= 3) drumHit(t + 0.35, 0.045); // no pico: o dub do coração grande
       setTimeout(drumTick, (nivel >= 3 ? 9000 : 14000) + Math.random() * (nivel >= 3 ? 5000 : 8000));
     };
     setTimeout(drumTick, 5000);
@@ -239,8 +239,8 @@ export const trackBocarra = {
       vibG.connect(o2.detune);
       const g = AC.createGain();
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(0.02, t + 2.5); // a voz INCHA do fundo
-      g.gain.setValueAtTime(0.02, t + dur - 1.5);
+      g.gain.linearRampToValueAtTime(0.03, t + 2.5); // a voz INCHA do fundo
+      g.gain.setValueAtTime(0.03, t + dur - 1.5);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       o.connect(g);
       o2.connect(g);
@@ -271,8 +271,8 @@ export const trackBocarra = {
       if (nivel < 3) {
         nivel++;
         padLp.frequency.setTargetAtTime(150 + nivel * 35, AC.currentTime, 8);
-        coroSwell(0.004); // o surto: a massa inchando mais forte que o normal
-        if (nivel >= 2) drumHit(AC.currentTime + 0.1, 0.045); // o primeiro golpe do novo movimento
+        coroSwell(0.006); // o surto: a massa inchando mais forte que o normal
+        if (nivel >= 2) drumHit(AC.currentTime + 0.1, 0.06); // o primeiro golpe do novo movimento
       }
       setTimeout(arcTick, nivel < 3 ? 55000 + Math.random() * 35000 : 30000);
     };
