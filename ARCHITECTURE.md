@@ -207,7 +207,11 @@ Decisoes:
   'running'`; `setMusic('abertura')` com o mesmo id não recomeça, então a
   música atravessa logo → intro sem costura). Tecla nenhuma age na logo:
   ela engole input para não vazar no menu adormecido, e não há skip —
-  o cartão é curto e a música garante o mínimo de exibição. A marca vive
+  o cartão é curto e a música garante o mínimo de exibição. A entrega
+  NÃO depende do som: o despertar do áudio falhou (webview sem Web
+  Audio, API ausente) não prende o jogador — `LOGO_MAX_WAIT` 12 s após
+  o gesto entrega a intro muda (o retry do despertar desiste em 10 s).
+  A marca vive
   com um FANTASMA cromático permanente (vermelho/azul em `lighter`, bem
   suave, deriva lenta do desgaste) e tem GLITCH SUAVE próprio (régua
   irregular, raro e curto: 160-420 ms a cada 3.8-9.5 s; o primeiro rasgo

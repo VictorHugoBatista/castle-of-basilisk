@@ -890,7 +890,16 @@ function menuStep(e) {
 // sozinha ao carregar) — então o primeiro gesto possível e a trilha nasce nele
 let wakeRetry = null; // o retry do despertar (ver abaixo)
 function wakeAudio() {
-  audioOn();
+  try {
+    audioOn();
+  } catch (e) {
+    // o castelo TENTA acordar com som, mas não DEPENDE dele: ambiente onde
+    // o AudioContext nem nasce (webview sem áudio, API ausente) não pode
+    // matar o gesto aqui — a logo não tem skip e o jogador ficaria preso
+    // nela para sempre. Segue mudo; o fallback de LOGO_MAX_WAIT entrega a
+    // intro sem trilha, que é melhor que jogo inalcançável
+    console.warn('[game] o som não acordou:', e);
+  }
   if (AC && AC.state !== 'running') {
     AC.resume().catch(() => {});
     // o Chrome às vezes IGNORA o resume feito no mesmo task da criação do
@@ -914,8 +923,10 @@ function wakeAudio() {
   if (logoActive) {
     // na logo: a trilha da abertura nasce NO PRIMEIRO GESTO — a música já
     // está tocando ANTES da intro começar (id === current adiante não
-    // recomeça: ela atravessa logo → cutscene sem costura)
+    // recomeça: ela atravessa logo → cutscene sem costura). O GESTO marca
+    // logoWoken mesmo se o áudio falhar: a entrega não pode depender do som
     logoWoken = true;
+    logoWokenAt = performance.now();
     setMusic('abertura');
   } else if (!cutActive) setAmbience(); // menus/jogo: trilha pela troca de andar
   else setMusic('abertura'); // na cutscene: a trilha da abertura nasce no MESMO gesto que acorda o castelo (id === current sem force: repetir tecla não recomeça)
@@ -1008,10 +1019,16 @@ const LOGO_GLITCH_EVERY_MIN = 3800; // respiro entre glitches
 const LOGO_GLITCH_EVERY_MAX = 9500;
 const LOGO_GLITCH_DUR_MIN = 160;    // duração do rasgo
 const LOGO_GLITCH_DUR_MAX = 420;
+const LOGO_MAX_WAIT = 12000;        // gesto sem 'running' depois disso (o
+                                    // retry do despertar desiste em 10s):
+                                    // entrega a intro MUDA — splash eterna
+                                    // é pior que intro sem música
 
 let logoActive = true;  // o cartão vem antes de tudo
 let logoT0 = 0;         // performance.now() do primeiro frame da logo
-let logoWoken = false;  // o primeiro gesto já saiu
+let logoWoken = false;  // o primeiro gesto já saiu (COM ou SEM som: o
+                        // despertar do áudio não pode sequestrar o cartão)
+let logoWokenAt = 0;    // quando o gesto saiu (base do fallback)
 let logoMusicAt = 0;    // quando a trilha começou a soar de verdade
 let logoGlitchUntil = -1; // agora < until: o sinal está rasgando
 let logoGlitchNext = 0;   // 0 = ainda não agendou (só depois de assentar)
@@ -1100,7 +1117,6 @@ function logoFrame(nowMs) {
     const bw = Math.min(canvas.width - bx, LOGO_ART[0].length * adv + 52);
     const by = Math.max(0, cy - 28);
     const bh = LOGO_ART.length * lh + 56;
-    const ga = ctx.globalAlpha;
     ctx.globalAlpha = 1;
     for (let i = 0; i < 3; i++) {
       const yy = Math.min(by + Math.random() * bh, by + bh - 18);
@@ -1108,7 +1124,6 @@ function logoFrame(nowMs) {
       const dx = (Math.random() - 0.5) * 20;
       ctx.drawImage(canvas, bx, yy, bw, hh, bx + dx, yy, bw, hh);
     }
-    ctx.globalAlpha = ga;
     ctx.globalAlpha = alpha; // o frame seguinte nasce limpo do afrouxamento
   }
   ctx.font = 'bold 15px monospace';
@@ -1777,9 +1792,15 @@ function frame(nowMs) {
     acc = 0;
     lastState = stats[0];
     safe(() => logoFrame(nowMs), 'logo');
-    if (logoWoken && AC && AC.state === 'running') {
-      if (!logoMusicAt) logoMusicAt = nowMs;
-      else if (nowMs - logoMusicAt >= LOGO_HOLD) endLogo();
+    if (logoWoken) {
+      if (AC && AC.state === 'running') {
+        if (!logoMusicAt) logoMusicAt = nowMs;
+        else if (nowMs - logoMusicAt >= LOGO_HOLD) endLogo();
+      } else if (nowMs - logoWokenAt >= LOGO_MAX_WAIT) {
+        // gesto sem 'running' de verdade após o teto (o retry do despertar
+        // já desistiu): entrega a intro muda — a splash NUNCA é o fim
+        endLogo();
+      }
     }
     requestAnimationFrame(frame); // SEMPRE re-agenda: 1 erro não congela os controles
     return;
