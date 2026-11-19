@@ -227,6 +227,7 @@ web/wasm/*.wasm            binário (~27 KB)
 build.sh                   cargo build --release + copy para web/wasm
 scripts/smoke.mjs          gate de testes headless (roda o jogo no Node)
 scripts/debug6.mjs         bancada do bot playthrough
+bin/back-to-master.sh      volta para master e faz pull — rode sempre após mergear um PR no GitHub
 ```
 
 ## os cinco andares
