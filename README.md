@@ -154,7 +154,8 @@ conhece a casa.
   som soa abafado) — só o estalo de pedra e, por baixo, a trilha
   assombrada da cripta: o coração fundo batendo e sussurros que voltam
   de células diferentes; goteiras com eco no esgoto — que param de pingar quando
-  ela está de caça perto; na Bocarra, o **ar de teto alto**: vento grave
+  ela está de caça perto (por baixo delas, a lenda aquática e estranha
+  da trilha dos canais, com seu eco próprio e moderado); na Bocarra, o **ar de teto alto**: vento grave
   constante dentro de um eco de caverna que não acha parede nenhuma, a
   respiração do acervo a cada 8-20 s (que também prende quando ela caça) e
   uma **dissonância miúda e constante** (dois pares de senoides desafinadas,

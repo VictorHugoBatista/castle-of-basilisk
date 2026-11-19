@@ -5,7 +5,7 @@ import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES, CUT_SOLID } from './cutsce
 // módulos de música versionados na URL (mesma filosofia do ?v= daqui):
 // mudou trilha/maestro, bumpa os ?v= dos imports junto — senão o browser
 // serve maestro/trilha velhos para o glue novo
-import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=14';
+import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=15';
 
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
@@ -218,8 +218,9 @@ function setAmbience(force) {
   // decide recomeçar ou não e mata a velha no fade. MENUS = 'titulo';
   // TÉRREO (o castelo) = 'terreo', a trilha fria que corre DEBAIXO do
   // vento; MASMORRA = 'masmorra', a trilha da cripta que corre DEBAIXO do
-  // silêncio
-  setMusic(th === 4 ? 'titulo' : th === 0 ? 'terreo' : th === 1 ? 'masmorra' : null, force);
+  // silêncio; ESGOTO = 'esgoto', a lenda aquática que corre DEBAIXO das
+  // goteiras
+  setMusic(th === 4 ? 'titulo' : th === 0 ? 'terreo' : th === 1 ? 'masmorra' : th === 2 ? 'esgoto' : null, force);
   // SFX abafados na masmorra: o silêncio sepulcral contrasta qualquer som
   sfxBus.gain.setTargetAtTime(th === 1 ? 0.7 : 1.0, now, 0.5);
   if (th === 0) {
@@ -313,7 +314,11 @@ function setAmbience(force) {
     // calados por dentro voltando ----
     schedSilence();
   } else if (th === 2) {
-    // ---- ESCGOTO: GOTEIRAS — ping agudo com eco de cisterna, irregular
+    // ---- ESCGOTO: GOTEIRAS — ping agudo com eco de cisterna, irregular.
+    // Por baixo, a TRILHA da lenda aquática (web/music/track-esgoto.js —
+    // o maestro já recebeu o pedido de 'esgoto' lá em cima): fora da
+    // faixa do ping, com eco próprio moderado; as goteiras seguem donas
+    // do alerta (param quando ELA caça perto)
     schedDrips();
   } else if (th === 3) {
     // ---- BOCARRA: O ACERVO RESPONDENDO — goteira densa e funda (30 m de

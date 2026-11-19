@@ -277,7 +277,12 @@ Decisoes:
   política da era que caiu: o coração fundo batendo e os sussurros dos
   calados por dentro voltando, por baixo do SILÊNCIO PERTURBADOR; a
   tônica desce de andar em andar), mapeada em
-  `th === 1`; a peça mora DEBAIXO do
+  `th === 1`, e o ESGOTO também: `track-esgoto.js` (dungeon synth
+  aquático e ESTRANHO — a lenda antiga da água: coro pela cor de
+  Phrygia, Eb/Cm por dentro do Dm, melodia que escorrega pra nota e
+  ECO moderado de canal, delay 0.38 s — o gotejar do glue usa o eco do
+  castelo, 0.17 s), mapeada em
+  `th === 2`; a peça do térreo mora DEBAIXO do
   vento (camadas mais baixas que o título, nenhuma voz na faixa do
   assobio da fresta). Primeiro passo da modularização do
   glue por domínio; trilha
@@ -292,7 +297,9 @@ Decisoes:
   corre por baixo dele — assombrada (os sussurros dos calados por
   dentro), mas nunca na frente). Esgoto: GOTEIRAS (ping
   agudo com eco de cisterna, gota dupla ocasional), que PARAM quando ela esta
-  de caca perto. BOCARRA: a morada do TETO ALTO (bus `buildCaveAir`, uma
+  de caca perto — a trilha da lenda aquática corre por baixo, fora da
+  faixa do ping (o eco dela é próprio e moderado: o canal não é
+  catedral). BOCARRA: a morada do TETO ALTO (bus `buildCaveAir`, uma
   vez por visita; tudo morre com a troca de tema e as correntes de timer
   carregam GERACAO — um vai-e-vem rapido de andar nao ressuscita corpo
   velho) — ping gordo (gota grave

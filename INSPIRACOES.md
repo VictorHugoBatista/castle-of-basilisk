@@ -168,6 +168,45 @@
      como na fresta do térreo: afunda); vem quase sempre — o silêncio
      longo morreu aqui.
 
+### a música dos canais (toca no esgoto imperial, andares 4-5)
+
+- **Referência primária declarada**: Trollslottet — *Kryptan* (2025,
+  Cryo Crypt), faixa **"I Forna Legender"** — o MESMO Pär Boström das
+  trilhas do térreo e da masmorra:
+  <https://youtu.be/qJraAOi-bD8?t=409> (a faixa começa nesse ponto).
+- **A tese**: o canal é um lugar de LENDA ANTIGA — a água conta o que
+  ali afundou, e o que ali afundou não era coisa normal. A vibe é
+  AQUÁTICA e ESTRANHA: o coro gira pela cor de Phrygia (Eb e Cm por
+  dentro do Dm — a segunda menor que não pertence a nenhum andar de
+  cima) e a melodia ESCORREGA pra nota (portamento líquido: cada plop
+  de nota cai na água em vez de ser atacada). ECO, SEM EXAGERO: o canal
+  é grande mas não é catedral — delay 0.38 s, feedback 0.35, wet 0.4 (o
+  gotejar do glue usa o eco do castelo, 0.17 s: as duas águas de eco não
+  se confundem). As GOTEIRAS seguem donas do alerta (param quando ela
+  caça perto): a música mora DEBAIXO delas e fora da faixa do ping
+  (1,1-1,8 kHz). Ré menor — a tônica desce de andar em andar (título →
+  térreo → masmorra → esgoto, sempre no D).
+- **A peça**: Ré menor (pintado de Phrygia), quatro camadas, tudo em
+  `web/music/track-esgoto.js` (contrato de trilha `start(ctx, buses,
+  alive)`; registro no `TRACKS` do maestro; o glue chama
+  `setMusic('esgoto')` quando o tema é o esgoto):
+  1. **a água parada** — D2+A2+D1, saws desafinadas (o batimento lento,
+     ~0.5 Hz, é o reflexo da água tremendo) sob lowpass 380 Hz — mais
+     brilho que a pedra da masmorra, mas bem antes do ping;
+  2. **a lenda** — acordes de longa forma Dm/Eb/Cm/Gm (a Eb é a segunda
+     estranha), inchaço de 5-8 s e dissolução de 6-9 s, um a cada
+     ~20-32 s; uma parcela miúda do acorde manda pro eco (0.15: a lenda
+     repete na água, muda);
+  3. **o plop** — algo caiu nos canais: sine caindo duas oitavas
+     (260→70 Hz) com respingo de ruído lowpass, raro (a cada ~18-40 s)
+     e discreto — o par grave do ping: o que cai por cima é água, o
+     que cai aqui embaixo não se sabe;
+  4. **a lenda contada** — a melodia: frases de 4-6 notas em Dm pintado
+     de Eb (D4-Eb4-F4-E4-D4; A3-C4-Eb4-D4; F4-Eb4-D4-Bb3-A3; e a rara
+     D5-C5-Bb4-A4), cada nota nascendo 8% abaixo e ESCORREGANDO pra
+     afinada, eco do canal por cima; frases curtas, chegam de cara e
+     voltam sempre.
+
 ### o ambiente por andar (não é música: é o lugar soando — `setAmbience`)
 
 - **Térreo**: o VENTO — corpo grave de ruído + assobio de fresta, puxado por
@@ -180,7 +219,9 @@
   `track-masmorra.js`): o lugar assombrado da prisão política — o
   coração fundo batendo e os sussurros dos calados por dentro voltando.
 - **Canais (esgoto)**: GOTEIRAS — ping agudo com eco de cisterna, gota dupla
-  ocasional; o ping **para quando ela está de caça perto** (o silêncio avisa).
+  ocasional; o ping **para quando ela está de caça perto** (o silêncio
+  avisa) — e, por baixo dele, a TRILHA da lenda aquática (seção acima,
+  `track-esgoto.js`): estranha, com eco moderado, fora da faixa do ping.
 - **Bocarra Diabólica**: a morada do TETO ALTO — ping gordo com eco de lago,
   vento fundo com deriva de afinação, dissonância de pares desafinados e a
   RESPIRAÇÃO do acervo (rumor que sobe e desce a cada 8-20 s). Tudo prende
