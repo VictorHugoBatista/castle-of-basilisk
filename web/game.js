@@ -5,7 +5,7 @@ import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES, CUT_SOLID } from './cutsce
 // módulos de música versionados na URL (mesma filosofia do ?v= daqui):
 // mudou trilha/maestro, bumpa os ?v= dos imports junto — senão o browser
 // serve maestro/trilha velhos para o glue novo
-import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=13';
+import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=14';
 
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
@@ -216,8 +216,10 @@ function setAmbience(force) {
   needsFull = true;
   // a trilha: id escolhido UMA vez aqui — o maestro (music/conductor.js)
   // decide recomeçar ou não e mata a velha no fade. MENUS = 'titulo';
-  // TÉRREO (o castelo) = 'terreo', a trilha fria que corre DEBAIXO do vento
-  setMusic(th === 4 ? 'titulo' : th === 0 ? 'terreo' : null, force);
+  // TÉRREO (o castelo) = 'terreo', a trilha fria que corre DEBAIXO do
+  // vento; MASMORRA = 'masmorra', a trilha da cripta que corre DEBAIXO do
+  // silêncio
+  setMusic(th === 4 ? 'titulo' : th === 0 ? 'terreo' : th === 1 ? 'masmorra' : null, force);
   // SFX abafados na masmorra: o silêncio sepulcral contrasta qualquer som
   sfxBus.gain.setTargetAtTime(th === 1 ? 0.7 : 1.0, now, 0.5);
   if (th === 0) {
@@ -304,7 +306,10 @@ function setAmbience(force) {
     // 'titulo' lá em cima e segura registro, fade e geração
   } else if (th === 1) {
     // ---- MASMORRA: SILÊNCIO PERTURBADOR — quase nada; a cada 16-40s um
-    // estalo mínimo de madeira/pedra, só para o ouvido ficar tenso ----
+    // estalo mínimo de madeira/pedra, só para o ouvido ficar tenso. Por
+    // baixo, a TRILHA da cripta (web/music/track-masmorra.js — o maestro
+    // já recebeu o pedido de 'masmorra' lá em cima): o coração fundo
+    // batendo, quase subliminar ----
     schedSilence();
   } else if (th === 2) {
     // ---- ESCGOTO: GOTEIRAS — ping agudo com eco de cisterna, irregular
@@ -320,6 +325,8 @@ function setAmbience(force) {
 }
 
 // agendador do silêncio da masmorra: é o que NÃO soa que educa o terror
+// (a trilha da cripta, music/track-masmorra.js, corre ainda mais baixo
+// que ele)
 function schedSilence() {
   if (ambTheme !== 1 || !AC) return;
   ambTimer = setTimeout(() => {

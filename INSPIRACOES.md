@@ -115,6 +115,40 @@
      que cai e morre na tônica; raríssima, uma a cada ~40-85 s — o épico
      da peça, nunca o dono dela.
 
+### a música da masmorra (toca na Masmorra Assombrada, andares 2-3)
+
+- **Referência primária declarada**: Trollslottet — *Kryptan* (2025,
+  Cryo Crypt), faixa **"Som Vore Det Evigt"** — o MESMO Pär Boström da
+  trilha do térreo, o álbum seguinte:
+  <https://youtu.be/qJraAOi-bD8?t=2440> (a faixa começa nesse ponto). A
+  profecia do Kryptan é a tese da peça: *"Deep and silent, the heart
+  shall beat"* — a descida à cripta, o fundo e calado, o coração que
+  bate: exatamente o que a masmorra pede.
+- **A tese**: o SILÊNCIO PERTURBADOR continua dono (SFX abafados no bus,
+  estalo de pedra do glue) — a música mora DEBAIXO do silêncio: mais
+  baixa que o térreo, sem voz nenhuma que dispute o estalo, e a maior
+  parte do tempo ela só respira. Ré menor de novo — a tônica desce de
+  andar em andar (título → térreo → masmorra, sempre no D), uma oitava
+  de fôlego mais fundo a cada descida.
+- **A peça**: Ré menor, quatro camadas, tudo em
+  `web/music/track-masmorra.js` (contrato de trilha `start(ctx, buses,
+  alive)`; registro no `TRACKS` do maestro; o glue chama
+  `setMusic('masmorra')` quando o tema é a masmorra):
+  1. **a pedra funda** — D1+A1+D2 (o "grão da pedra" da abertura, uma
+     oitava de fôlego mais fundo que o portão do térreo), saws
+     desafinadas sob lowpass 200 Hz derivando — a pedra não canta,
+     rumina;
+  2. **o coração fundo** — lub-dub longínquo de sine descendo (52→28 Hz),
+     o segundo sopro mais fraco, um coração a cada ~9-18 s: o metrônomo
+     irregular do terror (a promessa da profecia, batendo);
+  3. **o coro de baixo** — acordes de longa forma pelo lado mais escuro
+     do Dm (Dm Bb Gm Am — SEM C maior nenhuma: aqui não há clareza), uma
+     oitava abaixo do coro do frio do térreo, um a cada ~28-50 s;
+  4. **o lamento da cripta** — frases curtíssimas de duas/três notas
+     descendentes no registro grave (a tristeza aqui não cai de cima
+     como na fresta do térreo: afunda); na maior parte do tempo ela NÃO
+     vem.
+
 ### o ambiente por andar (não é música: é o lugar soando — `setAmbience`)
 
 - **Térreo**: o VENTO — corpo grave de ruído + assobio de fresta, puxado por
@@ -122,7 +156,9 @@
   intervalo duas vezes) — e, por baixo dele, a TRILHA do térreo (seção
   acima, `track-terreo.js`): o vento manda, a música acompanha.
 - **Masmorra**: o SILÊNCIO PERTURBADOR — quase nada; um estalo de pedra a
-  cada 16-40 s para o ouvido ficar tenso; SFX abafados no bus.
+  cada 16-40 s para o ouvido ficar tenso; SFX abafados no bus — e, por
+  baixo do silêncio, a TRILHA da cripta (seção acima,
+  `track-masmorra.js`): o coração fundo batendo, quase subliminar.
 - **Canais (esgoto)**: GOTEIRAS — ping agudo com eco de cisterna, gota dupla
   ocasional; o ping **para quando ela está de caça perto** (o silêncio avisa).
 - **Bocarra Diabólica**: a morada do TETO ALTO — ping gordo com eco de lago,

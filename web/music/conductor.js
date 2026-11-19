@@ -5,11 +5,12 @@
 // TRACKS abaixo (+ o ponto de chamada no glue). A trilha pode
 // OPCIONALMENTE escrever uma coda (handle.coda): o glue a avisa via
 // musicCoda() quando o fim dela está perto.
-import { trackTitulo } from './track-titulo.js?v=13'; // ?v= versionado junto: mudou a trilha, bumpa aqui e nos imports do glue
-import { trackAbertura } from './track-abertura.js?v=13';
-import { trackTerreo } from './track-terreo.js?v=13';
+import { trackTitulo } from './track-titulo.js?v=14'; // ?v= versionado junto: mudou a trilha, bumpa aqui e nos imports do glue
+import { trackAbertura } from './track-abertura.js?v=14';
+import { trackTerreo } from './track-terreo.js?v=14';
+import { trackMasmorra } from './track-masmorra.js?v=14';
 
-const TRACKS = { titulo: trackTitulo, abertura: trackAbertura, terreo: trackTerreo };
+const TRACKS = { titulo: trackTitulo, abertura: trackAbertura, terreo: trackTerreo, masmorra: trackMasmorra };
 
 let ctx = null;
 let buses = null;

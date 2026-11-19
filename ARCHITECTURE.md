@@ -272,7 +272,11 @@ Decisoes:
   opcionalmente — o título não tem). O TÉRREO também tem trilha do
   maestro: `track-terreo.js` (dungeon synth nórdico SEM pulso, Ré menor
   contínuo com o título — o drone nasce no mesmo D2 e a tônica passa no
-  fade da entrada no jogo), mapeada em `th === 0`; a peça mora DEBAIXO do
+  fade da entrada no jogo), mapeada em `th === 0`, e a MASMORRA também:
+  `track-masmorra.js` (dark ambient de descida, quase subliminar — Ré
+  menor uma oitava mais funda, o coração fundo batendo por baixo do
+  SILÊNCIO PERTURBADOR; a tônica desce de andar em andar), mapeada em
+  `th === 1`; a peça mora DEBAIXO do
   vento (camadas mais baixas que o título, nenhuma voz na faixa do
   assobio da fresta). Primeiro passo da modularização do
   glue por domínio; trilha
@@ -283,7 +287,8 @@ Decisoes:
   assobio de fresta em bandpass 1750 Hz, rajadas irregulares sem LFO de
   ganho algum; a trilha do maestro entra por baixo). Masmorra: SILÊNCIO PERTURBADOR
   (estalo de pedra a cada 16-40 s; SFX abafados a 0.7 no bus `sfxBus` — o
-  silencio sepulcral contrasta com qualquer barulho). Esgoto: GOTEIRAS (ping
+  silencio sepulcral contrasta com qualquer barulho; a trilha da cripta
+  corre AINDA MAIS BAIXO que ele). Esgoto: GOTEIRAS (ping
   agudo com eco de cisterna, gota dupla ocasional), que PARAM quando ela esta
   de caca perto. BOCARRA: a morada do TETO ALTO (bus `buildCaveAir`, uma
   vez por visita; tudo morre com a troca de tema e as correntes de timer

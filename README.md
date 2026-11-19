@@ -151,7 +151,8 @@ conhece a casa.
 - Ouça o **lugar**: vento lento no térreo — com uma trilha fria de dungeon
   synth nórdico correndo DEBAIXO dele (o vento manda, a música acompanha);
   na masmorra quase nada (e qualquer
-  som soa abafado); goteiras com eco no esgoto — que param de pingar quando
+  som soa abafado) — só o estalo de pedra e, quase subliminar, o coração
+  fundo da trilha da cripta batendo lá no fundo; goteiras com eco no esgoto — que param de pingar quando
   ela está de caça perto; na Bocarra, o **ar de teto alto**: vento grave
   constante dentro de um eco de caverna que não acha parede nenhuma, a
   respiração do acervo a cada 8-20 s (que também prende quando ela caça) e
