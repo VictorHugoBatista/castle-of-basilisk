@@ -35,6 +35,37 @@
 - A fileira de dentes da logo é a "grade" da música: a boca ocupa o topo da
   tela e o menu respira no vão de baixo — a criatura canta e respira.
 
+### a música da abertura (toca na cutscene da porta, antes do título)
+
+- **Referência primária declarada**: Cimerion & Oublieth — *Arcanes* (2022,
+  Out of Season), o MESMO Cimerion de *Contresort*: um único tecido sonoro
+  de dark ambient analógico dedicado a Klaus Schulze e Vangelis, onde as
+  peças dos dois projetos alternam sem costura:
+  <https://www.youtube.com/watch?v=GooffnSe5D4>
+- **A tese**: a abertura é o nascer do dia ANTES do castelo acordar — nada
+  pulsa aqui. O ostinato de Berlim é o pulso do castelo VIVO (título); a
+  abertura troca o sequencer por pads de longa forma (Schulze) e um coro
+  lento de synth (Vangelis). Ré menor igual ao título: quem ouviu os dois
+  reconhece o fio — a flauta "ensaia" a primeira frase da trilha do título,
+  cochichada, e o maestro faz a passagem no fade.
+- **A peça**: Ré menor, seis camadas, tudo em `web/music/track-abertura.js`
+  (contrato de trilha `start(ctx, buses, alive)`; registro no `TRACKS` do
+  maestro; o glue chama `setMusic('abertura')` no gesto que acorda o som
+  dentro da cutscene):
+  1. **o grão da pedra** — D1+A1+D2, saws desafinadas sob sine sub, lowpass
+     240 Hz derivando (~1 volta/min) — o castelo antes de respirar;
+  2. **a corrente do cano** — ruído em bandpass fino derivando + redemoinhos
+     (aberturas curtas do filtro, scheduler irregular): o rio parado no breu
+     do túnel, não a goteira do esgoto in-game;
+  3. **o coro do breu (Vangelis)** — acordes de Dm/Bb/Gm/Am que incham em
+     5-8 s e se dissolvem em 8-13 s, um por vez, espaçamento sorteado;
+  4. **a flauta que ensaia** — o começo da frase 1 do título, mais fundo,
+     eco de pátio vazio (delay 0.58 s), 24-54 s de intervalo;
+  5. **o olho** — F#1/G#1 batendo ~1.9/s inchando e morrendo + golpe fundo
+     (52→28 Hz), raro: o par de olhos do fundo do túnel respirando;
+  6. **a fita** — o mesmo chiado baixo do título: a mesma fita, o mesmo
+     castelo.
+
 ### o ambiente por andar (não é música: é o lugar soando — `setAmbience`)
 
 - **Térreo**: o VENTO — corpo grave de ruído + assobio de fresta, puxado por

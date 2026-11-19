@@ -3,9 +3,10 @@
 // mapeia estado de jogo → id e chama setMusic(); NENHUMA receita musical
 // mora aqui. Trilha nova = arquivo em music/track-*.js + uma linha no
 // TRACKS abaixo (+ o ponto de chamada no glue).
-import { trackTitulo } from './track-titulo.js?v=9'; // ?v= versionado junto: mudou a trilha, bumpa aqui e nos imports do glue
+import { trackTitulo } from './track-titulo.js?v=10'; // ?v= versionado junto: mudou a trilha, bumpa aqui e nos imports do glue
+import { trackAbertura } from './track-abertura.js?v=10';
 
-const TRACKS = { titulo: trackTitulo };
+const TRACKS = { titulo: trackTitulo, abertura: trackAbertura };
 
 let ctx = null;
 let buses = null;
