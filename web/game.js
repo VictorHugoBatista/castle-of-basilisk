@@ -993,7 +993,7 @@ function inputBits() {
 const LOGO_ART = [
   '\\  |  |¯)',
   ' \\ |--|-',
-  '  \\|  |__)',
+  '  \\|  |_)',
 ];
 const LOGO_FADE_IN = 1400; // a marca acorda do preto
 const LOGO_HOLD = 2800;    // música tocando na logo antes de entregar à intro
