@@ -196,6 +196,29 @@ Decisoes:
   attr): a troca de andar troca a referencia de paleta + `needsFull` — o CRT
   veste a cor do lugar (ambar rico / ambar seco / verde-lodo / pedra umida de
   caverna).
+- **Tela da logo mora INTEIRA no JS** (`logoFrame` em `game.js`): o cartão
+  de entrada VHB antes da cutscene, e o WASM também não sabe que ela
+  existe — sem estado novo no RT, sem ABI, sem smoke. Nasce ATIVA no boot
+  (`logoActive`); fundo preto, a marca ASCII no centro (fonte 46px, halo
+  ambar, fade-in 1.4 s) e o convite só depois da marca assentar. O
+  AudioContext só desperta num gesto: o PRIMEIRO gesto da página acontece
+  AQUI — e a trilha da abertura nasce na logo, não na cutscene (o cartão
+  entrega a tela só depois de `LOGO_HOLD` 3.4 s com `AC.state ===
+  'running'`; `setMusic('abertura')` com o mesmo id não recomeça, então a
+  música atravessa logo → intro sem costura). Tecla nenhuma age na logo:
+  ela engole input para não vazar no menu adormecido, e não há skip —
+  o cartão é curto e a música garante o mínimo de exibição. A entrega
+  NÃO depende do som: o despertar do áudio falhou (webview sem Web
+  Audio, API ausente) não prende o jogador — `LOGO_MAX_WAIT` 12 s após
+  o gesto entrega a intro muda (o retry do despertar desiste em 10 s).
+  A marca vive
+  com um FANTASMA cromático permanente (vermelho/azul em `lighter`, bem
+  suave, deriva lenta do desgaste) e tem GLITCH SUAVE próprio (régua
+  irregular, raro e curto: 160-420 ms a cada 3.8-9.5 s; o primeiro rasgo
+  nasce logo no assentar da marca — o clique rápido também o pega):
+  no rasgo o fantasma engorda e fatias horizontais de `drawImage`
+  CONTIDAS na caixa da marca rasgam o sinal — o convite "pressione
+  qualquer tecla" é texto de sistema e não sofre a interferência.
 - **Cutscene de abertura mora INTEIRA no JS** (`web/cutscene.js` = dados;
   engine em `game.js`): apresentação pura, o WASM não sabe que ela existe —
   sem estado novo no RT, sem ABI, sem smoke. Roda ANTES do título
@@ -240,9 +263,10 @@ Decisoes:
   (registro de trilhas + fade 0.4 s + geração que mata correntes de scheduler
   velhas; o glue só mapeia estado de jogo → id e chama `setMusic`):
   `track-titulo.js` (título/controles/escolha de andar) e `track-abertura.js`
-  (a cutscene da porta — nasce no primeiro gesto DENTRO da cutscene, já que
-  o `AudioContext` só desperta em gesto; `endCutscene` troca para o título,
-  no fade). A abertura tem FIM COMPOSTO: faltando ~6.5 s da última cena, o
+  (a cutscene da porta — nasce no primeiro gesto NA LOGO, a tela que abre a
+  página, já que o `AudioContext` só desperta em gesto, e atravessa logo →
+  cutscene sem recomeçar; `endCutscene` troca para o título, no fade). A
+  abertura tem FIM COMPOSTO: faltando ~6.5 s da última cena, o
   glue chama `musicCoda()` e a trilha executa a cadência escrita que acha
   a tônica junto com o fade (trilha pode expor `coda` no handle,
   opcionalmente — o título não tem). Primeiro passo da modularização do

@@ -890,7 +890,16 @@ function menuStep(e) {
 // sozinha ao carregar) — então o primeiro gesto possível e a trilha nasce nele
 let wakeRetry = null; // o retry do despertar (ver abaixo)
 function wakeAudio() {
-  audioOn();
+  try {
+    audioOn();
+  } catch (e) {
+    // o castelo TENTA acordar com som, mas não DEPENDE dele: ambiente onde
+    // o AudioContext nem nasce (webview sem áudio, API ausente) não pode
+    // matar o gesto aqui — a logo não tem skip e o jogador ficaria preso
+    // nela para sempre. Segue mudo; o fallback de LOGO_MAX_WAIT entrega a
+    // intro sem trilha, que é melhor que jogo inalcançável
+    console.warn('[game] o som não acordou:', e);
+  }
   if (AC && AC.state !== 'running') {
     AC.resume().catch(() => {});
     // o Chrome às vezes IGNORA o resume feito no mesmo task da criação do
@@ -911,12 +920,26 @@ function wakeAudio() {
       }, 250);
     }
   }
-  if (!cutActive) setAmbience(); // menus/jogo: trilha pela troca de andar
+  if (logoActive) {
+    // na logo: a trilha da abertura nasce NO PRIMEIRO GESTO — a música já
+    // está tocando ANTES da intro começar (id === current adiante não
+    // recomeça: ela atravessa logo → cutscene sem costura). O GESTO marca
+    // logoWoken mesmo se o áudio falhar: a entrega não pode depender do som
+    logoWoken = true;
+    logoWokenAt = performance.now();
+    setMusic('abertura');
+  } else if (!cutActive) setAmbience(); // menus/jogo: trilha pela troca de andar
   else setMusic('abertura'); // na cutscene: a trilha da abertura nasce no MESMO gesto que acorda o castelo (id === current sem force: repetir tecla não recomeça)
 }
 
 window.addEventListener('keydown', (e) => {
   wakeAudio();
+  // tela da logo: tecla nenhuma age — o primeiro gesto só desperta o som;
+  // a trilha conta o próprio tempo (LOGO_HOLD) e entrega à intro sozinha
+  if (logoActive) {
+    e.preventDefault();
+    return;
+  }
   // cutscene: enter/espaço avançam o texto, esc pula tudo (antes do
   // menuStep, senão a tecla vaza pro menu que está por baixo) — sempre
   // depois da graça: no primeiro segundo, tecla nenhuma faz nada
@@ -968,6 +991,154 @@ function inputBits() {
 }
 
 // ============================================================
+// tela da logo: o cartão de entrada, antes da pedra
+// ============================================================
+// Também apresentação pura — o WASM não sabe que ela existe (mesma decisão
+// da cutscene: sem estado novo no RT, sem ABI, sem smoke). Nasce ATIVA no
+// boot: fundo preto, a marca VHB no centro e nada mais. O primeiro gesto
+// (tecla/clique/toque) acorda o AudioContext — exigência dos navegadores —
+// e a TRILHA DA ABERTURA nasce já AQUI: a música não espera a intro. Passado
+// LOGO_HOLD ms de trilha soando DE VERDADE (AC.state === 'running'), a logo
+// entrega a tela para a cutscene sem reiniciar a música (setMusic com o
+// mesmo id não recomeça — o maestro deixa a mesma corrente viva).
+const LOGO_ART = [
+  '\\  |  |¯)',
+  ' \\ |--|-',
+  '  \\|  |_)',
+];
+const LOGO_FADE_IN = 1400; // a marca acorda do preto
+const LOGO_HOLD = 3400;    // música tocando na logo antes de entregar à intro
+                           // (o rasgo precisa caber dentro dele: o clique
+                           // rápido também merece ver o sinal soltar)
+const LOGO_COLOR = '#ffb000';
+const LOGO_DIM = '#8a5f00';
+// o glitch suave da marca: raro, curto e FORA do metrônomo (a régua
+// irregular do glue — nada de intervalo fixo). Só a MARCA sofre a
+// interferência: o convite é texto de sistema e fica de fora
+const LOGO_GLITCH_EVERY_MIN = 3800; // respiro entre glitches
+const LOGO_GLITCH_EVERY_MAX = 9500;
+const LOGO_GLITCH_DUR_MIN = 160;    // duração do rasgo
+const LOGO_GLITCH_DUR_MAX = 420;
+const LOGO_MAX_WAIT = 12000;        // gesto sem 'running' depois disso (o
+                                    // retry do despertar desiste em 10s):
+                                    // entrega a intro MUDA — splash eterna
+                                    // é pior que intro sem música
+
+let logoActive = true;  // o cartão vem antes de tudo
+let logoT0 = 0;         // performance.now() do primeiro frame da logo
+let logoWoken = false;  // o primeiro gesto já saiu (COM ou SEM som: o
+                        // despertar do áudio não pode sequestrar o cartão)
+let logoWokenAt = 0;    // quando o gesto saiu (base do fallback)
+let logoMusicAt = 0;    // quando a trilha começou a soar de verdade
+let logoGlitchUntil = -1; // agora < until: o sinal está rasgando
+let logoGlitchNext = 0;   // 0 = ainda não agendou (só depois de assentar)
+
+function endLogo() {
+  logoActive = false;
+  cutActive = true;
+  cutStarted = false; // o relógio da pedra nasce no primeiro frame DELA
+  forceRedraw();
+}
+
+function logoFrame(nowMs) {
+  if (!logoT0) logoT0 = nowMs;
+  const t = nowMs - logoT0;
+  ctx.fillStyle = '#050200';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // a marca VHB, centrada: acende do preto no ritmo do fade, com halo ambar.
+  // Célula a célula num GRID PRÓPRIO (advance real da fonte, medido uma vez,
+  // cada glifo na sua coluna): centrar linha a linha com textAlign='center'
+  // fazia cada linha flutuar pelo próprio comprimento e as colunas do
+  // desenho — as barras do H, o V, o bojo do B — não casavam entre linhas
+  const alpha = Math.min(1, t / LOGO_FADE_IN);
+  const lh = 56; // entrelinha da marca (fonte 46px monospace)
+  const cy = canvas.height / 2 - lh; // centro vertical do bloco de 3 linhas
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 46px monospace';
+  const adv = ctx.measureText('M').width; // a coluna do grid é o advance REAL
+  const startX = Math.round(canvas.width / 2 - (LOGO_ART[0].length * adv) / 2);
+
+  // ---- o estado do glitch suave: logo depois da marca assentar (o
+  // fade-in não nasce quebrado e o clique rápido AINDA pega o rasgo — o
+  // primeiro vem no assentar, não minutos depois); os próximos voltam ao
+  // respiro sorteado, nunca o mesmo intervalo duas vezes
+  const settled = t > LOGO_FADE_IN + 200;
+  if (settled && !logoGlitchNext) {
+    logoGlitchNext = nowMs + 100 + Math.random() * 600;
+  }
+  if (settled && nowMs >= logoGlitchNext) {
+    logoGlitchUntil = nowMs + LOGO_GLITCH_DUR_MIN
+      + Math.random() * (LOGO_GLITCH_DUR_MAX - LOGO_GLITCH_DUR_MIN);
+    logoGlitchNext = nowMs + LOGO_GLITCH_EVERY_MIN
+      + Math.random() * (LOGO_GLITCH_EVERY_MAX - LOGO_GLITCH_EVERY_MIN);
+  }
+  const gOn = nowMs < logoGlitchUntil;
+
+  ctx.shadowColor = 'rgba(255,176,0,0.55)';
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = LOGO_COLOR;
+  if (gOn) ctx.globalAlpha = alpha * 0.82; // o sinal afrouxa um pouco no rasgo
+  // o FANTASMA permanente do CRT: aberração cromática vermelho/azul SEMPRE
+  // viva, bem suave — o âmbar nunca fica sozinho no vidro (o desgaste
+  // deriva devagar, sem metrônomo); no rasgo ela engorda e desloca mais
+  const wob = Math.sin(nowMs * 0.0013) * 0.6; // deriva lenta do desgaste
+  const gox = gOn ? 2 : 1;                    // deslocamento do ghost
+  const gcA = gOn ? 0.30 : 0.10;              // azul (ciano)
+  const grA = gOn ? 0.26 : 0.09;              // vermelho
+  for (let i = 0; i < LOGO_ART.length; i++) {
+    const line = LOGO_ART[i];
+    const y = cy + i * lh;
+    for (let j = 0; j < line.length; j++) {
+      const ch = line[j];
+      if (ch === ' ') continue; // vazio: o fundo já está lavado
+      const x = startX + Math.round(j * adv);
+      ctx.shadowBlur = 0;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = `rgba(0,255,204,${gcA})`;
+      ctx.fillText(ch, x - gox, y + wob);
+      ctx.fillStyle = `rgba(255,0,0,${grA})`;
+      ctx.fillText(ch, x + gox, y - wob);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = LOGO_COLOR;
+      ctx.fillText(ch, x, y);
+    }
+  }
+  ctx.shadowBlur = 0;
+
+  // fatias horizontais CONTIDAS na caixa da marca: o rasgo é dela, nada do
+  // resto da tela entra — o convite embaixo fica intacto. Cópia opaca
+  // (globalAlpha 1): o deslocamento rasga de verdade, não esfumaça
+  if (gOn) {
+    const bx = Math.max(0, startX - 26);
+    const bw = Math.min(canvas.width - bx, LOGO_ART[0].length * adv + 52);
+    const by = Math.max(0, cy - 28);
+    const bh = LOGO_ART.length * lh + 56;
+    ctx.globalAlpha = 1;
+    for (let i = 0; i < 3; i++) {
+      const yy = Math.min(by + Math.random() * bh, by + bh - 18);
+      const hh = 4 + Math.random() * 14;
+      const dx = (Math.random() - 0.5) * 20;
+      ctx.drawImage(canvas, bx, yy, bw, hh, bx + dx, yy, bw, hh);
+    }
+    ctx.globalAlpha = alpha; // o frame seguinte nasce limpo do afrouxamento
+  }
+  ctx.font = 'bold 15px monospace';
+  // o convite: só depois da marca assentar — o clique de foco da aba não
+  // vê convite nenhum no primeiro segundo
+  if (t > LOGO_FADE_IN + 300) {
+    ctx.fillStyle = LOGO_DIM;
+    ctx.globalAlpha = alpha * (0.55 + 0.45 * Math.sin(nowMs * 0.004));
+    ctx.textAlign = 'center';
+    ctx.fillText('pressione qualquer tecla', canvas.width / 2, cy + LOGO_ART.length * lh + 44);
+  }
+  ctx.restore();
+}
+
+// ============================================================
 // cutscene de abertura: a porta antes do título
 // ============================================================
 // Só apresentação — o WASM não sabe que ela existe (decisão no
@@ -998,7 +1169,7 @@ const CUT_CODA_S = 6.5;      // faltando isso na última cena, o maestro avisa a
                              // trilha e ela executa a coda escrita — a tônica
                              // acha o chão junto com o afundar no breu
 
-let cutActive = true;      // nasce ativa: a pedra vem antes do menu
+let cutActive = false;     // nasce DORMINDO: a logo vem antes (endLogo acorda)
 let cutCodaDone = false;   // o aviso de fim já saiu (uma vez só)
 let cutScene = 0;
 let cutT0 = 0;             // performance.now() do começo da cutscene
@@ -1612,6 +1783,28 @@ function frame(nowMs) {
   const dt = nowMs - lastT;
   lastT = nowMs;
   acc += dt;
+
+  // tela da logo: o resto do loop dorme (mesma regra da cutscene). A
+  // entrega para a intro só acontece com a trilha soando DE VERDADE
+  // (AC.state === 'running'): LOGO_HOLD ms de música no cartão, sem
+  // costura — o maestro não recomeça a trilha que já é vigente
+  if (logoActive) {
+    acc = 0;
+    lastState = stats[0];
+    safe(() => logoFrame(nowMs), 'logo');
+    if (logoWoken) {
+      if (AC && AC.state === 'running') {
+        if (!logoMusicAt) logoMusicAt = nowMs;
+        else if (nowMs - logoMusicAt >= LOGO_HOLD) endLogo();
+      } else if (nowMs - logoWokenAt >= LOGO_MAX_WAIT) {
+        // gesto sem 'running' de verdade após o teto (o retry do despertar
+        // já desistiu): entrega a intro muda — a splash NUNCA é o fim
+        endLogo();
+      }
+    }
+    requestAnimationFrame(frame); // SEMPRE re-agenda: 1 erro não congela os controles
+    return;
+  }
 
   // cutscene: o resto do loop dorme — sem tick, sem HUD, sem medo;
   // o menu de título fica por baixo, intacto, esperando o fim dela
