@@ -242,11 +242,16 @@
      ganho crescendo por degrau;
      no nivel 0, só o presságio (raro, quase inaudível); parcela de 0.3
      manda pro eco;
-  3. **o tambor do fundo** — o coração grande do lugar: golpe com CORPO
-     audível (sine 90→38 Hz) e sub embaixo (55→26 Hz) para o peso, seco
-     e enorme, só a partir do nivel 2; no 3, o dub
-     volta e os golpes apertam (9-14 s) — quanto mais fundo, mais
-     perto;
+  3. **o tambor do fundo** — o coração grande do lugar, DE GUERRA (a
+     referência pede tambores agressivos): golpe de ataque quase
+     instantâneo (0.005 s), queda de pitch rápida (sine 90→38 Hz), a
+     PELE respondendo (triângulo 175→82 Hz, morre em 0.4 s), estalo de
+     transiente (bandpass 1100 Hz, 0.05 s — o chicote no couro) e
+     SATURAÇÃO no bus (WaveShaper tanh: a distorção cola o golpe e dá a
+     agressão sem subi-lo de ganho); corpo audível + sub (55→26 Hz)
+     embaixo. Só a partir do nivel 2 (golpe único, 11-18 s); no 3, o
+     RITUAL: grupos de 2-3 golpes colados (0.42 s entre eles — a
+     cadência de guerra), grupos a cada 9-13 s;
   4. **a voz do acervo** — o PICO: um canto de fundura (triângulo + saw
      abafada, vibrato lento, nota segurada por 6-9 s: D3/F3/G3/A3 — a
      voz fala no meio, o eco afunda por ela), no eco grande (delay

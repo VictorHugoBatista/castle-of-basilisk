@@ -12,7 +12,9 @@
 // respiração do acervo, dissonância de pares desafinados, ping gordo) —
 // a trilha NÃO adiciona textura de ruído nenhuma: só camadas TONAIS
 // graves no mesmo Dm (a tônica desce de andar em andar e aqui ela chega
-// ao fundo) + um tambor de sine. Tudo em poucas vozes, tudo num eco
+// ao fundo) + um tambor (sine + saturação + estalo de couro: o estalo é
+// o TRANSIENTE do golpe dele mesmo, não textura solta). Tudo em poucas
+// vozes, tudo num eco
 // próprio (a caverna é grande DE VERDADE: delay 0.55 s, feedback 0.42,
 // wet 0.45 — mais do que o esgoto, menos do que o infinito).
 // Quando ELA caça perto (o glue entrega o estado no buses.probe), a
@@ -166,38 +168,82 @@ export const trackBocarra = {
     };
     setTimeout(coroTick, 3000 + Math.random() * 4000); // o presságio vem cedo
 
-    // o tambor do fundo: o CORAÇÃO GRANDE DO LUGAR — o golpe tem CORPO
-    // audível (sine 90→38 Hz) e o sub embaixo (55→26 Hz) para o peso;
-    // seco e enorme. Só a partir do nivel 2; no 3, o dub volta (a sístole
-    // de um coração que acorda). É o METRÔNOMO do pavor: quanto mais
-    // fundo, mais perto
+    // o tambor do fundo: o CORAÇÃO GRANDE DO LUGAR — e AGORA DE GUERRA
+    // (a referência pede tambores agressivos): golpe de ataque quase
+    // instantâneo, queda de pitch rápida, a PELE respondendo (ressonância
+    // curta de couro), estalo de transiente e SATURAÇÃO (WaveShaper:
+    // a distorção cola o golpe e dá a agressão sem subi-lo de ganho).
+    // Só a partir do nivel 2; no 3, o RITUAL: grupos de 2-3 golpes
+    // colados (a cadência de guerra), grupos a cada 9-13 s. É o
+    // METRÔNOMO do pavor: quanto mais fundo, mais perto
     const drumG = AC.createGain();
     drumG.gain.value = 1;
-    drumG.connect(ambGain);
-    ambNodes.push(drumG);
+    const curva = new Float32Array(1024);
+    for (let i = 0; i < curva.length; i++) {
+      const x = (i / (curva.length - 1)) * 2 - 1;
+      curva[i] = Math.tanh(2.6 * x); // a saturação: o golpe "estourando" no couro
+    }
+    const drumFury = AC.createWaveShaper();
+    drumFury.curve = curva;
+    drumFury.oversample = '2x';
+    drumG.connect(drumFury);
+    drumFury.connect(ambGain);
+    ambNodes.push(drumG, drumFury);
+    const drumBuf = AC.createBuffer(1, Math.floor(AC.sampleRate * 2), AC.sampleRate);
+    const dch = drumBuf.getChannelData(0);
+    for (let i = 0; i < dch.length; i++) dch[i] = Math.random() * 2 - 1;
     const drumHit = (t, v) => {
+      // o corpo: queda rápida e funda (o punch)
       const o = AC.createOscillator();
       o.type = 'sine';
       o.frequency.setValueAtTime(90, t);
-      o.frequency.exponentialRampToValueAtTime(38, t + 0.9);
+      o.frequency.exponentialRampToValueAtTime(38, t + 0.5);
       const o2 = AC.createOscillator();
-      o2.type = 'sine';
-      o2.frequency.setValueAtTime(55, t);
-      o2.frequency.exponentialRampToValueAtTime(26, t + 0.9); // o sub que carrega o peso
+      o2.type = 'triangle';
+      o2.frequency.setValueAtTime(175, t);
+      o2.frequency.exponentialRampToValueAtTime(82, t + 0.3); // a pele respondendo
+      const o3 = AC.createOscillator();
+      o3.type = 'sine';
+      o3.frequency.setValueAtTime(55, t);
+      o3.frequency.exponentialRampToValueAtTime(26, t + 0.9); // o sub que carrega o peso
       const g = AC.createGain();
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(v, t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+      g.gain.linearRampToValueAtTime(v, t + 0.005); // ataque de chicote
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
       const g2 = AC.createGain();
-      g2.gain.value = 0.6; // o sub acompanha, mais baixo
+      g2.gain.setValueAtTime(0.0001, t);
+      g2.gain.linearRampToValueAtTime(v * 0.5, t + 0.005);
+      g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.4); // a pele morre rápido
+      const g3 = AC.createGain();
+      g3.gain.value = 0.55; // o sub acompanha, mais baixo
       o.connect(g);
       o2.connect(g2);
-      g2.connect(g);
+      o3.connect(g3);
+      g3.connect(g);
+      // o estalo: o chicote no couro (transiente curto, parte do golpe)
+      const src = AC.createBufferSource();
+      src.buffer = drumBuf;
+      src.loop = true;
+      const bp = AC.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 1100;
+      bp.Q.value = 1.2;
+      const g4 = AC.createGain();
+      g4.gain.setValueAtTime(0.0001, t);
+      g4.gain.linearRampToValueAtTime(v * 0.3, t + 0.004);
+      g4.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      src.connect(bp);
+      bp.connect(g4);
+      g4.connect(g);
       g.connect(drumG);
       o.start(t);
       o2.start(t);
-      o.stop(t + 1.6);
-      o2.stop(t + 1.6);
+      o3.start(t);
+      src.start(t);
+      o.stop(t + 1.3);
+      o2.stop(t + 0.5);
+      o3.stop(t + 1);
+      src.stop(t + 0.1);
     };
     const drumTick = () => {
       if (!alive()) return;
@@ -207,9 +253,15 @@ export const trackBocarra = {
         return;
       }
       const t = AC.currentTime + 0.05;
-      drumHit(t, 0.07);
-      if (nivel >= 3) drumHit(t + 0.35, 0.045); // no pico: o dub do coração grande
-      setTimeout(drumTick, (nivel >= 3 ? 9000 : 14000) + Math.random() * (nivel >= 3 ? 5000 : 8000));
+      if (nivel >= 3) {
+        // o RITUAL: 2-3 golpes colados, a cadência de guerra
+        const n = 2 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < n; i++) drumHit(t + i * 0.42, 0.06);
+        setTimeout(drumTick, 9000 + Math.random() * 4000);
+        return;
+      }
+      drumHit(t, 0.06);
+      setTimeout(drumTick, 11000 + Math.random() * 7000);
     };
     setTimeout(drumTick, 5000);
 
@@ -289,7 +341,7 @@ export const trackBocarra = {
         nivel++;
         padLp.frequency.setTargetAtTime(260 + nivel * 40, AC.currentTime, 8);
         coroSwell(0.006); // o surto: a massa inchando mais forte que o normal
-        if (nivel >= 2) drumHit(AC.currentTime + 0.1, 0.06); // o primeiro golpe do novo movimento
+        if (nivel >= 2) drumHit(AC.currentTime + 0.1, 0.055); // o primeiro golpe do novo movimento
       }
       setTimeout(arcTick, nivel < 3 ? 55000 + Math.random() * 35000 : 30000);
     };
