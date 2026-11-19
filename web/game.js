@@ -5,7 +5,7 @@ import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES, CUT_SOLID } from './cutsce
 // módulos de música versionados na URL (mesma filosofia do ?v= daqui):
 // mudou trilha/maestro, bumpa os ?v= dos imports junto — senão o browser
 // serve maestro/trilha velhos para o glue novo
-import { initMusic, setMusic } from './music/conductor.js?v=9';
+import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=12';
 
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
@@ -911,7 +911,8 @@ function wakeAudio() {
       }, 250);
     }
   }
-  if (!cutActive) setAmbience(); // na cutscene: silêncio absoluto — a trilha nasce no fim
+  if (!cutActive) setAmbience(); // menus/jogo: trilha pela troca de andar
+  else setMusic('abertura'); // na cutscene: a trilha da abertura nasce no MESMO gesto que acorda o castelo (id === current sem force: repetir tecla não recomeça)
 }
 
 window.addEventListener('keydown', (e) => {
@@ -972,8 +973,11 @@ function inputBits() {
 // Só apresentação — o WASM não sabe que ela existe (decisão no
 // ARCHITECTURE.md). Roda ANTES do título: stats[0]===0 o tempo
 // todo, e o frame() desenha a cutscene por cima do menu adormecido.
-// Silêncio absoluto enquanto ela dura (sem música por enquanto):
-// a trilha do título nasce só no fim, em endCutscene.
+// A TRILHA DA ABERTURA mora em web/music/track-abertura.js (referência:
+// Cimerion & Oublieth, "Arcanes" — Ré menor como o título, que ela
+// ensaia) e nasce quando o som acorda no meio dela (primeiro gesto:
+// exigência dos navegadores); a trilha do título entra em endCutscene,
+// e o maestro faz a passagem no fade.
 //
 // O texto vive numa CAIXA DE DIÁLOGO estilo RPG (borda ambar, 3
 // linhas datilografadas sobre as rows 23..31): ENTER/espaço avançam
@@ -990,8 +994,12 @@ const CUT_TEXT_DELAY = 600; // a página espera a cena assentar antes de falar
 const CUT_SKIP_GRACE = 2500; // a pedra exige 2.5s de exibição antes de aceitar
                              // tecla: o clique de foco da aba e o enter reflexo
                              // de "começar" matavam a abertura no primeiro segundo
+const CUT_CODA_S = 6.5;      // faltando isso na última cena, o maestro avisa a
+                             // trilha e ela executa a coda escrita — a tônica
+                             // acha o chão junto com o afundar no breu
 
 let cutActive = true;      // nasce ativa: a pedra vem antes do menu
+let cutCodaDone = false;   // o aviso de fim já saiu (uma vez só)
 let cutScene = 0;
 let cutT0 = 0;             // performance.now() do começo da cutscene
 let cutSkip = 0;           // soma dos durs das cenas já viradas
@@ -1012,7 +1020,7 @@ function endCutscene() {
   cutActive = false;
   cutEyes = null;
   forceRedraw();
-  setAmbience(); // a trilha do título nasce no fim (se o AC já acordou)
+  setAmbience(); // a trilha do título entra no fim e a da abertura morre no fade (se o AC já acordou)
 }
 
 // o skip só vale depois da graça: antes disso, tecla/clique não faz
@@ -1071,6 +1079,14 @@ function cutFrame(nowMs) {
   if (cutScene === CUT_SCENES.length - 1 && t >= sc.dur) { endCutscene(); return; }
   if (cutEyesScene !== cutScene) { cutEyes = cutLoadEyes(sc); cutEyesScene = cutScene; }
   if (cutRevealScene !== cutScene) { cutRevealDone = false; cutRevealScene = cutScene; }
+  // o fim composto: na última cena, quando faltam CUT_CODA_S segundos, o
+  // maestro avisa a trilha (musicCoda) e ela escreve a própria cadência —
+  // a tônica acha o chão junto com o fade. Pulo (esc/enter na última
+  // página) não tem coda: quem pula abre mão do amanhecer
+  if (cutScene === CUT_SCENES.length - 1 && !cutCodaDone && sc.dur - t <= CUT_CODA_S * 1000) {
+    cutCodaDone = true;
+    musicCoda();
+  }
 
   // a paleta da cutscene veste o colorFor() por um frame (a cena usa
   // os mesmos attrs "vivos": coroa pulsa, água ondula, pálido respira)

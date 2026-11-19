@@ -2,14 +2,18 @@
 // velhas e a geração que mata correntes de scheduler velhas. game.js só
 // mapeia estado de jogo → id e chama setMusic(); NENHUMA receita musical
 // mora aqui. Trilha nova = arquivo em music/track-*.js + uma linha no
-// TRACKS abaixo (+ o ponto de chamada no glue).
-import { trackTitulo } from './track-titulo.js?v=9'; // ?v= versionado junto: mudou a trilha, bumpa aqui e nos imports do glue
+// TRACKS abaixo (+ o ponto de chamada no glue). A trilha pode
+// OPCIONALMENTE escrever uma coda (handle.coda): o glue a avisa via
+// musicCoda() quando o fim dela está perto.
+import { trackTitulo } from './track-titulo.js?v=12'; // ?v= versionado junto: mudou a trilha, bumpa aqui e nos imports do glue
+import { trackAbertura } from './track-abertura.js?v=12';
 
-const TRACKS = { titulo: trackTitulo };
+const TRACKS = { titulo: trackTitulo, abertura: trackAbertura };
 
 let ctx = null;
 let buses = null;
 let current = null; // id da trilha vigente (null = silêncio de propósito)
+let currentHandle = null; // o retorno de start() da trilha vigente (coda mora nele)
 let gen = 0; // geração: correntes de scheduler da trilha velha morrem nela
 let nodes = []; // nós vivos da trilha vigente: o fade mata todos junto
 let timers = []; // timers explícitos da trilha vigente (além dos schedulers que se matam pelo alive)
@@ -47,11 +51,19 @@ export function setMusic(id, force) {
   for (const t of timers) clearTimeout(t);
   nodes = [];
   timers = [];
+  currentHandle = null;
   gen++; // correntes da trilha velha morrem na próxima passada do alive()
   current = id;
   if (id) {
-    const handle = TRACKS[id].start(ctx, buses, makeAlive(id, gen));
-    nodes = handle.nodes;
-    timers = handle.timers || []; // trilha sem timers: os schedulers se matam pelo alive()
+    currentHandle = TRACKS[id].start(ctx, buses, makeAlive(id, gen));
+    nodes = currentHandle.nodes;
+    timers = currentHandle.timers || []; // trilha sem timers: os schedulers se matam pelo alive()
   }
+}
+
+// aviso de fim: a trilha vigente escreve a própria cadência (a coda) e a
+// executa AGORA — o glue chama quando sabe que o fim dela está perto
+// (na abertura: últimos ~6.5 s da cutscene). Trilha sem coda: não-op
+export function musicCoda() {
+  currentHandle?.coda?.();
 }

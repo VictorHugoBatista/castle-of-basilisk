@@ -25,6 +25,7 @@ castle-of-basilisc/
 │   ├── index.html          # Canvas 672x576 + filtro CRT 100% CSS
 │   ├── cutscene.js         # Dados da abertura: cenas ASCII, paleta, texto rolando
 │   ├── game.js             # Glue JS: tick de 140ms, camera, render diff, WebAudio
+│   ├── music/              # Trilhas modulares: conductor.js (maestro) + track-*.js (receitas)
 │   └── wasm/
 │       └── castle_of_basilisk.wasm   # Binario compilado (~37 KB), comitado
 ├── scripts/
@@ -234,12 +235,20 @@ Decisoes:
 - **`AudioContext` so no primeiro gesto do usuario** (exigencia dos
   navegadores). Drone grave (55/58,3 Hz triangle + lowpass) e o "hum" do castelo.
 - **Ambiente sonoro por tema** (`setAmbience`): troca de andar => fade das
-  trilhas velhas + arranque das novas. A MÚSICA dos menus (título) mora em
-  `web/music/track-titulo.js`, tocada pelo MAESTRO `web/music/conductor.js`
+  trilhas velhas + arranque das novas. A MÚSICA das telas de menu mora em
+  arquivos próprios tocados pelo MAESTRO `web/music/conductor.js`
   (registro de trilhas + fade 0.4 s + geração que mata correntes de scheduler
-  velhas; o glue só mapeia estado de jogo → id e chama `setMusic`) — primeiro
-  passo da modularização do glue por domínio; trilha nova = arquivo em
-  `web/music/` + 1 linha no `TRACKS` do maestro. A ambiência de andar (vento/
+  velhas; o glue só mapeia estado de jogo → id e chama `setMusic`):
+  `track-titulo.js` (título/controles/escolha de andar) e `track-abertura.js`
+  (a cutscene da porta — nasce no primeiro gesto DENTRO da cutscene, já que
+  o `AudioContext` só desperta em gesto; `endCutscene` troca para o título,
+  no fade). A abertura tem FIM COMPOSTO: faltando ~6.5 s da última cena, o
+  glue chama `musicCoda()` e a trilha executa a cadência escrita que acha
+  a tônica junto com o fade (trilha pode expor `coda` no handle,
+  opcionalmente — o título não tem). Primeiro passo da modularização do
+  glue por domínio; trilha
+  nova = arquivo em `web/music/` + 1 linha no `TRACKS` do maestro. A
+  ambiência de andar (vento/
   goteiras/acervo) segue inline no glue — extração vem depois.
   Terreo: VENTO (noise loop bandpass 430 Hz
   com LFO duplo na frequencia e no volume). Masmorra: SILÊNCIO PERTURBADOR
