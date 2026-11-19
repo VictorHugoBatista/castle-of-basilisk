@@ -1018,19 +1018,30 @@ function logoFrame(nowMs) {
   ctx.fillStyle = '#050200';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // a marca VHB, centrada: acende do preto no ritmo do fade, com halo ambar
+  // a marca VHB, centrada: acende do preto no ritmo do fade, com halo ambar.
+  // Célula a célula num GRID PRÓPRIO (advance real da fonte, medido uma vez,
+  // cada glifo na sua coluna): centrar linha a linha com textAlign='center'
+  // fazia cada linha flutuar pelo próprio comprimento e as colunas do
+  // desenho — as barras do H, o V, o bojo do B — não casavam entre linhas
   const alpha = Math.min(1, t / LOGO_FADE_IN);
   const lh = 56; // entrelinha da marca (fonte 46px monospace)
   const cy = canvas.height / 2 - lh; // centro vertical do bloco de 3 linhas
   ctx.save();
-  ctx.textAlign = 'center';
   ctx.globalAlpha = alpha;
+  ctx.textAlign = 'left';
   ctx.font = 'bold 46px monospace';
+  const adv = ctx.measureText('M').width; // a coluna do grid é o advance REAL
+  const startX = Math.round(canvas.width / 2 - (LOGO_ART[0].length * adv) / 2);
   ctx.shadowColor = 'rgba(255,176,0,0.55)';
   ctx.shadowBlur = 18;
   ctx.fillStyle = LOGO_COLOR;
   for (let i = 0; i < LOGO_ART.length; i++) {
-    ctx.fillText(LOGO_ART[i], canvas.width / 2, cy + i * lh);
+    const line = LOGO_ART[i];
+    const y = cy + i * lh;
+    for (let j = 0; j < line.length; j++) {
+      if (line[j] === ' ') continue; // vazio: o fundo já está lavado
+      ctx.fillText(line[j], startX + Math.round(j * adv), y);
+    }
   }
   ctx.shadowBlur = 0;
   // o convite: só depois da marca assentar — o clique de foco da aba não
@@ -1039,6 +1050,7 @@ function logoFrame(nowMs) {
     ctx.font = 'bold 15px monospace';
     ctx.fillStyle = LOGO_DIM;
     ctx.globalAlpha = alpha * (0.55 + 0.45 * Math.sin(nowMs * 0.004));
+    ctx.textAlign = 'center';
     ctx.fillText('pressione qualquer tecla', canvas.width / 2, cy + LOGO_ART.length * lh + 44);
   }
   ctx.restore();
