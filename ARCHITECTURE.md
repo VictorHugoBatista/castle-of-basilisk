@@ -286,7 +286,13 @@ Decisoes:
   dramático com build up em movimentos nivel 0..3, um degrau a cada
   ~55-90 s — o tema 3 não muda entre os três andares do fundo, a peça
   NÃO recomeça ao descer e o build atravessa; zero textura de ruído
-  nova, só tonal grave + tambor de sine; ELA caçando perto, o glue
+  nova, só tonal grave + a MARCHA de tambores de sine (padrão de guerra
+  em grade de 0.62 s, bar de 8 passos — o grave manda nos passos 0/4 e
+  os toms afinados 1.4-1.5 respondem entre eles; no nivel 2 a coluna
+  desfila um bar e espera 2-3 bares, no 3 ela não para, padrão mais
+  denso) + o CANTO FÚNEBRE (a melodia da referência: frases de 4 notas
+  descendentes em Dm, 1.24 s por nota = dois passos da marcha; nivel 2
+  raro e baixo, no 3 inteiro); ELA caçando perto, o glue
   entrega o estado no `buses.probe` e a dramaturgia recolhe, o fundo
   do mundo fica), mapeada em
   `th === 3`; a peça do térreo mora DEBAIXO do

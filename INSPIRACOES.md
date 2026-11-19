@@ -225,7 +225,8 @@
   peça); o build espera e recomeça quando ela se afasta. E o ANTI-MASSA:
   o glue já tem o ar da caverna (vento grave, respiração, dissonância,
   ping) — a trilha NÃO adiciona textura de ruído nenhuma, só camadas
-  tonais no mesmo Dm + um tambor de sine, tudo num eco próprio. E a
+  tonais no mesmo Dm + a marcha de tambores de sine + o canto fúnebre,
+  tudo num eco próprio. E a
   lição da revisão: fundura que não se ouve é silêncio — o REGISTRO das
   camadas mora no meio (D2/D3), o sub é acompanhamento, não protagonista.
 - **A peça**: Ré menor (a tônica chegando ao chão), quatro camadas, tudo
@@ -249,13 +250,19 @@
      transiente (bandpass 1100 Hz, 0.05 s — o chicote no couro) e
      SATURAÇÃO no bus (WaveShaper tanh: a distorção cola o golpe e dá a
      agressão sem subi-lo de ganho); corpo audível + sub (55→26 Hz)
-     embaixo. Só a partir do nivel 2 (golpe único, 11-18 s); no 3, o
-     RITUAL: grupos de 2-3 golpes colados (0.42 s entre eles — a
-     cadência de guerra), grupos a cada 9-13 s;
-  4. **a voz do acervo** — o PICO: um canto de fundura (triângulo + saw
-     abafada, vibrato lento, nota segurada por 6-9 s: D3/F3/G3/A3 — a
-     voz fala no meio, o eco afunda por ela), no eco grande (delay
-     0.55 s, feedback 0.42, wet 0.45), só no nivel 3.
+     embaixo. A MARCHA decide quando: grade de passo 0.62 s, bar de 8
+     passos — o grave manda nos passos 0/4, os toms (o mesmo couro
+     afinado 1.4-1.5: o drumHit ganhou parâmetro de afinação) respondem
+     entre eles; no nivel 2 a coluna desfila um bar e espera 2-3 bares
+     (a marcha chegando de longe), no 3 ela não para, padrão mais denso;
+  4. **a voz do acervo** — o PICO: o CANTO FÚNEBRE, a melodia da
+     referência em FRASES de 4 notas de contorno descendente (A3-G3-F3-D3,
+     D4-C4-A3-G3, D3-F3-A3-Bb3, F4-D4-A3-F3), 1.24 s por nota = DOIS
+     passos da marcha: o canto anda com a coluna. Mesma voz de sempre
+     (triângulo + saw desafinada, vibrato lento, lowpass 900 — a voz
+     fala no meio, o eco afunda por ela), no eco grande (delay
+     0.55 s, feedback 0.42, wet 0.45); nivel 2: frases raras e baixas,
+     no 3 o canto inteiro.
 - O SURTO de cada degrau: a massa inchando mais forte + um golpe do
   tambor no mesmo instante — o movimento se anuncia.
 

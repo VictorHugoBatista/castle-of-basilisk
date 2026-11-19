@@ -12,8 +12,10 @@
 // respiração do acervo, dissonância de pares desafinados, ping gordo) —
 // a trilha NÃO adiciona textura de ruído nenhuma: só camadas TONAIS
 // graves no mesmo Dm (a tônica desce de andar em andar e aqui ela chega
-// ao fundo) + um tambor (sine + saturação + estalo de couro: o estalo é
-// o TRANSIENTE do golpe dele mesmo, não textura solta). Tudo em poucas
+// ao fundo) + a MARCHA de tambores (padrão de guerra em grade de 0.62 s,
+// sine + saturação + estalo de couro: o estalo é o TRANSIENTE do golpe
+// dele mesmo, não textura solta) + o CANTO FÚNEBRE (a melodia da
+// referência: frases de 4 notas descendentes). Tudo em poucas
 // vozes, tudo num eco
 // próprio (a caverna é grande DE VERDADE: delay 0.55 s, feedback 0.42,
 // wet 0.45 — mais do que o esgoto, menos do que o infinito).
@@ -93,10 +95,11 @@ export const trackBocarra = {
     padG.connect(ambGain);
     ambNodes.push(padLp, padG, padDrift, padDriftG);
 
-    // A CONSTRUÇÃO (o build up): nivel 0..3, um degrau a cada ~55-90 s
-    // enquanto ela não caça. Cada degrau abre o fundo (+35 Hz no lowpass),
-    // densifica a massa da lenda e, do 2 em diante, solta o tambor do
-    // fundo. No 3, a voz do acervo entra e a peça chega no pico e SEGURA
+    // a construção (o build up): nivel 0..3, um degrau a cada ~55-90 s
+    // enquanto ela não caça. Cada degrau abre o fundo (+40 Hz no lowpass),
+    // densifica a massa da lenda e, do 2 em diante, a MARCHA desfila e o
+    // canto fúnebre pressagia. No 3, o canto chega inteiro e a peça chega
+    // no pico e SEGURA
     // (a Bocarra inteira desperta). ELA caçando perto: o degrau espera
     let nivel = 0;
 
@@ -173,9 +176,7 @@ export const trackBocarra = {
     // instantâneo, queda de pitch rápida, a PELE respondendo (ressonância
     // curta de couro), estalo de transiente e SATURAÇÃO (WaveShaper:
     // a distorção cola o golpe e dá a agressão sem subi-lo de ganho).
-    // Só a partir do nivel 2; no 3, o RITUAL: grupos de 2-3 golpes
-    // colados (a cadência de guerra), grupos a cada 9-13 s. É o
-    // METRÔNOMO do pavor: quanto mais fundo, mais perto
+    // Quem decide QUANDO ele toca é a MARCHA logo abaixo
     const drumG = AC.createGain();
     drumG.gain.value = 1;
     const curva = new Float32Array(1024);
@@ -192,20 +193,22 @@ export const trackBocarra = {
     const drumBuf = AC.createBuffer(1, Math.floor(AC.sampleRate * 2), AC.sampleRate);
     const dch = drumBuf.getChannelData(0);
     for (let i = 0; i < dch.length; i++) dch[i] = Math.random() * 2 - 1;
-    const drumHit = (t, v) => {
-      // o corpo: queda rápida e funda (o punch)
+    const drumHit = (t, v, tune = 1) => {
+      // o corpo: queda rápida e funda (o punch). tune 1 = o grave do
+      // fundo; tune > 1 = o MESMO couro afinado mais alto (o tom que
+      // responde na marcha)
       const o = AC.createOscillator();
       o.type = 'sine';
-      o.frequency.setValueAtTime(90, t);
-      o.frequency.exponentialRampToValueAtTime(38, t + 0.5);
+      o.frequency.setValueAtTime(90 * tune, t);
+      o.frequency.exponentialRampToValueAtTime(38 * tune, t + 0.5);
       const o2 = AC.createOscillator();
       o2.type = 'triangle';
-      o2.frequency.setValueAtTime(175, t);
-      o2.frequency.exponentialRampToValueAtTime(82, t + 0.3); // a pele respondendo
+      o2.frequency.setValueAtTime(175 * tune, t);
+      o2.frequency.exponentialRampToValueAtTime(82 * tune, t + 0.3); // a pele respondendo
       const o3 = AC.createOscillator();
       o3.type = 'sine';
-      o3.frequency.setValueAtTime(55, t);
-      o3.frequency.exponentialRampToValueAtTime(26, t + 0.9); // o sub que carrega o peso
+      o3.frequency.setValueAtTime(55 * (1 + (tune - 1) * 0.5), t);
+      o3.frequency.exponentialRampToValueAtTime(26 * (1 + (tune - 1) * 0.5), t + 0.9); // o sub que carrega o peso
       const g = AC.createGain();
       g.gain.setValueAtTime(0.0001, t);
       g.gain.linearRampToValueAtTime(v, t + 0.005); // ataque de chicote
@@ -245,56 +248,73 @@ export const trackBocarra = {
       o3.stop(t + 1);
       src.stop(t + 0.1);
     };
-    const drumTick = () => {
+    // A MARCHA DA GUERRA: o padrão de tambores da referência (martial
+    // beats, drum patterns — NÃO golpes soltos). Grade de PASSO 0.62 s,
+    // bar de 8 passos: o grave manda nos passos 0 e 4, os toms (o MESMO
+    // couro afinado mais alto: tune 1.4-1.5) respondem entre eles. No
+    // nivel 2 a coluna desfila UM bar e espera (2-3 bares de silêncio: a
+    // marcha se aproximando de longe); no 3 ela NÃO PARA — padrão mais
+    // denso, a coluna inteira em passos. É o METRÔNOMO do pavor: quanto
+    // mais fundo, mais perto. ELA caça perto: a coluna para no seco
+    const PASSO = 0.62;
+    const MARCHAS = [
+      null,
+      null,
+      [[1, 1], [0, 0], [0.5, 1.4], [0, 0], [0.75, 1], [0, 0], [0.45, 1.45], [0, 0]], // a coluna de longe
+      [[1, 1], [0, 0], [0.55, 1.4], [0.3, 1.5], [0.85, 1], [0, 0], [0.55, 1.4], [0.4, 1.5]], // a coluna inteira
+    ];
+    const marchaTick = () => {
       if (!alive()) return;
-      if (aguardaRodando(drumTick)) return;
+      if (aguardaRodando(marchaTick)) return;
       if (cacandoPerto() || nivel < 2) {
-        setTimeout(drumTick, 6000); // o tambor espera o degrau (e espera ELA se afastar)
+        setTimeout(marchaTick, 8000); // a marcha espera o degrau (e espera ELA se afastar)
         return;
       }
-      const t = AC.currentTime + 0.05;
+      const bar = MARCHAS[nivel];
+      const base = nivel >= 3 ? 0.05 : 0.04;
+      const t0 = AC.currentTime + 0.1;
+      for (let i = 0; i < bar.length; i++) {
+        const [v, tune] = bar[i];
+        if (v > 0) drumHit(t0 + i * PASSO, base * v, tune);
+      }
+      const durBar = bar.length * PASSO;
       if (nivel >= 3) {
-        // o RITUAL: 2-3 golpes colados, a cadência de guerra
-        const n = 2 + Math.floor(Math.random() * 2);
-        for (let i = 0; i < n; i++) drumHit(t + i * 0.42, 0.06);
-        setTimeout(drumTick, 9000 + Math.random() * 4000);
-        return;
+        setTimeout(marchaTick, durBar * 1000); // a coluna desfila sem parar
+      } else {
+        setTimeout(marchaTick, durBar * (2 + Math.random()) * 1000); // um bar de marcha, 2-3 de espera
       }
-      drumHit(t, 0.06);
-      setTimeout(drumTick, 11000 + Math.random() * 7000);
     };
-    setTimeout(drumTick, 5000);
+    setTimeout(marchaTick, 5000);
 
-    // a voz do acervo: O PICO — um canto de fundura (triângulo + saw
-    // abafada, vibrato lento, nota SEGURADA por 6-9 s) subindo do fundo a
-    // cada ~26-45 s, no eco grande. Registro em D3/F3/G3/A3: a voz tem de
-    // ser OUVIDA (a revisão mandou), o eco carrega o fundo. Só no nivel 3:
-    // a coisa do fundo tem voz
+    // a voz do acervo: O CANTO FÚNEBRE — a melodia da referência (dirge
+    // lead: FRASES curtas de contorno descendente, os passos do
+    // carcereiro — não nota avulsa segurada). A voz é a de sempre
+    // (triângulo + saw desafinada: um coro de uma coisa só, vibrato
+    // lento, lowpass 900 — a voz fala no meio, o eco afunda por ele),
+    // agora nota por nota: 1.24 s por nota = DOIS passos da marcha, o
+    // canto anda junto quando a coluna desfila. Nivel 2: a frase vem
+    // rara e baixa (o presságio do canto); no 3, o canto chega inteiro.
+    // ELA caça perto: o canto cala
     const vozG = AC.createGain();
     vozG.gain.value = 0.9;
     vozG.connect(ambGain);
     ambNodes.push(vozG);
-    const VOZES = [50, 53, 55, 57]; // D3 F3 G3 A3 — o canto fala no meio, o eco afunda por ele
-    let lastVoz = -1;
-    const vozTick = () => {
-      if (!alive()) return;
-      if (aguardaRodando(vozTick)) return;
-      if (cacandoPerto() || nivel < 3) {
-        setTimeout(vozTick, 10000);
-        return;
-      }
-      let vi = Math.floor(Math.random() * VOZES.length);
-      if (vi === lastVoz) vi = (vi + 1) % VOZES.length;
-      lastVoz = vi;
-      const t = AC.currentTime + 0.1;
-      const dur = 6 + Math.random() * 3;
-      const f = mf(VOZES[vi]);
+    const CANTOS = [
+      [57, 55, 53, 50], // A3 G3 F3 D3: a descida fúnebre
+      [62, 60, 57, 55], // D4 C4 A3 G3
+      [50, 53, 57, 58], // D3 F3 A3 Bb3: a pergunta que não resolve
+      [65, 62, 57, 53], // F4 D4 A3 F3
+    ];
+    const NOTA = 1.24; // dois passos da marcha
+    let lastCanto = -1;
+    const vozNota = (t, m, v) => {
+      const f = mf(m);
       const o = AC.createOscillator();
       o.type = 'triangle';
       o.frequency.value = f;
       const o2 = AC.createOscillator();
       o2.type = 'sawtooth';
-      o2.frequency.value = f * 1.003; // a voz é dupla e desafina: um coro de uma coisa só
+      o2.frequency.value = f * 1.003; // a voz é dupla e desafina
       const lp = AC.createBiquadFilter();
       lp.type = 'lowpass';
       lp.frequency.value = 900;
@@ -306,10 +326,11 @@ export const trackBocarra = {
       vib.connect(vibG);
       vibG.connect(o.detune);
       vibG.connect(o2.detune);
+      const dur = NOTA * 0.98;
       const g = AC.createGain();
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(0.03, t + 2.5); // a voz INCHA do fundo
-      g.gain.setValueAtTime(0.03, t + dur - 1.5);
+      g.gain.linearRampToValueAtTime(v, t + 0.18); // a nota incha do fundo
+      g.gain.setValueAtTime(v, t + dur - 0.08);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       o.connect(g);
       o2.connect(g);
@@ -322,9 +343,24 @@ export const trackBocarra = {
       o.stop(t + dur + 0.2);
       o2.stop(t + dur + 0.2);
       vib.stop(t + dur + 0.2);
-      setTimeout(vozTick, (dur + 20 + Math.random() * 25) * 1000);
     };
-    setTimeout(vozTick, 8000);
+    const cantoTick = () => {
+      if (!alive()) return;
+      if (aguardaRodando(cantoTick)) return;
+      if (cacandoPerto() || nivel < 2) {
+        setTimeout(cantoTick, 10000);
+        return;
+      }
+      let ci = Math.floor(Math.random() * CANTOS.length);
+      if (ci === lastCanto) ci = (ci + 1) % CANTOS.length;
+      lastCanto = ci;
+      const v = nivel >= 3 ? 0.03 : 0.016;
+      const t0 = AC.currentTime + 0.1;
+      for (let i = 0; i < CANTOS[ci].length; i++) vozNota(t0 + i * NOTA, CANTOS[ci][i], v);
+      const durFrase = CANTOS[ci].length * NOTA;
+      setTimeout(cantoTick, (durFrase + (nivel >= 3 ? 6 + Math.random() * 6 : 10 + Math.random() * 10)) * 1000);
+    };
+    setTimeout(cantoTick, 8000);
 
     // o maestro do build: UM degrau a cada ~55-90 s (ELA caçando, o degrau
     // espera). Cada degrau: abre o fundo do mundo, e o SURTO anuncia o
