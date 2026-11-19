@@ -131,10 +131,12 @@
   que eles não puderam dizer: o lugar é ASSOMBRADO e a peça expressa —
   os sussurros voltam em células diferentes e o coro dos mortos canta
   desafinado. O SILÊNCIO PERTURBADOR continua dono do bus (SFX abafados,
-  estalo de pedra do glue) — a trilha é perceptível, mas mora DEBAIXO do
-  silêncio: atmosfera vazia, lugar morto, nada dança. Ré menor — a
-  tônica desce de andar em andar (título → térreo → masmorra, sempre no
-  D), uma oitava de fôlego mais fundo a cada descida.
+  estalo de pedra do glue) — a trilha é perceptível e CONTÍNUA: os
+  primeiros eventos chegam de cara (1-5 s depois da porta fechar) e os
+  vãos de silêncio são curtos — atmosfera vazia, lugar morto, nada
+  dança, mas quem desce ouve a música antes do segundo passo. Ré menor —
+  a tônica desce de andar em andar (título → térreo → masmorra, sempre
+  no D), uma oitava de fôlego mais fundo a cada descida.
 - **A peça**: Ré menor, seis camadas, tudo em
   `web/music/track-masmorra.js` (contrato de trilha `start(ctx, buses,
   alive)`; registro no `TRACKS` do maestro; o glue chama
@@ -150,19 +152,21 @@
      branco em bandpass estreito de "boca" (o filtro desliza como
      língua), sussurros de 0.15-0.45 s em PAN aleatório (a voz volta de
      uma cela diferente a cada vez), em grupos de 1-3, um grupo a cada
-     ~6-18 s — sem oscilador tonal: sussurro que afina é voz, sussurro
+     ~3,5-9 s — sem oscilador tonal: sussurro que afina é voz, sussurro
      de filtro é conversa de pedra;
   4. **o coro de baixo** — acordes de longa forma pelo lado mais escuro
      do Dm (Dm Bb Gm Am — SEM C maior nenhuma: aqui não há clareza), uma
-     oitava abaixo do coro do frio do térreo, um a cada ~25-42 s;
+     oitava abaixo do coro do frio do térreo, um a cada ~16-29 s (o vão
+     entre acordes é curto: o harmônico quase nunca cala);
   5. **o coro dos mortos** — a assombração em nota: dois coros a SEGUNDA
      MENOR de distância (F3/E3, D3/C#3, Bb2/A2) inchando juntos e se
-     dissolvendo, uma vez a cada ~40-80 s — quem não tem mais corpo
+     dissolvendo, uma vez a cada ~27-57 s — quem não tem mais corpo
      afina errado: o batimento áspero da segunda menor é o coro
      desafinado dos sem ossos;
   6. **o lamento da cripta** — frases curtíssimas de duas/três notas
      descendentes no registro grave (a tristeza aqui não cai de cima
-     como na fresta do térreo: afunda); cala bastante, mas vem.
+     como na fresta do térreo: afunda); vem quase sempre — o silêncio
+     longo morreu aqui.
 
 ### o ambiente por andar (não é música: é o lugar soando — `setAmbience`)
 
