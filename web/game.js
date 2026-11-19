@@ -999,11 +999,20 @@ const LOGO_FADE_IN = 1400; // a marca acorda do preto
 const LOGO_HOLD = 2800;    // música tocando na logo antes de entregar à intro
 const LOGO_COLOR = '#ffb000';
 const LOGO_DIM = '#8a5f00';
+// o glitch suave da marca: raro, curto e FORA do metrônomo (a régua
+// irregular do glue — nada de intervalo fixo). Só a MARCA sofre a
+// interferência: o convite é texto de sistema e fica de fora
+const LOGO_GLITCH_EVERY_MIN = 3800; // respiro entre glitches
+const LOGO_GLITCH_EVERY_MAX = 9500;
+const LOGO_GLITCH_DUR_MIN = 160;    // duração do rasgo
+const LOGO_GLITCH_DUR_MAX = 420;
 
 let logoActive = true;  // o cartão vem antes de tudo
 let logoT0 = 0;         // performance.now() do primeiro frame da logo
 let logoWoken = false;  // o primeiro gesto já saiu
 let logoMusicAt = 0;    // quando a trilha começou a soar de verdade
+let logoGlitchUntil = -1; // agora < until: o sinal está rasgando
+let logoGlitchNext = 0;   // 0 = ainda não agendou (só depois de assentar)
 
 function endLogo() {
   logoActive = false;
@@ -1032,22 +1041,75 @@ function logoFrame(nowMs) {
   ctx.font = 'bold 46px monospace';
   const adv = ctx.measureText('M').width; // a coluna do grid é o advance REAL
   const startX = Math.round(canvas.width / 2 - (LOGO_ART[0].length * adv) / 2);
+
+  // ---- o estado do glitch suave: só DEPOIS da marca assentar (o fade-in
+  // não nasce quebrado); o primeiro vem cedo — o cartão é curto — e os
+  // próximos voltam ao respiro sorteado, nunca o mesmo intervalo duas vezes
+  const settled = t > LOGO_FADE_IN + 600;
+  if (settled && !logoGlitchNext) {
+    logoGlitchNext = nowMs + 1200 + Math.random() * 2500;
+  }
+  if (settled && nowMs >= logoGlitchNext) {
+    logoGlitchUntil = nowMs + LOGO_GLITCH_DUR_MIN
+      + Math.random() * (LOGO_GLITCH_DUR_MAX - LOGO_GLITCH_DUR_MIN);
+    logoGlitchNext = nowMs + LOGO_GLITCH_EVERY_MIN
+      + Math.random() * (LOGO_GLITCH_EVERY_MAX - LOGO_GLITCH_EVERY_MIN);
+  }
+  const gOn = nowMs < logoGlitchUntil;
+
   ctx.shadowColor = 'rgba(255,176,0,0.55)';
   ctx.shadowBlur = 18;
   ctx.fillStyle = LOGO_COLOR;
+  if (gOn) ctx.globalAlpha = alpha * 0.82; // o sinal afrouxa um pouco no rasgo
   for (let i = 0; i < LOGO_ART.length; i++) {
     const line = LOGO_ART[i];
     const y = cy + i * lh;
     for (let j = 0; j < line.length; j++) {
-      if (line[j] === ' ') continue; // vazio: o fundo já está lavado
-      ctx.fillText(line[j], startX + Math.round(j * adv), y);
+      const ch = line[j];
+      if (ch === ' ') continue; // vazio: o fundo já está lavado
+      const x = startX + Math.round(j * adv);
+      if (gOn) {
+        // ghost cromático (a MESMA interferência da serpente): barato —
+        // dois fillText a mais, só nos frames de rasgo; sem halo (o glow
+        // é da marca, o ghost é o sinal fora de fase)
+        ctx.shadowBlur = 0;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = 'rgba(0,255,204,0.30)';
+        ctx.fillText(ch, x - 2, y);
+        ctx.fillStyle = 'rgba(255,0,0,0.26)';
+        ctx.fillText(ch, x + 2, y);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = LOGO_COLOR;
+      }
+      ctx.fillText(ch, x, y);
     }
   }
   ctx.shadowBlur = 0;
+
+  // fatias horizontais CONTIDAS na caixa da marca: o rasgo é dela, nada do
+  // resto da tela entra — o convite embaixo fica intacto. Cópia opaca
+  // (globalAlpha 1): o deslocamento rasga de verdade, não esfumaça
+  if (gOn) {
+    const bx = Math.max(0, startX - 26);
+    const bw = Math.min(canvas.width - bx, LOGO_ART[0].length * adv + 52);
+    const by = Math.max(0, cy - 28);
+    const bh = LOGO_ART.length * lh + 56;
+    const ga = ctx.globalAlpha;
+    ctx.globalAlpha = 1;
+    for (let i = 0; i < 3; i++) {
+      const yy = Math.min(by + Math.random() * bh, by + bh - 18);
+      const hh = 4 + Math.random() * 14;
+      const dx = (Math.random() - 0.5) * 20;
+      ctx.drawImage(canvas, bx, yy, bw, hh, bx + dx, yy, bw, hh);
+    }
+    ctx.globalAlpha = ga;
+    ctx.globalAlpha = alpha; // o frame seguinte nasce limpo do afrouxamento
+  }
+  ctx.font = 'bold 15px monospace';
   // o convite: só depois da marca assentar — o clique de foco da aba não
   // vê convite nenhum no primeiro segundo
   if (t > LOGO_FADE_IN + 300) {
-    ctx.font = 'bold 15px monospace';
     ctx.fillStyle = LOGO_DIM;
     ctx.globalAlpha = alpha * (0.55 + 0.45 * Math.sin(nowMs * 0.004));
     ctx.textAlign = 'center';

@@ -207,7 +207,12 @@ Decisoes:
   'running'`; `setMusic('abertura')` com o mesmo id não recomeça, então a
   música atravessa logo → intro sem costura). Tecla nenhuma age na logo:
   ela engole input para não vazar no menu adormecido, e não há skip —
-  o cartão é curto e a música garante o mínimo de exibição.
+  o cartão é curto e a música garante o mínimo de exibição. A marca tem
+  GLITCH SUAVE próprio (régua irregular, raro e curto: 160-420 ms a cada
+  3.8-9.5 s, só depois de assentar): ghost cromático (a mesma interferência
+  da serpente, `lighter` + sem halo) + fatias horizontais de `drawImage`
+  CONTIDAS na caixa da marca — o convite "pressione qualquer tecla" é texto
+  de sistema e não sofre a interferência.
 - **Cutscene de abertura mora INTEIRA no JS** (`web/cutscene.js` = dados;
   engine em `game.js`): apresentação pura, o WASM não sabe que ela existe —
   sem estado novo no RT, sem ABI, sem smoke. Roda ANTES do título
