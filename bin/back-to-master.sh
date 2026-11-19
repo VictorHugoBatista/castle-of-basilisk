@@ -1,5 +1,6 @@
 #!/bin/bash
+set -e
 
 git checkout master
-git pull
+git pull --ff-only origin master
 
