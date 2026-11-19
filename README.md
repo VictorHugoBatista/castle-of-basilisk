@@ -45,6 +45,11 @@ aceitar (Chrome bloqueia `file://`; use o servidor HTTP).
 | X ou K (as duas, sempre) | correr — o eco denuncia você |
 | ENTER | confirmar no menu / começar / avançar a abertura (ESC pula tudo) |
 
+Na **logo** (o cartão que abre a página): a marca **VHB** acende no centro do
+breu e nada mais. Qualquer tecla/clique **desperta o som** — a trilha da
+abertura já começa a tocar na logo, antes da intro — e sozinha o cartão
+entrega a tela para a abertura.
+
 Na abertura (a cutscene que roda antes do título): quatro vistas da pedra —
 o castelo de cima, as beiras, o portão, os canais — em pixel-art sombreada,
 com a história datilografada numa **caixa de diálogo** no rodapé. **ENTER**

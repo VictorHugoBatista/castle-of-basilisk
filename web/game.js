@@ -911,12 +911,24 @@ function wakeAudio() {
       }, 250);
     }
   }
-  if (!cutActive) setAmbience(); // menus/jogo: trilha pela troca de andar
+  if (logoActive) {
+    // na logo: a trilha da abertura nasce NO PRIMEIRO GESTO — a música já
+    // está tocando ANTES da intro começar (id === current adiante não
+    // recomeça: ela atravessa logo → cutscene sem costura)
+    logoWoken = true;
+    setMusic('abertura');
+  } else if (!cutActive) setAmbience(); // menus/jogo: trilha pela troca de andar
   else setMusic('abertura'); // na cutscene: a trilha da abertura nasce no MESMO gesto que acorda o castelo (id === current sem force: repetir tecla não recomeça)
 }
 
 window.addEventListener('keydown', (e) => {
   wakeAudio();
+  // tela da logo: tecla nenhuma age — o primeiro gesto só desperta o som;
+  // a trilha conta o próprio tempo (LOGO_HOLD) e entrega à intro sozinha
+  if (logoActive) {
+    e.preventDefault();
+    return;
+  }
   // cutscene: enter/espaço avançam o texto, esc pula tudo (antes do
   // menuStep, senão a tecla vaza pro menu que está por baixo) — sempre
   // depois da graça: no primeiro segundo, tecla nenhuma faz nada
@@ -968,6 +980,71 @@ function inputBits() {
 }
 
 // ============================================================
+// tela da logo: o cartão de entrada, antes da pedra
+// ============================================================
+// Também apresentação pura — o WASM não sabe que ela existe (mesma decisão
+// da cutscene: sem estado novo no RT, sem ABI, sem smoke). Nasce ATIVA no
+// boot: fundo preto, a marca VHB no centro e nada mais. O primeiro gesto
+// (tecla/clique/toque) acorda o AudioContext — exigência dos navegadores —
+// e a TRILHA DA ABERTURA nasce já AQUI: a música não espera a intro. Passado
+// LOGO_HOLD ms de trilha soando DE VERDADE (AC.state === 'running'), a logo
+// entrega a tela para a cutscene sem reiniciar a música (setMusic com o
+// mesmo id não recomeça — o maestro deixa a mesma corrente viva).
+const LOGO_ART = [
+  '\\  |  |¯)',
+  ' \\ |--|-',
+  '  \\|  |__)',
+];
+const LOGO_FADE_IN = 1400; // a marca acorda do preto
+const LOGO_HOLD = 2800;    // música tocando na logo antes de entregar à intro
+const LOGO_COLOR = '#ffb000';
+const LOGO_DIM = '#8a5f00';
+
+let logoActive = true;  // o cartão vem antes de tudo
+let logoT0 = 0;         // performance.now() do primeiro frame da logo
+let logoWoken = false;  // o primeiro gesto já saiu
+let logoMusicAt = 0;    // quando a trilha começou a soar de verdade
+
+function endLogo() {
+  logoActive = false;
+  cutActive = true;
+  cutStarted = false; // o relógio da pedra nasce no primeiro frame DELA
+  forceRedraw();
+}
+
+function logoFrame(nowMs) {
+  if (!logoT0) logoT0 = nowMs;
+  const t = nowMs - logoT0;
+  ctx.fillStyle = '#050200';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // a marca VHB, centrada: acende do preto no ritmo do fade, com halo ambar
+  const alpha = Math.min(1, t / LOGO_FADE_IN);
+  const lh = 56; // entrelinha da marca (fonte 46px monospace)
+  const cy = canvas.height / 2 - lh; // centro vertical do bloco de 3 linhas
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.globalAlpha = alpha;
+  ctx.font = 'bold 46px monospace';
+  ctx.shadowColor = 'rgba(255,176,0,0.55)';
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = LOGO_COLOR;
+  for (let i = 0; i < LOGO_ART.length; i++) {
+    ctx.fillText(LOGO_ART[i], canvas.width / 2, cy + i * lh);
+  }
+  ctx.shadowBlur = 0;
+  // o convite: só depois da marca assentar — o clique de foco da aba não
+  // vê convite nenhum no primeiro segundo
+  if (t > LOGO_FADE_IN + 300) {
+    ctx.font = 'bold 15px monospace';
+    ctx.fillStyle = LOGO_DIM;
+    ctx.globalAlpha = alpha * (0.55 + 0.45 * Math.sin(nowMs * 0.004));
+    ctx.fillText('pressione qualquer tecla', canvas.width / 2, cy + LOGO_ART.length * lh + 44);
+  }
+  ctx.restore();
+}
+
+// ============================================================
 // cutscene de abertura: a porta antes do título
 // ============================================================
 // Só apresentação — o WASM não sabe que ela existe (decisão no
@@ -998,7 +1075,7 @@ const CUT_CODA_S = 6.5;      // faltando isso na última cena, o maestro avisa a
                              // trilha e ela executa a coda escrita — a tônica
                              // acha o chão junto com o afundar no breu
 
-let cutActive = true;      // nasce ativa: a pedra vem antes do menu
+let cutActive = false;     // nasce DORMINDO: a logo vem antes (endLogo acorda)
 let cutCodaDone = false;   // o aviso de fim já saiu (uma vez só)
 let cutScene = 0;
 let cutT0 = 0;             // performance.now() do começo da cutscene
@@ -1612,6 +1689,22 @@ function frame(nowMs) {
   const dt = nowMs - lastT;
   lastT = nowMs;
   acc += dt;
+
+  // tela da logo: o resto do loop dorme (mesma regra da cutscene). A
+  // entrega para a intro só acontece com a trilha soando DE VERDADE
+  // (AC.state === 'running'): LOGO_HOLD ms de música no cartão, sem
+  // costura — o maestro não recomeça a trilha que já é vigente
+  if (logoActive) {
+    acc = 0;
+    lastState = stats[0];
+    safe(() => logoFrame(nowMs), 'logo');
+    if (logoWoken && AC && AC.state === 'running') {
+      if (!logoMusicAt) logoMusicAt = nowMs;
+      else if (nowMs - logoMusicAt >= LOGO_HOLD) endLogo();
+    }
+    requestAnimationFrame(frame); // SEMPRE re-agenda: 1 erro não congela os controles
+    return;
+  }
 
   // cutscene: o resto do loop dorme — sem tick, sem HUD, sem medo;
   // o menu de título fica por baixo, intacto, esperando o fim dela
