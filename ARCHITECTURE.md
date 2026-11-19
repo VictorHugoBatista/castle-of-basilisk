@@ -203,16 +203,18 @@ Decisoes:
   ambar, fade-in 1.4 s) e o convite só depois da marca assentar. O
   AudioContext só desperta num gesto: o PRIMEIRO gesto da página acontece
   AQUI — e a trilha da abertura nasce na logo, não na cutscene (o cartão
-  entrega a tela só depois de `LOGO_HOLD` 2.8 s com `AC.state ===
+  entrega a tela só depois de `LOGO_HOLD` 3.4 s com `AC.state ===
   'running'`; `setMusic('abertura')` com o mesmo id não recomeça, então a
   música atravessa logo → intro sem costura). Tecla nenhuma age na logo:
   ela engole input para não vazar no menu adormecido, e não há skip —
-  o cartão é curto e a música garante o mínimo de exibição. A marca tem
-  GLITCH SUAVE próprio (régua irregular, raro e curto: 160-420 ms a cada
-  3.8-9.5 s, só depois de assentar): ghost cromático (a mesma interferência
-  da serpente, `lighter` + sem halo) + fatias horizontais de `drawImage`
-  CONTIDAS na caixa da marca — o convite "pressione qualquer tecla" é texto
-  de sistema e não sofre a interferência.
+  o cartão é curto e a música garante o mínimo de exibição. A marca vive
+  com um FANTASMA cromático permanente (vermelho/azul em `lighter`, bem
+  suave, deriva lenta do desgaste) e tem GLITCH SUAVE próprio (régua
+  irregular, raro e curto: 160-420 ms a cada 3.8-9.5 s; o primeiro rasgo
+  nasce logo no assentar da marca — o clique rápido também o pega):
+  no rasgo o fantasma engorda e fatias horizontais de `drawImage`
+  CONTIDAS na caixa da marca rasgam o sinal — o convite "pressione
+  qualquer tecla" é texto de sistema e não sofre a interferência.
 - **Cutscene de abertura mora INTEIRA no JS** (`web/cutscene.js` = dados;
   engine em `game.js`): apresentação pura, o WASM não sabe que ela existe —
   sem estado novo no RT, sem ABI, sem smoke. Roda ANTES do título

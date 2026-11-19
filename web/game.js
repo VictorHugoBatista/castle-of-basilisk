@@ -996,7 +996,9 @@ const LOGO_ART = [
   '  \\|  |_)',
 ];
 const LOGO_FADE_IN = 1400; // a marca acorda do preto
-const LOGO_HOLD = 2800;    // música tocando na logo antes de entregar à intro
+const LOGO_HOLD = 3400;    // música tocando na logo antes de entregar à intro
+                           // (o rasgo precisa caber dentro dele: o clique
+                           // rápido também merece ver o sinal soltar)
 const LOGO_COLOR = '#ffb000';
 const LOGO_DIM = '#8a5f00';
 // o glitch suave da marca: raro, curto e FORA do metrônomo (a régua
@@ -1042,12 +1044,13 @@ function logoFrame(nowMs) {
   const adv = ctx.measureText('M').width; // a coluna do grid é o advance REAL
   const startX = Math.round(canvas.width / 2 - (LOGO_ART[0].length * adv) / 2);
 
-  // ---- o estado do glitch suave: só DEPOIS da marca assentar (o fade-in
-  // não nasce quebrado); o primeiro vem cedo — o cartão é curto — e os
-  // próximos voltam ao respiro sorteado, nunca o mesmo intervalo duas vezes
-  const settled = t > LOGO_FADE_IN + 600;
+  // ---- o estado do glitch suave: logo depois da marca assentar (o
+  // fade-in não nasce quebrado e o clique rápido AINDA pega o rasgo — o
+  // primeiro vem no assentar, não minutos depois); os próximos voltam ao
+  // respiro sorteado, nunca o mesmo intervalo duas vezes
+  const settled = t > LOGO_FADE_IN + 200;
   if (settled && !logoGlitchNext) {
-    logoGlitchNext = nowMs + 1200 + Math.random() * 2500;
+    logoGlitchNext = nowMs + 100 + Math.random() * 600;
   }
   if (settled && nowMs >= logoGlitchNext) {
     logoGlitchUntil = nowMs + LOGO_GLITCH_DUR_MIN
@@ -1061,6 +1064,13 @@ function logoFrame(nowMs) {
   ctx.shadowBlur = 18;
   ctx.fillStyle = LOGO_COLOR;
   if (gOn) ctx.globalAlpha = alpha * 0.82; // o sinal afrouxa um pouco no rasgo
+  // o FANTASMA permanente do CRT: aberração cromática vermelho/azul SEMPRE
+  // viva, bem suave — o âmbar nunca fica sozinho no vidro (o desgaste
+  // deriva devagar, sem metrônomo); no rasgo ela engorda e desloca mais
+  const wob = Math.sin(nowMs * 0.0013) * 0.6; // deriva lenta do desgaste
+  const gox = gOn ? 2 : 1;                    // deslocamento do ghost
+  const gcA = gOn ? 0.30 : 0.10;              // azul (ciano)
+  const grA = gOn ? 0.26 : 0.09;              // vermelho
   for (let i = 0; i < LOGO_ART.length; i++) {
     const line = LOGO_ART[i];
     const y = cy + i * lh;
@@ -1068,20 +1078,15 @@ function logoFrame(nowMs) {
       const ch = line[j];
       if (ch === ' ') continue; // vazio: o fundo já está lavado
       const x = startX + Math.round(j * adv);
-      if (gOn) {
-        // ghost cromático (a MESMA interferência da serpente): barato —
-        // dois fillText a mais, só nos frames de rasgo; sem halo (o glow
-        // é da marca, o ghost é o sinal fora de fase)
-        ctx.shadowBlur = 0;
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = 'rgba(0,255,204,0.30)';
-        ctx.fillText(ch, x - 2, y);
-        ctx.fillStyle = 'rgba(255,0,0,0.26)';
-        ctx.fillText(ch, x + 2, y);
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.shadowBlur = 18;
-        ctx.fillStyle = LOGO_COLOR;
-      }
+      ctx.shadowBlur = 0;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = `rgba(0,255,204,${gcA})`;
+      ctx.fillText(ch, x - gox, y + wob);
+      ctx.fillStyle = `rgba(255,0,0,${grA})`;
+      ctx.fillText(ch, x + gox, y - wob);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = LOGO_COLOR;
       ctx.fillText(ch, x, y);
     }
   }
