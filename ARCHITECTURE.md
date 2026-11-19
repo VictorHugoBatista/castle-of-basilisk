@@ -282,7 +282,14 @@ Decisoes:
   Phrygia, Eb/Cm por dentro do Dm, melodia que escorrega pra nota e
   ECO moderado de canal, delay 0.38 s — o gotejar do glue usa o eco do
   castelo, 0.17 s), mapeada em
-  `th === 2`; a peça do térreo mora DEBAIXO do
+  `th === 2`, e a BOCARRA também: `track-bocarra.js` (war dungeon synth de
+  TAMBORES NA FRENTE — referência Vikorra Doom, "From the Realm of Dust and
+  Darkness": o acervo é campo de batalha antigo que a criatura recolheu,
+  os tambores de guerra mandam no salão com membrana/couro/sombra
+  sintetizados por compasso em scheduler, drone de poeira funda embaixo e
+  corno raro e curto por cima; anti-massa: três camadas com faixa e ganho
+  próprios), mapeada em
+  `th === 3`; a peça do térreo mora DEBAIXO do
   vento (camadas mais baixas que o título, nenhuma voz na faixa do
   assobio da fresta). Primeiro passo da modularização do
   glue por domínio; trilha
@@ -315,7 +322,9 @@ Decisoes:
   highpass 100 para o fundo rum/dissonancia seguirem audiveis), rajadas
   5-15 s que abrem o corpo a 460-740 Hz e crescem o assobio 720 Hz — cada
   onda por caveIn devolve o eco de 0.38 s; ELA cacando, a rajada nao sai.
-  Gota/respiracao prendem quando ela
+  Por baixo do ar, a TRILHA do acervo (track-bocarra.js): os tambores de
+  guerra mandam no salao (quase secos: eco proprio wet 0.2) e moram fora
+  do ping das gotas. Gota/respiracao prendem quando ela
   caça. Passos respingam na agua (`T_WATER` sob os pes); no acervo, passo
   em osso soa CRAQUE (o osso cede e rola) e passo em corpo soa MUSH
   molhado (a carne cede, o grude estopa) — o tile sob os pes decide
