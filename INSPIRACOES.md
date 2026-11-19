@@ -80,11 +80,47 @@
   tônica passa de mão em mão sem costura. Quem pula (esc/enter na última
   página) não tem coda: quem pula abre mão do amanhecer.
 
+### a música do térreo (toca no castelo, o primeiro andar do jogo)
+
+- **Referência primária declarada**: Trollslottet — *Sorgeberget* (2024,
+  Cryo Crypt), faixa **"Nordanvinden"** — dungeon synth / dark ambient
+  nórdico de Pär Boström (o mesmo de Kammarheit, Aindulmedir e Cities Last
+  Broadcast), <https://www.youtube.com/watch?v=wEdRb27q-Dw&t=196s> (a faixa
+  começa nesse ponto). O castelo fora do habitat dela pede exatamente esse
+  clima: frio de seversk, minimalismo de teclado, épico contido — o
+  descrito pelos ouvintes do álbum como "castelos abandonados, vento
+  congelante e uma sombra escura seguindo você".
+- **A tese**: o térreo é o lugar do VENTO, então a trilha é o vento
+  cantando — SEM PULSO nenhum (o pulso de Berlim é do castelo VIVO, o
+  título; aqui nada pulsa, nada dança). Ré menor como o título e a
+  abertura: o drone nasce no MESMO D2 e a tônica passa de mão em mão no
+  fade da entrada no jogo. E a peça mora DEBAIXO do vento: camadas ~15%
+  abaixo do equivalente do título, e nenhuma voz sustentada na faixa do
+  assobio da fresta (1,5-2 kHz) — o assobio não divide octava com ela, o
+  vento segue dono.
+- **A peça**: Ré menor, quatro camadas, tudo em
+  `web/music/track-terreo.js` (contrato de trilha `start(ctx, buses,
+  alive)`; registro no `TRACKS` do maestro; o glue chama `setMusic('terreo')`
+  quando o tema é o castelo):
+  1. **o fôlego do portão** — D2+A2+D1, saws desafinadas sob sine sub,
+     lowpass 260 Hz derivando (~1 volta/5 min) — a pedra respirando frio;
+  2. **o coro do frio** — acordes de longa forma girando pelo lado escuro
+     do Dm (Dm C Bb Am Gm), dois coros desafinados por nota, inchaço de
+     4,5-7,5 s e dissolução de 6-10 s, um a cada ~17-29 s;
+  3. **o canto da fresta** — a MELANCOLIA: frases DESCENDENTES em Dm (a
+     tristeza nórdica cai) de flauta de synth com vibrato miúdo e eco
+     comprido; às vezes a fresta cala, e nunca repete frase;
+  4. **o corno do norte** — a chamada distante (o lur que atravessa o
+     frio): duas saws desafinadas sob lowpass, sopro de 1,4 s, a quinta
+     que cai e morre na tônica; raríssima, uma a cada ~40-85 s — o épico
+     da peça, nunca o dono dela.
+
 ### o ambiente por andar (não é música: é o lugar soando — `setAmbience`)
 
 - **Térreo**: o VENTO — corpo grave de ruído + assobio de fresta, puxado por
   rajadas irregulares (subida/descida/espaçamento sorteados: nunca o mesmo
-  intervalo duas vezes).
+  intervalo duas vezes) — e, por baixo dele, a TRILHA do térreo (seção
+  acima, `track-terreo.js`): o vento manda, a música acompanha.
 - **Masmorra**: o SILÊNCIO PERTURBADOR — quase nada; um estalo de pedra a
   cada 16-40 s para o ouvido ficar tenso; SFX abafados no bus.
 - **Canais (esgoto)**: GOTEIRAS — ping agudo com eco de cisterna, gota dupla
