@@ -20,6 +20,13 @@ permissão que o dono) terminam no PR: abrem, revisam, comentam — e param.
 NUNCA mergeie nada sem pedido explícito ("mergeia", "fecha o PR") do dono.
 "Está pronto", "smoke verde", "passei o review" não são pedido de merge.
 
+Depois de mergear um PR no GitHub, sincronize a `master` local (o merge é
+só no remoto — a cópia local fica para trás):
+
+```bash
+./bin/back-to-master.sh    # volta para master e faz pull
+```
+
 ## 2. criar a branch ANTES de tocar no código
 
 Comece pela branch, com o working tree limpo (`git status` precisa estar vazio):
