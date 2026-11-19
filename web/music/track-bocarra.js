@@ -69,8 +69,9 @@ export const trackBocarra = {
     //              morre em 0.09 s;
     //   sombra   — sine 40 Hz curtíssimo embaixo (o peso que o peito
     //              sente, não o ouvido).
-    // Pico de ganho ~0.085: DOIS TRÊS vezes qualquer outra camada — é o
-    // destaque que o dono pediu. O par grave da dissonância do glue
+    // Pico de ganho ~0.12: MAIS DE TRÊS vezes qualquer outra camada — é
+    // o destaque que o dono pediu (e reforçou: subiu de 0.085). O par
+    // grave da dissonância do glue
     // (82/87.3 Hz) mora NO MEIO da membrana de propósito: a batida engole
     // o desconforto, nunca o contrário
     const tamG = AC.createGain();
@@ -89,7 +90,7 @@ export const trackBocarra = {
       mem.frequency.exponentialRampToValueAtTime(46, t + 0.13);
       const memG = AC.createGain();
       memG.gain.setValueAtTime(0.0001, t);
-      memG.gain.linearRampToValueAtTime(0.085 * v, t + 0.012);
+      memG.gain.linearRampToValueAtTime(0.12 * v, t + 0.012);
       memG.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
       mem.connect(memG);
       memG.connect(tamG);
@@ -104,7 +105,7 @@ export const trackBocarra = {
       bp.Q.value = 1.1;
       const couroG = AC.createGain();
       couroG.gain.setValueAtTime(0.0001, t);
-      couroG.gain.linearRampToValueAtTime(0.032 * v, t + 0.006);
+      couroG.gain.linearRampToValueAtTime(0.045 * v, t + 0.006);
       couroG.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
       src.connect(bp);
       bp.connect(couroG);
@@ -116,7 +117,7 @@ export const trackBocarra = {
       sombra.frequency.value = 40;
       const sombraG = AC.createGain();
       sombraG.gain.setValueAtTime(0.0001, t);
-      sombraG.gain.linearRampToValueAtTime(0.03 * v, t + 0.02);
+      sombraG.gain.linearRampToValueAtTime(0.042 * v, t + 0.02);
       sombraG.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
       sombra.connect(sombraG);
       sombraG.connect(tamG);
@@ -158,7 +159,7 @@ export const trackBocarra = {
     // pó suspendendo) sob sine sub; ganho discreto — é chão, não muro
     const padG = AC.createGain();
     padG.gain.value = 0;
-    padG.gain.setTargetAtTime(0.026, AC.currentTime, 2.5); // a poeira acorda junto com o primeiro compasso
+    padG.gain.setTargetAtTime(0.034, AC.currentTime, 2.5); // a poeira acorda junto com o primeiro compasso (ganho subiu com o pedido do dono: a trilha mais evidente)
     const padLp = AC.createBiquadFilter();
     padLp.type = 'lowpass';
     padLp.frequency.value = 190;
@@ -233,8 +234,8 @@ export const trackBocarra = {
           lp.Q.value = 0.6;
           const g = AC.createGain();
           g.gain.setValueAtTime(0.0001, t);
-          g.gain.linearRampToValueAtTime(0.016, t + 0.5); // o sopro: o corno incha
-          g.gain.setValueAtTime(0.016, t + dur - 0.25);
+          g.gain.linearRampToValueAtTime(0.022, t + 0.5); // o sopro: o corno incha (ganho subiu com o pedido do dono)
+          g.gain.setValueAtTime(0.022, t + dur - 0.25);
           g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.4);
           o.connect(lp);
           lp.connect(g);

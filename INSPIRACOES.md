@@ -238,8 +238,8 @@
   em `web/music/track-bocarra.js` (contrato de trilha `start(ctx, buses,
   alive)`; registro no `TRACKS` do maestro; o glue chama
   `setMusic('bocarra')` quando o tema é a bocarra):
-  1. **os tambores de guerra** — o dono: pico de ganho ~0.085 (duas/três
-     vezes qualquer outra camada), compassos de guerra lenta
+  1. **os tambores de guerra** — o dono: pico de ganho ~0.12 (mais de três
+     vezes qualquer outra camada — subiu de 0.085 no reforço do dono), compassos de guerra lenta
      (tam-tam-TAM, a pressa da vanguarda, o pulso contido) + respiro raro
      (12%), eco de caverna leve próprio (delay 0.38 s, feedback 0.25,
      wet 0.2 — o tamanho do teto atrás da batida, nunca na frente);
