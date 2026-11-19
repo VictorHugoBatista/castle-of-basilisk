@@ -234,7 +234,14 @@ Decisoes:
 - **`AudioContext` so no primeiro gesto do usuario** (exigencia dos
   navegadores). Drone grave (55/58,3 Hz triangle + lowpass) e o "hum" do castelo.
 - **Ambiente sonoro por tema** (`setAmbience`): troca de andar => fade das
-  trilhas velhas + arranque das novas. Terreo: VENTO (noise loop bandpass 430 Hz
+  trilhas velhas + arranque das novas. A MÚSICA dos menus (título) mora em
+  `web/music/track-titulo.js`, tocada pelo MAESTRO `web/music/conductor.js`
+  (registro de trilhas + fade 0.4 s + geração que mata correntes de scheduler
+  velhas; o glue só mapeia estado de jogo → id e chama `setMusic`) — primeiro
+  passo da modularização do glue por domínio; trilha nova = arquivo em
+  `web/music/` + 1 linha no `TRACKS` do maestro. A ambiência de andar (vento/
+  goteiras/acervo) segue inline no glue — extração vem depois.
+  Terreo: VENTO (noise loop bandpass 430 Hz
   com LFO duplo na frequencia e no volume). Masmorra: SILÊNCIO PERTURBADOR
   (estalo de pedra a cada 16-40 s; SFX abafados a 0.7 no bus `sfxBus` — o
   silencio sepulcral contrasta com qualquer barulho). Esgoto: GOTEIRAS (ping
