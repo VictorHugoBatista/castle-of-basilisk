@@ -207,6 +207,52 @@
      afinada, eco do canal por cima; frases curtas, chegam de cara e
      voltam sempre.
 
+### a música do acervo (toca na Bocarra Diabólica, andares 6-8)
+
+- **Referência primária declarada**: Vikorra Doom — *The Ghost from Sheol*
+  (2024, Cryo Crypt), faixa **"From the Realm of Dust and Darkness"** — o
+  álbum de estreia do projeto do Bruce Moallem (do dark ambient God Body
+  Disconnect), um war dungeon synth grimdark: a terra antiga de Sh'goria, o
+  clã bárbaro, a vingança da vida passada:
+  <https://youtu.be/wEsuJoBKAvA?t=2020> (a faixa toca dentro do mix
+  *Goblin War*, nesse ponto).
+- **A tese**: a bocarra é um CAMPO DE BATALHA ANTIGO que a criatura
+  recolheu — os corpos ¶ e as caveiras ¥ do acervo são a prova. A música é
+  de GUERRA, não de atmosfera: os TAMBORES DE GUERRA são o dono do salão
+  (pedido do dono: destaque aos tambores, nada de massa de sons
+  incompreensíveis). O antídoto da massa é disciplina de camadas: só
+  TRÊS — tambores quase secos (eco de teto wet 0.2: inteligibilidade
+  primeiro), drone fechado em lowpass 190 Hz bem embaixo e corno raro e
+  curto — cada uma com faixa e ganho próprios, nada empilha no meio-forte.
+  Tambores SEM samples (zero samples, regra do glue): membrana = sine que
+  desaba 110→46 Hz, couro = ruído em bandpass 320 Hz, sombra = sine 40 Hz
+  no peito. O pulso vem por compasso em scheduler (~50 bpm, três desenhos
+  + respiro, humanização de ±22 ms e micro-drift de andamento — nunca LFO
+  de amplitude periódico). As goteiras e a respiração do glue seguem donas
+  do ar (prendem quando ela caça perto); a música mora fora do ping delas.
+  Ré menor no fundo do poço (D1+A1+D2) com a cor de Phrygia escurecida
+  (Eb e Bb — a poeira e o breu do título da faixa) — a tônica desce de
+  andar em andar (título → térreo → masmorra → esgoto → bocarra, sempre
+  no D).
+- **A peça**: Ré menor (pintado de Phrygia escurecida), três camadas, tudo
+  em `web/music/track-bocarra.js` (contrato de trilha `start(ctx, buses,
+  alive)`; registro no `TRACKS` do maestro; o glue chama
+  `setMusic('bocarra')` quando o tema é a bocarra):
+  1. **os tambores de guerra** — o dono: pico de ganho ~0.12 (mais de três
+     vezes qualquer outra camada — subiu de 0.085 no reforço do dono), compassos de guerra lenta
+     (tam-tam-TAM, a pressa da vanguarda, o pulso contido) + respiro raro
+     (12%), eco de caverna leve próprio (delay 0.38 s, feedback 0.25,
+     wet 0.2 — o tamanho do teto atrás da batida, nunca na frente);
+  2. **a poeira funda** — D1+A1+D2, saws desafinadas (batimento lento
+     ~0.4 Hz: o pó suspendendo) sob sine sub, lowpass 190 Hz — chão,
+     nunca muro;
+  3. **o corno da guerra antiga** — frases de 2-3 notas descendentes
+     (D4-Bb3-A3; F4-Eb4-D4; A3-G3-F3-Eb3; D4-C4-A3), duas saws
+     desafinadas em lowpass 750 Hz, ataque de sopro de 0.5 s, uma frase
+     a cada ~14-26 s (e 20% de chance de calar): um estandarte passando
+     ao longe, não um solo; se cruzar com a batida, o tambor não perde
+     o posto (a batida é transiente, o corno é sopro).
+
 ### o ambiente por andar (não é música: é o lugar soando — `setAmbience`)
 
 - **Térreo**: o VENTO — corpo grave de ruído + assobio de fresta, puxado por
@@ -225,7 +271,9 @@
 - **Bocarra Diabólica**: a morada do TETO ALTO — ping gordo com eco de lago,
   vento fundo com deriva de afinação, dissonância de pares desafinados e a
   RESPIRAÇÃO do acervo (rumor que sobe e desce a cada 8-20 s). Tudo prende
-  quando ela caça perto: a caverna guarda o ar.
+  quando ela caça perto: a caverna guarda o ar. Por baixo do ar, a TRILHA
+  do acervo (seção acima, `track-bocarra.js`): os TAMBORES DE GUERRA mandam
+  no salão — a guerra antiga que o acervo recolheu.
 - Por baixo de tudo, o **hum do castelo**: 55/58,3 Hz batendo devagar.
 
 ### as regras de síntese (como AGENTS.md manda)

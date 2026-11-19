@@ -159,7 +159,10 @@ conhece a casa.
   constante dentro de um eco de caverna que não acha parede nenhuma, a
   respiração do acervo a cada 8-20 s (que também prende quando ela caça) e
   uma **dissonância miúda e constante** (dois pares de senoides desafinadas,
-  o batimento é o desconforto — perceptível, jamais forte). Por cima de
+  o batimento é o desconforto — perceptível, jamais forte) — e, por baixo
+  do ar, a **trilha de guerra do acervo**: tambores de guerra sintetizados
+  mandando no salão (referência: Vikorra Doom), com o corno antigo passando
+  ao longe de vez em quando. Por cima de
   tudo, **o vento grande**: rajadas irregulares no nível do vento do térreo,
   e cada onda devolve eco de 0.38 s — é o tamanho da caverna falando (o
   rumble e a dissonância continuam audíveis por baixo; ELA caçando, a

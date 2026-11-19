@@ -5,7 +5,7 @@ import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES, CUT_SOLID } from './cutsce
 // módulos de música versionados na URL (mesma filosofia do ?v= daqui):
 // mudou trilha/maestro, bumpa os ?v= dos imports junto — senão o browser
 // serve maestro/trilha velhos para o glue novo
-import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=15';
+import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=16';
 
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
@@ -219,8 +219,10 @@ function setAmbience(force) {
   // TÉRREO (o castelo) = 'terreo', a trilha fria que corre DEBAIXO do
   // vento; MASMORRA = 'masmorra', a trilha da cripta que corre DEBAIXO do
   // silêncio; ESGOTO = 'esgoto', a lenda aquática que corre DEBAIXO das
-  // goteiras
-  setMusic(th === 4 ? 'titulo' : th === 0 ? 'terreo' : th === 1 ? 'masmorra' : th === 2 ? 'esgoto' : null, force);
+  // goteiras; BOCARRA = 'bocarra', os tambores de guerra do acervo que
+  // MANDAM no salão (referência: Vikorra Doom — From the Realm of Dust
+  // and Darkness)
+  setMusic(th === 4 ? 'titulo' : th === 0 ? 'terreo' : th === 1 ? 'masmorra' : th === 2 ? 'esgoto' : th === 3 ? 'bocarra' : null, force);
   // SFX abafados na masmorra: o silêncio sepulcral contrasta qualquer som
   sfxBus.gain.setTargetAtTime(th === 1 ? 0.7 : 1.0, now, 0.5);
   if (th === 0) {
