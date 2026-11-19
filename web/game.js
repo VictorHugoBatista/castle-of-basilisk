@@ -5,7 +5,7 @@ import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES, CUT_SOLID } from './cutsce
 // módulos de música versionados na URL (mesma filosofia do ?v= daqui):
 // mudou trilha/maestro, bumpa os ?v= dos imports junto — senão o browser
 // serve maestro/trilha velhos para o glue novo
-import { initMusic, setMusic } from './music/conductor.js?v=10';
+import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=11';
 
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
@@ -994,8 +994,12 @@ const CUT_TEXT_DELAY = 600; // a página espera a cena assentar antes de falar
 const CUT_SKIP_GRACE = 2500; // a pedra exige 2.5s de exibição antes de aceitar
                              // tecla: o clique de foco da aba e o enter reflexo
                              // de "começar" matavam a abertura no primeiro segundo
+const CUT_CODA_S = 6.5;      // faltando isso na última cena, o maestro avisa a
+                             // trilha e ela executa a coda escrita — a tônica
+                             // acha o chão junto com o afundar no breu
 
 let cutActive = true;      // nasce ativa: a pedra vem antes do menu
+let cutCodaDone = false;   // o aviso de fim já saiu (uma vez só)
 let cutScene = 0;
 let cutT0 = 0;             // performance.now() do começo da cutscene
 let cutSkip = 0;           // soma dos durs das cenas já viradas
@@ -1075,6 +1079,14 @@ function cutFrame(nowMs) {
   if (cutScene === CUT_SCENES.length - 1 && t >= sc.dur) { endCutscene(); return; }
   if (cutEyesScene !== cutScene) { cutEyes = cutLoadEyes(sc); cutEyesScene = cutScene; }
   if (cutRevealScene !== cutScene) { cutRevealDone = false; cutRevealScene = cutScene; }
+  // o fim composto: na última cena, quando faltam CUT_CODA_S segundos, o
+  // maestro avisa a trilha (musicCoda) e ela escreve a própria cadência —
+  // a tônica acha o chão junto com o fade. Pulo (esc/enter na última
+  // página) não tem coda: quem pula abre mão do amanhecer
+  if (cutScene === CUT_SCENES.length - 1 && !cutCodaDone && sc.dur - t <= CUT_CODA_S * 1000) {
+    cutCodaDone = true;
+    musicCoda();
+  }
 
   // a paleta da cutscene veste o colorFor() por um frame (a cena usa
   // os mesmos attrs "vivos": coroa pulsa, água ondula, pálido respira)

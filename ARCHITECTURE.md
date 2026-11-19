@@ -242,7 +242,11 @@ Decisoes:
   `track-titulo.js` (título/controles/escolha de andar) e `track-abertura.js`
   (a cutscene da porta — nasce no primeiro gesto DENTRO da cutscene, já que
   o `AudioContext` só desperta em gesto; `endCutscene` troca para o título,
-  no fade). Primeiro passo da modularização do glue por domínio; trilha
+  no fade). A abertura tem FIM COMPOSTO: faltando ~6.5 s da última cena, o
+  glue chama `musicCoda()` e a trilha executa a cadência escrita que acha
+  a tônica junto com o fade (trilha pode expor `coda` no handle,
+  opcionalmente — o título não tem). Primeiro passo da modularização do
+  glue por domínio; trilha
   nova = arquivo em `web/music/` + 1 linha no `TRACKS` do maestro. A
   ambiência de andar (vento/
   goteiras/acervo) segue inline no glue — extração vem depois.

@@ -9,9 +9,15 @@
 //
 // O que muda do título: NADA pulsa aqui — o ostinato de Berlim é o
 // castelo VIVO, e a abertura é o nascer do dia anterior a ele. No lugar:
-// pads de longa forma (Schulze) e um coro lento de synth (Vangelis),
-// tudo por scheduler irregular — a regra do glue vale por inteiro.
-// Contrato de trilha: start(ctx, buses, alive) → { nodes, timers }.
+// uma linha de arco que anda (o passo largo do ladrão), pads de longa
+// forma (Schulze) e um coro lento de synth (Vangelis), tudo por
+// scheduler irregular — a regra do glue vale por inteiro.
+//
+// E a abertura TEM FIM: não é loop eterno cortado no fade. O glue avisa
+// o maestro (musicCoda()) quando a última cena entra nos últimos ~6.5 s
+// e a trilha executa a CODA escrita — a cadência andalusa acha a tônica
+// no exato instante em que a cutscene afunda no breu. Contrato de
+// trilha: start(ctx, buses, alive) → { nodes, timers, coda? }.
 export const trackAbertura = {
   id: 'abertura',
   start(ctx, buses, alive) {
@@ -20,6 +26,11 @@ export const trackAbertura = {
     const ambNodes = []; // nós vivos DESTA execução: o fade do maestro mata todos
 
     const mf = (m) => 440 * Math.pow(2, (m - 69) / 12);
+    // a CODA: schedulers soltos se calam quando ela começa (os acordes
+    // e frases já agendados terminam suas caudas naturais por conta
+    // própria — cancelar envelope agendado não dá, e as duas vozes são
+    // da mesma família harmônica)
+    let codaing = false;
     // relógio congelado (contexto ainda suspenso — o AC pode acordar no
     // MEIO da cutscene, pelo primeiro gesto do jogador): re-agenda curto
     // SEM tocar no relógio — senão coro, olho e flauta nascem todos no
@@ -63,7 +74,47 @@ export const trackAbertura = {
     padG.connect(ambGain);
     ambNodes.push(padLp, padG, padDrift, padDriftG);
 
-    // ---- 2. a corrente do cano: a água da cena do túnel (não é a goteira
+    // ---- 2. a caminhada do ladrão: linha de arco lenta que anda pelo Ré
+    // menor — notas inteiras em legato (a próxima nasce DENTRO da cauda
+    // da anterior: contrabaixo de synth sem pulso nenhum, o passo é largo
+    // demais para dançar). É o chão que preenche os vãos entre os acordes
+    // — e a mão do texto: o aspirante entrando na morada
+    const walkG = AC.createGain();
+    walkG.gain.value = 1;
+    walkG.connect(ambGain);
+    ambNodes.push(walkG);
+    const CAMINHO = [38, 41, 36, 34, 33, 38]; // D2 F2 C2 Bb1 A1 (→ D2): a descida andalusa caminhando
+    let wi = CAMINHO.length - 1;
+    const anda = () => {
+      if (!alive() || codaing) return;
+      if (aguardaRodando(anda)) return;
+      wi = (wi + 1 + Math.floor(Math.random() * 2)) % CAMINHO.length; // anda 1-2 degraus, nunca estaca
+      const f = mf(CAMINHO[wi]);
+      const t = AC.currentTime + 0.05;
+      const dur = 3.5 + Math.random() * 2.5;
+      const o = AC.createOscillator();
+      o.type = 'triangle';
+      o.frequency.value = f;
+      const o2 = AC.createOscillator(); // oitava acima: corpo de arco
+      o2.type = 'sine';
+      o2.frequency.value = f * 2.001;
+      const g = AC.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.035, t + 0.9); // o arco puxa
+      g.gain.setValueAtTime(0.035, t + dur - 0.4);
+      g.gain.linearRampToValueAtTime(0.0001, t + dur + 1.2); // cauda longa: o próximo passo nasce nela
+      o.connect(g);
+      o2.connect(g);
+      g.connect(walkG);
+      o.start(t);
+      o2.start(t);
+      o.stop(t + dur + 1.4);
+      o2.stop(t + dur + 1.4);
+      setTimeout(anda, dur * 1000 * 0.72); // legato: sobrepõe a cauda
+    };
+    anda();
+
+    // ---- 3. a corrente do cano: a água da cena do túnel (não é a goteira
     // do esgoto in-game — é o RIO parado lá no fundo do breu). Ruído num
     // bandpass fino que deriva devagar + redemoinhos: aberturas curtas do
     // filtro, sorteadas por scheduler irregular (nada de LFO periódico)
@@ -93,7 +144,7 @@ export const trackAbertura = {
     water.start();
     ambNodes.push(water, waterBp, waterG, waterDrift, waterDriftG);
     const eddy = () => {
-      if (!alive()) return;
+      if (!alive() || codaing) return;
       if (aguardaRodando(eddy)) return;
       const t = AC.currentTime;
       const up = 1.5 + Math.random() * 3;      // o redemoinho cresce
@@ -105,11 +156,12 @@ export const trackAbertura = {
     };
     eddy();
 
-    // ---- 3. o coro do breu (Vangelis): acordes de synth que incham do
-    // nada e voltam ao nada — UM acorde por vez, espaçamento sorteado
-    // (18-40 s), dentro do Ré menor; nada repete de imediato. Cada voz é
-    // triangle + sine de quinta/oitava com ataque de SEGUNDOS: cordas de
-    // catedral lentas, não stinger
+    // ---- 4. o coro do breu (Vangelis): acordes de synth que incham do
+    // nada e voltam ao nada — UM acorde por vez, dentro do Ré menor; nada
+    // repete de imediato. Ciclo FECHADO (corpo 4-6 s, dissolução 5-8 s,
+    // vão de 2-6 s: um acorde a cada ~11-20 s — o breu responde, não
+    // cala). Cada voz é triangle + sine de quinta/oitava com ataque de
+    // SEGUNDOS: cordas de catedral lentas, não stinger
     const choirG = AC.createGain();
     choirG.gain.value = 1;
     choirG.connect(ambGain);
@@ -122,26 +174,26 @@ export const trackAbertura = {
     ];
     let lastCh = -1;
     const choirTick = () => {
-      if (!alive()) return;
+      if (!alive() || codaing) return;
       if (aguardaRodando(choirTick)) return;
       let ci = Math.floor(Math.random() * CHORDS.length);
       if (ci === lastCh) ci = (ci + 1) % CHORDS.length;
       lastCh = ci;
       const t = AC.currentTime + 0.1;
-      const rise = 5 + Math.random() * 3;         // 5-8 s até o corpo
-      const fall = 8 + Math.random() * 5;         // 8-13 s se dissolvendo
+      const rise = 4 + Math.random() * 2; // 4-6 s até o corpo
+      const fall = 5 + Math.random() * 3; // 5-8 s se dissolvendo
       for (const m of CHORDS[ci]) {
         const f = mf(m);
         const o = AC.createOscillator();
         o.type = 'triangle';
         o.frequency.value = f;
-        const o5 = AC.createOscillator();         // quinta 1.003x: batimento miudo
+        const o5 = AC.createOscillator(); // quinta 1.003x: batimento miudo
         o5.type = 'sine';
         o5.frequency.value = f * 1.5 * 1.003;
         const g = AC.createGain();
         g.gain.setValueAtTime(0.0001, t);
-        g.gain.linearRampToValueAtTime(0.016, t + rise);
-        g.gain.setValueAtTime(0.016, t + rise + fall * 0.4);
+        g.gain.linearRampToValueAtTime(0.019, t + rise);
+        g.gain.setValueAtTime(0.019, t + rise + fall * 0.4);
         g.gain.linearRampToValueAtTime(0.0001, t + rise + fall);
         o.connect(g);
         o5.connect(g);
@@ -151,14 +203,15 @@ export const trackAbertura = {
         o.stop(t + rise + fall + 0.5);
         o5.stop(t + rise + fall + 0.5);
       }
-      setTimeout(choirTick, (rise + fall) * 1000 + 9000 + Math.random() * 13000);
+      setTimeout(choirTick, (rise + fall) * 1000 + 2000 + Math.random() * 4000);
     };
     choirTick();
 
-    // ---- 4. a flauta que ensaia: a torre AINDA não canta — ela ensaia a
-    // primeira frase do título, cochichada e rara (o eco é mais longo:
-    // o pátio vazio devolve de longe). É o fio que costura a abertura no
-    // título: quem ouviu os dois reconhece a frase
+    // ---- 5. a flauta que ensaia: a torre AINDA não canta — ela ensaia as
+    // frases do título, cochichada, em VISITAS encadeadas (1-2 frases por
+    // vez, vão de 6-18 s). O eco é mais longo: o pátio vazio devolve de
+    // longe. É o fio que costura a abertura no título: quem ouviu os dois
+    // reconhece a frase
     const leadG = AC.createGain();
     leadG.gain.value = 0.9;
     leadG.connect(ambGain);
@@ -174,13 +227,16 @@ export const trackAbertura = {
     leadDly.connect(leadWet);
     leadWet.connect(leadG);
     ambNodes.push(leadDly, leadFb, leadWet);
-    const ENSAIO = [[69, 2], [72, 1], [74, 2], [72, 1], [69, 1], [69, 4]]; // o início da frase 1 do título
-    const ensaiaTick = () => {
-      if (!alive()) return;
-      if (aguardaRodando(ensaiaTick)) return;
+    const FRASES = [ // as mesmas 3 frases da torre do título — em ensaio
+      [[69, 1], [72, 1], [74, 1], [72, 1], [69, 1], [70, 1], [69, 4]],
+      [[65, 1], [67, 1], [69, 2], [67, 1], [65, 1], [64, 1], [62, 4]],
+      [[62, 1], [65, 1], [69, 2], [67, 1], [65, 1], [64, 1], [58, 1], [62, 4]],
+    ];
+    let lastPh = -1;
+    const tocaFrase = (pi) => {
       const BEAT = 60 / 66; // o andamento do título, já respirando aqui
-      let t = AC.currentTime + 0.3;
-      for (const [m, b] of ENSAIO) {
+      let t = AC.currentTime + 0.2;
+      for (const [m, b] of FRASES[pi]) {
         const dur = b * BEAT;
         const o = AC.createOscillator();
         o.type = 'triangle';
@@ -197,8 +253,8 @@ export const trackAbertura = {
         vibG.connect(o2.detune);
         const g = AC.createGain();
         g.gain.setValueAtTime(0.0001, t);
-        g.gain.linearRampToValueAtTime(0.028, t + 0.2); // mais fundo que o título
-        g.gain.setValueAtTime(0.028, t + dur - 0.1);
+        g.gain.linearRampToValueAtTime(0.03, t + 0.14);
+        g.gain.setValueAtTime(0.03, t + dur - 0.1);
         g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.3);
         o.connect(g);
         o2.connect(g);
@@ -212,11 +268,26 @@ export const trackAbertura = {
         vib.stop(t + dur + 0.4);
         t += dur;
       }
-      setTimeout(ensaiaTick, (t - AC.currentTime) * 1000 + 24000 + Math.random() * 30000);
+      return t - AC.currentTime; // a cauda da frase, em segundos
+    };
+    const ensaiaTick = () => {
+      if (!alive() || codaing) return;
+      if (aguardaRodando(ensaiaTick)) return;
+      let pi = Math.floor(Math.random() * FRASES.length);
+      if (pi === lastPh) pi = (pi + 1) % FRASES.length; // nunca repete
+      lastPh = pi;
+      let cauda = tocaFrase(pi);
+      if (Math.random() < 0.45) { // visita encadeada: 2 frases seguidas
+        let pj = Math.floor(Math.random() * FRASES.length);
+        if (pj === pi) pj = (pj + 1) % FRASES.length;
+        lastPh = pj;
+        cauda = tocaFrase(pj);
+      }
+      setTimeout(ensaiaTick, cauda * 1000 + 6000 + Math.random() * 12000);
     };
     ensaiaTick();
 
-    // ---- 5. o olho: UMA vez em muito, o par de olhos vermelhos do fundo
+    // ---- 6. o olho: de vez em quando, o par de olhos vermelhos do fundo
     // do túnel respira — dois graves desafinados batendo (o desconforto
     // vive do batimento, nunca de ganho periódico) + um golpe fundo.
     // Bus próprio: o tail morre junto no fade
@@ -225,7 +296,7 @@ export const trackAbertura = {
     eyeG.connect(ambGain);
     ambNodes.push(eyeG);
     const eyeTick = () => {
-      if (!alive()) return;
+      if (!alive() || codaing) return;
       if (aguardaRodando(eyeTick)) return;
       const t = AC.currentTime + 0.05;
       const rise = 3 + Math.random() * 2;
@@ -255,11 +326,11 @@ export const trackAbertura = {
       thudG.connect(eyeG);
       thud.start(t);
       thud.stop(t + 1.5);
-      setTimeout(eyeTick, 26000 + Math.random() * 30000);
+      setTimeout(eyeTick, 18000 + Math.random() * 22000);
     };
     eyeTick();
 
-    // ---- 6. a fita: o chiado baixo que cola as camadas (o mesmo lo-fi
+    // ---- 7. a fita: o chiado baixo que cola as camadas (o mesmo lo-fi
     // do título — a mesma fita, o mesmo castelo)
     const hissBuf = AC.createBuffer(1, Math.floor(AC.sampleRate * 3), AC.sampleRate);
     const hch = hissBuf.getChannelData(0);
@@ -278,6 +349,102 @@ export const trackAbertura = {
     hiss.start();
     ambNodes.push(hiss, hissHp, hissG);
 
-    return { nodes: ambNodes, timers: [] }; // os schedulers se matam pelo alive()
+    // ---- a CODA: a cadência ESCRITA que fecha a abertura. O glue avisa
+    // (maestro → musicCoda()) quando faltam ~6.5 s de cutscene; a
+    // descida andalusa (C2 → Bb1 → A1 → D2) acha a tônica, o coro abre
+    // em Dm inteiro, a flauta resolve em D5 e a pedra exhala — tudo
+    // calibrado pra terminar de se dissolver ANTES do fade do maestro
+    // cortar: ninguém é cortado no pico. O D2 que sustenta no fim é a
+    // tônica do drone do título: a passagem sai sem costura
+    const coda = () => {
+      if (codaing || !alive()) return;
+      codaing = true;
+      const t0 = AC.currentTime + 0.05;
+      // a caminhada fecha o passo: C2 → Bb1 → A1 → D2
+      let tb = t0;
+      for (const [m, dur] of [[48, 1.1], [34, 1.1], [33, 1.2], [38, 3.2]]) {
+        const f = mf(m);
+        const o = AC.createOscillator();
+        o.type = 'triangle';
+        o.frequency.value = f;
+        const o2 = AC.createOscillator();
+        o2.type = 'sine';
+        o2.frequency.value = f * 2.001;
+        const g = AC.createGain();
+        g.gain.setValueAtTime(0.0001, tb);
+        g.gain.linearRampToValueAtTime(0.042, tb + Math.min(0.5, dur * 0.4));
+        g.gain.setValueAtTime(0.042, tb + dur - 0.15);
+        g.gain.exponentialRampToValueAtTime(0.0001, tb + dur + 0.9);
+        o.connect(g);
+        o2.connect(g);
+        g.connect(walkG);
+        o.start(tb);
+        o2.start(tb);
+        o.stop(tb + dur + 1.1);
+        o2.stop(tb + dur + 1.1);
+        tb += dur;
+      }
+      // o coro abre em Dm inteiro e se desfaz antes do fim da cutscene
+      const tc = t0 + 0.5;
+      for (const m of [50, 57, 62, 65, 69]) {
+        const f = mf(m);
+        const o = AC.createOscillator();
+        o.type = 'triangle';
+        o.frequency.value = f;
+        const o5 = AC.createOscillator();
+        o5.type = 'sine';
+        o5.frequency.value = f * 1.5 * 1.003;
+        const g = AC.createGain();
+        g.gain.setValueAtTime(0.0001, tc);
+        g.gain.linearRampToValueAtTime(0.02, tc + 2.4);
+        g.gain.setValueAtTime(0.02, tc + 3.6);
+        g.gain.linearRampToValueAtTime(0.0001, tc + 5.8);
+        o.connect(g);
+        o5.connect(g);
+        g.connect(choirG);
+        o.start(tc);
+        o5.start(tc);
+        o.stop(tc + 6.2);
+        o5.stop(tc + 6.2);
+      }
+      // a flauta canta a última vez e resolve em D5
+      let tn = t0 + 1.1;
+      for (const [m, dur] of [[69, 0.9], [72, 0.9], [74, 2.9]]) {
+        const f = mf(m);
+        const o = AC.createOscillator();
+        o.type = 'triangle';
+        o.frequency.value = f;
+        const o2 = AC.createOscillator();
+        o2.type = 'sine';
+        o2.frequency.value = f * 2.002;
+        const vib = AC.createOscillator();
+        vib.frequency.value = 4.8;
+        const vibG = AC.createGain();
+        vibG.gain.value = 5.5;
+        vib.connect(vibG);
+        vibG.connect(o.detune);
+        vibG.connect(o2.detune);
+        const g = AC.createGain();
+        g.gain.setValueAtTime(0.0001, tn);
+        g.gain.linearRampToValueAtTime(0.034, tn + 0.18);
+        g.gain.setValueAtTime(0.034, tn + dur - 0.1);
+        g.gain.exponentialRampToValueAtTime(0.0001, tn + dur + 0.4);
+        o.connect(g);
+        o2.connect(g);
+        g.connect(leadG);
+        g.connect(leadDly);
+        o.start(tn);
+        o2.start(tn);
+        vib.start(tn);
+        o.stop(tn + dur + 0.5);
+        o2.stop(tn + dur + 0.5);
+        vib.stop(tn + dur + 0.5);
+        tn += dur;
+      }
+      // a pedra exhala: o drone abre a boca antes do título entrar
+      padLp.frequency.setTargetAtTime(560, t0, 2.2);
+    };
+
+    return { nodes: ambNodes, timers: [], coda }; // os schedulers se matam pelo alive()
   },
 };
