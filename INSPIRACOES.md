@@ -124,30 +124,45 @@
   profecia do Kryptan é a tese da peça: *"Deep and silent, the heart
   shall beat"* — a descida à cripta, o fundo e calado, o coração que
   bate: exatamente o que a masmorra pede.
-- **A tese**: o SILÊNCIO PERTURBADOR continua dono (SFX abafados no bus,
-  estalo de pedra do glue) — a música mora DEBAIXO do silêncio: mais
-  baixa que o térreo, sem voz nenhuma que dispute o estalo, e a maior
-  parte do tempo ela só respira. Ré menor de novo — a tônica desce de
-  andar em andar (título → térreo → masmorra, sempre no D), uma oitava
-  de fôlego mais fundo a cada descida.
-- **A peça**: Ré menor, quatro camadas, tudo em
+- **A tese**: a masmorra foi a PRISÃO POLÍTICA da era que caiu — o LORE
+  já guarda isso: as celas trancadas para sempre têm "os que o tribunal
+  recolheu por 'semear o medo'", os que morreram **calados por dentro**,
+  os que tinham razão e não ficaram nem com ossos à vista. A música é o
+  que eles não puderam dizer: o lugar é ASSOMBRADO e a peça expressa —
+  os sussurros voltam em células diferentes e o coro dos mortos canta
+  desafinado. O SILÊNCIO PERTURBADOR continua dono do bus (SFX abafados,
+  estalo de pedra do glue) — a trilha é perceptível, mas mora DEBAIXO do
+  silêncio: atmosfera vazia, lugar morto, nada dança. Ré menor — a
+  tônica desce de andar em andar (título → térreo → masmorra, sempre no
+  D), uma oitava de fôlego mais fundo a cada descida.
+- **A peça**: Ré menor, seis camadas, tudo em
   `web/music/track-masmorra.js` (contrato de trilha `start(ctx, buses,
   alive)`; registro no `TRACKS` do maestro; o glue chama
   `setMusic('masmorra')` quando o tema é a masmorra):
   1. **a pedra funda** — D1+A1+D2 (o "grão da pedra" da abertura, uma
      oitava de fôlego mais fundo que o portão do térreo), saws
-     desafinadas sob lowpass 200 Hz derivando — a pedra não canta,
+     desafinadas sob lowpass 230 Hz derivando — a pedra não canta,
      rumina;
   2. **o coração fundo** — lub-dub longínquo de sine descendo (52→28 Hz),
-     o segundo sopro mais fraco, um coração a cada ~9-18 s: o metrônomo
+     o segundo sopro mais fraco, um coração a cada ~8-16 s: o metrônomo
      irregular do terror (a promessa da profecia, batendo);
-  3. **o coro de baixo** — acordes de longa forma pelo lado mais escuro
+  3. **os sussurros** — os calados por dentro falando de novo: noise
+     branco em bandpass estreito de "boca" (o filtro desliza como
+     língua), sussurros de 0.15-0.45 s em PAN aleatório (a voz volta de
+     uma cela diferente a cada vez), em grupos de 1-3, um grupo a cada
+     ~6-18 s — sem oscilador tonal: sussurro que afina é voz, sussurro
+     de filtro é conversa de pedra;
+  4. **o coro de baixo** — acordes de longa forma pelo lado mais escuro
      do Dm (Dm Bb Gm Am — SEM C maior nenhuma: aqui não há clareza), uma
-     oitava abaixo do coro do frio do térreo, um a cada ~28-50 s;
-  4. **o lamento da cripta** — frases curtíssimas de duas/três notas
+     oitava abaixo do coro do frio do térreo, um a cada ~25-42 s;
+  5. **o coro dos mortos** — a assombração em nota: dois coros a SEGUNDA
+     MENOR de distância (F3/E3, D3/C#3, Bb2/A2) inchando juntos e se
+     dissolvendo, uma vez a cada ~40-80 s — quem não tem mais corpo
+     afina errado: o batimento áspero da segunda menor é o coro
+     desafinado dos sem ossos;
+  6. **o lamento da cripta** — frases curtíssimas de duas/três notas
      descendentes no registro grave (a tristeza aqui não cai de cima
-     como na fresta do térreo: afunda); na maior parte do tempo ela NÃO
-     vem.
+     como na fresta do térreo: afunda); cala bastante, mas vem.
 
 ### o ambiente por andar (não é música: é o lugar soando — `setAmbience`)
 
@@ -158,7 +173,8 @@
 - **Masmorra**: o SILÊNCIO PERTURBADOR — quase nada; um estalo de pedra a
   cada 16-40 s para o ouvido ficar tenso; SFX abafados no bus — e, por
   baixo do silêncio, a TRILHA da cripta (seção acima,
-  `track-masmorra.js`): o coração fundo batendo, quase subliminar.
+  `track-masmorra.js`): o lugar assombrado da prisão política — o
+  coração fundo batendo e os sussurros dos calados por dentro voltando.
 - **Canais (esgoto)**: GOTEIRAS — ping agudo com eco de cisterna, gota dupla
   ocasional; o ping **para quando ela está de caça perto** (o silêncio avisa).
 - **Bocarra Diabólica**: a morada do TETO ALTO — ping gordo com eco de lago,

@@ -308,8 +308,9 @@ function setAmbience(force) {
     // ---- MASMORRA: SILÊNCIO PERTURBADOR — quase nada; a cada 16-40s um
     // estalo mínimo de madeira/pedra, só para o ouvido ficar tenso. Por
     // baixo, a TRILHA da cripta (web/music/track-masmorra.js — o maestro
-    // já recebeu o pedido de 'masmorra' lá em cima): o coração fundo
-    // batendo, quase subliminar ----
+    // já recebeu o pedido de 'masmorra' lá em cima): o lugar assombrado
+    // da prisão política — o coração fundo batendo e os sussurros dos
+    // calados por dentro voltando ----
     schedSilence();
   } else if (th === 2) {
     // ---- ESCGOTO: GOTEIRAS — ping agudo com eco de cisterna, irregular
@@ -325,8 +326,8 @@ function setAmbience(force) {
 }
 
 // agendador do silêncio da masmorra: é o que NÃO soa que educa o terror
-// (a trilha da cripta, music/track-masmorra.js, corre ainda mais baixo
-// que ele)
+// (a trilha da cripta, music/track-masmorra.js, corre por baixo dele —
+// assombrada, mas nunca na frente)
 function schedSilence() {
   if (ambTheme !== 1 || !AC) return;
   ambTimer = setTimeout(() => {

@@ -1,16 +1,21 @@
 // music/track-masmorra.js — A MÚSICA DA MASMORRA (a cripta): dark ambient
-// de descida, SEM PULSO e quase subliminar. Referência: Trollslottet —
+// de descida, ASSOMBRADO — e quase sem pulso. Referência: Trollslottet —
 // "Som Vore Det Evigt" (Kryptan, Cryo Crypt, 2025):
 // <https://youtu.be/qJraAOi-bD8?t=2440> (a faixa começa nesse ponto) — o
 // MESMO Pär Boström da trilha do térreo, o álbum seguinte. A profecia do
-// Kryptan é a tese da peça: "Deep and silent, the heart shall beat" — a
-// masmorra morre, mas o fundo dela bate. O SILÊNCIO PERTURBADOR continua
-// dono (SFX abafados no bus, estalo de pedra do glue): a música mora
-// DEBAIXO do silêncio, mais baixa que o térreo, sem voz nenhuma que
-// dispute o estalo — a maior parte do tempo ela só respira.
-// Ré menor — a tônica desce de andar em andar (título → térreo → masmorra,
-// sempre no D). Contrato de trilha: start(ctx, buses, alive) → { nodes,
-// timers }.
+// Kryptan é a tese do fundo: "Deep and silent, the heart shall beat".
+// O terror da peça é o canon do LORE: a masmorra foi a prisão política da
+// era que caiu — as celas trancadas para sempre guardam os que o tribunal
+// recolheu por "semear o medo", os que morreram CALADOS POR DENTRO, os
+// que tinham razão e não ficaram nem com ossos à vista. A música é o que
+// eles não puderam dizer: os sussurros voltam (noise sussurrado, com pan,
+// sempre em célula diferente), e o coro dos mortos canta desafinado
+// (segunda menor inchando — quem não tem mais corpo afina errado).
+// O SILÊNCIO PERTURBADOR continua dono do BUS (SFX abafados, estalo de
+// pedra do glue): a trilha é mais presente que antes, mas mora DEBAIXO do
+// silêncio — atmosfera vazia, lugar morto, nada dança. Ré menor — a
+// tônica desce de andar em andar (título → térreo → masmorra, sempre no
+// D). Contrato de trilha: start(ctx, buses, alive) → { nodes, timers }.
 export const trackMasmorra = {
   id: 'masmorra',
   start(ctx, buses, alive) {
@@ -21,11 +26,13 @@ export const trackMasmorra = {
     // Camadas, todas por scheduler irregular (nada de LFO de amplitude
     // periódico — a regra do glue vale aqui por inteiro): a pedra funda
     // (drone que deriva devagar na FREQUÊNCIA), o coração fundo (lub-dub
-    // longínquo, o batimento que a profecia promete), o coro de baixo
-    // (acordes de longa forma, raros e escuros) e o lamento da cripta
-    // (a melodia — se é que se pode chamar de melodia: três notas caindo).
-    // Cada camada mora num bus próprio nos ambNodes: o fade da troca de
-    // tema mata tudo junto
+    // longínquo, o batimento que a profecia promete), os sussurros (os
+    // calados por dentro, falando de novo — noise em bandpass com pan), o
+    // coro de baixo (acordes de longa forma, raros e escuros), o coro dos
+    // mortos (segunda menor inchando: os sem ossos cantando desafinado) e
+    // o lamento da cripta (a melodia — se é que se pode chamar de
+    // melodia: notas afundando). Cada camada mora num bus próprio nos
+    // ambNodes: o fade da troca de tema mata tudo junto
     const mf = (m) => 440 * Math.pow(2, (m - 69) / 12);
     // relógio congelado (contexto ainda suspenso): re-agenda curto SEM tocar
     // no relógio — senão duas frases/acordes nascem no MESMO instante quando
@@ -42,10 +49,10 @@ export const trackMasmorra = {
     // a pedra não canta, rumina
     const padG = AC.createGain();
     padG.gain.value = 0;
-    padG.gain.setTargetAtTime(0.018, AC.currentTime, 4); // a cripta acorda mais devagar ainda
+    padG.gain.setTargetAtTime(0.03, AC.currentTime, 4); // a cripta acorda devagar, mas acorda
     const padLp = AC.createBiquadFilter();
     padLp.type = 'lowpass';
-    padLp.frequency.value = 200;
+    padLp.frequency.value = 230;
     padLp.Q.value = 0.5;
     for (const [f, type, v] of [[36.71, 'sawtooth', 1], [36.98, 'sawtooth', 0.7], [55, 'triangle', 0.5], [73.42, 'sine', 0.4]]) {
       const o = AC.createOscillator();
@@ -61,7 +68,7 @@ export const trackMasmorra = {
     const padDrift = AC.createOscillator();
     padDrift.frequency.value = 0.015;
     const padDriftG = AC.createGain();
-    padDriftG.gain.value = 70;
+    padDriftG.gain.value = 80;
     padDrift.connect(padDriftG);
     padDriftG.connect(padLp.frequency);
     padDrift.start();
@@ -71,7 +78,7 @@ export const trackMasmorra = {
 
     // o coração fundo: lub-dub longínquo — dois sopros de sine descendo
     // (52→28 Hz), o segundo mais fraco e 0.3 s atrás do primeiro, um coração
-    // a cada ~9-18 s. É o que a profecia do Kryptan manda: fundo e calado,
+    // a cada ~8-16 s. É o que a profecia do Kryptan manda: fundo e calado,
     // o coração bate. O terror da masmorra agora tem metrônomo irregular
     const heartG = AC.createGain();
     heartG.gain.value = 1;
@@ -95,17 +102,64 @@ export const trackMasmorra = {
       if (!alive()) return;
       if (aguardaRodando(heartTick)) return;
       const t = AC.currentTime + 0.05;
-      heartBeat(t, 0.02);
-      heartBeat(t + 0.3, 0.013); // o dub do lub-dub: a sístole volta
-      setTimeout(heartTick, 9000 + Math.random() * 9000);
+      heartBeat(t, 0.03);
+      heartBeat(t + 0.3, 0.02); // o dub do lub-dub: a sístole volta
+      setTimeout(heartTick, 8000 + Math.random() * 8000);
     };
-    setTimeout(heartTick, 6000 + Math.random() * 6000);
+    setTimeout(heartTick, 4000 + Math.random() * 5000);
+
+    // os sussurros: os calados por dentro falando de novo — o canon do
+    // LORE em som. Noise branco em bandpass estreito de "boca" (a voz é
+    // só ar: o filtro desliza como língua), cada sussurro 0.15-0.45 s,
+    // em PAN aleatório (a voz vem de uma cela diferente a cada vez) e
+    // volume baixo; em grupos de 1-3, um grupo a cada ~6-18 s. Sem
+    // oscilador tonal: sussurro que afina é voz, sussurro de filtro é
+    // conversa de pedra
+    const whisperBuf = AC.createBuffer(1, Math.floor(AC.sampleRate * 3), AC.sampleRate);
+    const wch = whisperBuf.getChannelData(0);
+    for (let i = 0; i < wch.length; i++) wch[i] = Math.random() * 2 - 1;
+    const whisperG = AC.createGain();
+    whisperG.gain.value = 1;
+    whisperG.connect(ambGain);
+    ambNodes.push(whisperG);
+    const whisperOnce = (t) => {
+      const src = AC.createBufferSource();
+      src.buffer = whisperBuf;
+      src.loop = true;
+      const bp = AC.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.Q.value = 5;
+      bp.frequency.setValueAtTime(900 + Math.random() * 500, t);
+      bp.frequency.setTargetAtTime(1200 + Math.random() * 1400, t + 0.08, 0.12); // a "boca" muda no meio
+      const g = AC.createGain();
+      const v = 0.012 + Math.random() * 0.008;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(v, t + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15 + Math.random() * 0.3);
+      const pan = AC.createStereoPanner();
+      pan.pan.value = (Math.random() * 2 - 1) * 0.6; // a cela de onde a voz volta
+      src.connect(bp);
+      bp.connect(g);
+      g.connect(pan);
+      pan.connect(whisperG);
+      src.start(t);
+      src.stop(t + 0.6);
+    };
+    const whisperTick = () => {
+      if (!alive()) return;
+      if (aguardaRodando(whisperTick)) return;
+      const n = 1 + Math.floor(Math.random() * 3); // 1-3 vozes por visita
+      const t = AC.currentTime + 0.05;
+      for (let i = 0; i < n; i++) whisperOnce(t + i * (0.25 + Math.random() * 0.5));
+      setTimeout(whisperTick, 6000 + Math.random() * 12000);
+    };
+    setTimeout(whisperTick, 5000 + Math.random() * 6000); // os primeiros sussurros cedo: o lugar apresenta os donos
 
     // o coro de baixo: acordes de longa forma pelo lado mais escuro do Dm
     // (Dm Bb Gm Am — sem C maior nenhuma: aqui não há clareza), dois coros
     // desafinados por nota; cada acorde incha em 6-9 s e se dissolve em
-    // 7-12 s, um a cada ~28-50 s. Mais raro e mais fundo que o coro do frio
-    // do térreo: a cripta responde de longe, quase não responde
+    // 7-12 s, um a cada ~25-42 s. A base harmônica da prisão: o lugar
+    // responde de longe
     const coroG = AC.createGain();
     coroG.gain.value = 0.9;
     coroG.connect(ambGain);
@@ -135,7 +189,7 @@ export const trackMasmorra = {
           o.detune.value = cents;
           const g = AC.createGain();
           g.gain.setValueAtTime(0.0001, t);
-          g.gain.linearRampToValueAtTime(0.006, t + sobe);
+          g.gain.linearRampToValueAtTime(0.011, t + sobe);
           g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
           o.connect(g);
           g.connect(coroG);
@@ -143,15 +197,65 @@ export const trackMasmorra = {
           o.stop(t + dur + 0.3);
         }
       }
-      setTimeout(coroTick, (dur + 8 + Math.random() * 14) * 1000);
+      setTimeout(coroTick, (dur + 6 + Math.random() * 10) * 1000);
     };
-    setTimeout(coroTick, 8000 + Math.random() * 8000); // o primeiro acorde demora a vir
+    setTimeout(coroTick, 6000 + Math.random() * 7000); // o primeiro acorde demora a vir
+
+    // o coro dos mortos: a assombração em nota — dois coros a SEGUNDA
+    // MENOR de distância (F3/E3, D3/C#3, Bb2/A2), inchando juntos em 4-6 s
+    // e se dissolvendo em 5-8 s, uma vez a cada ~40-80 s. Quem não tem
+    // mais corpo afina errado: o batimento áspero da segunda menor é o
+    // coro desafinado dos que não ficaram nem com ossos à vista
+    const mortosG = AC.createGain();
+    mortosG.gain.value = 1;
+    mortosG.connect(ambGain);
+    ambNodes.push(mortosG);
+    const PARES = [
+      [53, 52], // F3 + E3
+      [50, 49], // D3 + C#3
+      [46, 45], // Bb2 + A2
+    ];
+    let lastPar = -1;
+    const mortosTick = () => {
+      if (!alive()) return;
+      if (aguardaRodando(mortosTick)) return;
+      let pi = Math.floor(Math.random() * PARES.length);
+      if (pi === lastPar) pi = (pi + 1) % PARES.length;
+      lastPar = pi;
+      const t = AC.currentTime + 0.1;
+      const sobe = 4 + Math.random() * 2;  // inchaço: 4-6 s
+      const desce = 5 + Math.random() * 3; // dissolução: 5-8 s
+      const dur = sobe + desce;
+      for (const m of PARES[pi]) {
+        const o = AC.createOscillator();
+        o.type = 'triangle';
+        o.frequency.value = mf(m);
+        const vib = AC.createOscillator();
+        vib.frequency.value = 3.6 + Math.random() * 0.8; // vibrato lento: coro que balança
+        const vibG = AC.createGain();
+        vibG.gain.value = 9;
+        vib.connect(vibG);
+        vibG.connect(o.detune);
+        const g = AC.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(0.014, t + sobe);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g);
+        g.connect(mortosG);
+        o.start(t);
+        vib.start(t);
+        o.stop(t + dur + 0.3);
+        vib.stop(t + dur + 0.3);
+      }
+      setTimeout(mortosTick, (dur + 25 + Math.random() * 40) * 1000);
+    };
+    setTimeout(mortosTick, 30000 + Math.random() * 25000); // o primeiro coro dos mortos: só depois de a gente ter se acostumado com o sussurro
 
     // o lamento da cripta: a MELANCOLIA afundada — frases curtíssimas de
     // duas/três notas DESCENDENTES no registro grave (a tristeza aqui não
     // cai de cima como na fresta do térreo: afunda), voz de triângulo com
-    // vibrato miúdo, eco comprido. Na maior parte do tempo ela NÃO vem —
-    // o silêncio é o dono
+    // vibrato miúdo, eco comprido. Bem mais presente que antes — o
+    // lamento é dos presos, não da pedra — mas ainda cala bastante
     const leadG = AC.createGain();
     leadG.gain.value = 0.9;
     leadG.connect(ambGain);
@@ -176,8 +280,8 @@ export const trackMasmorra = {
     const leadTick = () => {
       if (!alive()) return;
       if (aguardaRodando(leadTick)) return;
-      if (Math.random() < 0.4) {
-        setTimeout(leadTick, 9000 + Math.random() * 14000); // a cripta cala
+      if (Math.random() < 0.3) {
+        setTimeout(leadTick, 7000 + Math.random() * 11000); // a cripta cala
         return;
       }
       let fi = Math.floor(Math.random() * FRASES.length);
@@ -196,8 +300,8 @@ export const trackMasmorra = {
         vibG.connect(o.detune);
         const g = AC.createGain();
         g.gain.setValueAtTime(0.0001, t);
-        g.gain.linearRampToValueAtTime(0.026, t + 0.6); // ataque ainda mais lento: a nota afunda antes de existir
-        g.gain.setValueAtTime(0.026, t + dur - 0.3);
+        g.gain.linearRampToValueAtTime(0.042, t + 0.6); // ataque lento: a nota afunda antes de existir
+        g.gain.setValueAtTime(0.042, t + dur - 0.3);
         g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.8);
         o.connect(g);
         g.connect(leadG);
@@ -208,9 +312,9 @@ export const trackMasmorra = {
         vib.stop(t + dur + 0.9);
         t += dur;
       }
-      setTimeout(leadTick, (t - AC.currentTime) * 1000 + 4000 + Math.random() * 11000);
+      setTimeout(leadTick, (t - AC.currentTime) * 1000 + 3000 + Math.random() * 9000);
     };
-    setTimeout(leadTick, 12000 + Math.random() * 10000); // o primeiro lamento só depois de a gente já ter descido
+    setTimeout(leadTick, 9000 + Math.random() * 8000); // o primeiro lamento depois de a gente já ter descido
 
     return { nodes: ambNodes, timers: [] }; // os schedulers se matam pelo alive()
   },
