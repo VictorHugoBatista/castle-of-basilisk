@@ -233,9 +233,10 @@ export const trackAbertura = {
       [[62, 1], [65, 1], [69, 2], [67, 1], [65, 1], [64, 1], [58, 1], [62, 4]],
     ];
     let lastPh = -1;
-    const tocaFrase = (pi) => {
+    const tocaFrase = (pi, offset = 0.2) => { // offset: a frase pode ENCADear
+      // a anterior (começa onde a cauda dela começa a morrer), não sobrepor
       const BEAT = 60 / 66; // o andamento do título, já respirando aqui
-      let t = AC.currentTime + 0.2;
+      let t = AC.currentTime + offset;
       for (const [m, b] of FRASES[pi]) {
         const dur = b * BEAT;
         const o = AC.createOscillator();
@@ -277,11 +278,13 @@ export const trackAbertura = {
       if (pi === lastPh) pi = (pi + 1) % FRASES.length; // nunca repete
       lastPh = pi;
       let cauda = tocaFrase(pi);
-      if (Math.random() < 0.45) { // visita encadeada: 2 frases seguidas
+      if (Math.random() < 0.45) { // visita encadeada: a 2a frase nasce na
+        // cauda da 1a (offset), nunca por cima — sobrepostas davam pares
+        // de notas que chegavam a tritona sustentada
         let pj = Math.floor(Math.random() * FRASES.length);
         if (pj === pi) pj = (pj + 1) % FRASES.length;
         lastPh = pj;
-        cauda = tocaFrase(pj);
+        cauda = tocaFrase(pj, cauda);
       }
       setTimeout(ensaiaTick, cauda * 1000 + 6000 + Math.random() * 12000);
     };
@@ -358,6 +361,10 @@ export const trackAbertura = {
     // tônica do drone do título: a passagem sai sem costura
     const coda = () => {
       if (codaing || !alive()) return;
+      if (aguardaRodando(coda)) return; // AC suspenso: sem o guarda, a
+      // cadência inteira (6.5 s de eventos) nascia agendada no MESMO
+      // instante contra o relógio congelado — o mesmo motivo dos
+      // schedulers soltos usarem aguardaRodando
       codaing = true;
       const t0 = AC.currentTime + 0.05;
       // a caminhada fecha o passo: C2 → Bb1 → A1 → D2
