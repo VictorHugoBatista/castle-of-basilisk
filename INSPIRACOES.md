@@ -225,26 +225,32 @@
   peça); o build espera e recomeça quando ela se afasta. E o ANTI-MASSA:
   o glue já tem o ar da caverna (vento grave, respiração, dissonância,
   ping) — a trilha NÃO adiciona textura de ruído nenhuma, só camadas
-  tonais graves no mesmo Dm + um tambor de sine, tudo num eco próprio.
+  tonais no mesmo Dm + um tambor de sine, tudo num eco próprio. E a
+  lição da revisão: fundura que não se ouve é silêncio — o REGISTRO das
+  camadas mora no meio (D2/D3), o sub é acompanhamento, não protagonista.
 - **A peça**: Ré menor (a tônica chegando ao chão), quatro camadas, tudo
   em `web/music/track-bocarra.js` (contrato de trilha `start(ctx, buses,
   alive)`; registro no `TRACKS` do maestro; o glue chama
   `setMusic('bocarra')` quando o tema é a Bocarra):
-  1. **o fundo do mundo** — D1+A1+D2 com sine sub pesado, lowpass
-     fechadíssimo (150 Hz) que o build VAI ABRINDO a degrau por degrau
-     (150 → 255 Hz: a caverna acorda com a peça);
-  2. **a massa da lenda** — acordes de longa forma Dm/Bb/Gm/Am (a mesma
-     paleta da masmorra, agora com PESO), ganho crescendo por degrau;
+  1. **o fundo do mundo** — D2+A2+D3 (com o sub D1 embaixo para o peso),
+     lowpass grave (260 Hz) que o build VAI ABRINDO a degrau por degrau
+     (260 → 380 Hz: a caverna acorda com a peça) — o REGISTRO é a lição
+     da revisão: fundura que não se ouve é silêncio, o corpo audível
+     mora no meio;
+  2. **a massa da lenda** — acordes de longa forma Dm/Bb/Gm/Am UMA
+     OITAVA ACIMA da paleta da masmorra (o fundo tem de SER OUVIDO),
+     ganho crescendo por degrau;
      no nivel 0, só o presságio (raro, quase inaudível); parcela de 0.3
      manda pro eco;
-  3. **o tambor do fundo** — o coração grande do lugar: sine caindo
-     (55→26 Hz), seco e enorme, só a partir do nivel 2; no 3, o dub
+  3. **o tambor do fundo** — o coração grande do lugar: golpe com CORPO
+     audível (sine 90→38 Hz) e sub embaixo (55→26 Hz) para o peso, seco
+     e enorme, só a partir do nivel 2; no 3, o dub
      volta e os golpes apertam (9-14 s) — quanto mais fundo, mais
      perto;
   4. **a voz do acervo** — o PICO: um canto de fundura (triângulo + saw
-     abafada, vibrato lento, nota segurada por 6-9 s: D2/F2/G2/A2 — o
-     canto não sobe, afunda), no eco grande (delay 0.55 s, feedback
-     0.42, wet 0.45), só no nivel 3.
+     abafada, vibrato lento, nota segurada por 6-9 s: D3/F3/G3/A3 — a
+     voz fala no meio, o eco afunda por ela), no eco grande (delay
+     0.55 s, feedback 0.42, wet 0.45), só no nivel 3.
 - O SURTO de cada degrau: a massa inchando mais forte + um golpe do
   tambor no mesmo instante — o movimento se anuncia.
 

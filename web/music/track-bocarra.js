@@ -56,18 +56,20 @@ export const trackBocarra = {
     ecoWet.connect(ambGain);
     ambNodes.push(eco, ecoFb, ecoWet);
 
-    // o fundo do mundo: D1 + A1 + D2 — a tônica chegando ao chão do jogo.
-    // Sine sub PESADO (o fundo da Bocarra não rumina como a masmorra: é
-    // um peso), lowpass fechadíssimo que o build VAI ABRINDO a degrau por
-    // degrau (150 → 255 Hz: a caverna acorda com a peça)
+    // o fundo do mundo: D2 + A2 + D3 (com o sub D1 embaixo para o peso) —
+    // a tônica chegando ao chão do jogo. O REGISTRO é a lição da revisão:
+    // fundura que não se ouve é silêncio — o corpo audível mora no meio
+    // (D2/D3), o D1 só sustenta o peso. Lowpass grave que o build VAI
+    // ABRINDO a degrau por degrau (260 → 380 Hz: a caverna acorda com a
+    // peça)
     const padG = AC.createGain();
     padG.gain.value = 0;
     padG.gain.setTargetAtTime(0.045, AC.currentTime, 2.5);
     const padLp = AC.createBiquadFilter();
     padLp.type = 'lowpass';
-    padLp.frequency.value = 150;
+    padLp.frequency.value = 260;
     padLp.Q.value = 0.5;
-    for (const [f, type, v] of [[36.71, 'sine', 0.9], [36.71, 'sawtooth', 1], [37.05, 'sawtooth', 0.7], [55, 'triangle', 0.5], [73.42, 'sine', 0.35]]) {
+    for (const [f, type, v] of [[73.42, 'sawtooth', 1], [73.9, 'sawtooth', 0.7], [110, 'triangle', 0.5], [146.83, 'sine', 0.35], [36.71, 'sine', 0.5]]) {
       const o = AC.createOscillator();
       o.type = type;
       o.frequency.value = f;
@@ -81,7 +83,7 @@ export const trackBocarra = {
     const padDrift = AC.createOscillator();
     padDrift.frequency.value = 0.012;
     const padDriftG = AC.createGain();
-    padDriftG.gain.value = 60;
+    padDriftG.gain.value = 110;
     padDrift.connect(padDriftG);
     padDriftG.connect(padLp.frequency);
     padDrift.start();
@@ -97,10 +99,12 @@ export const trackBocarra = {
     let nivel = 0;
 
     // a massa da lenda: acordes de longa forma pelo lado escuro do Dm
-    // (Dm Bb Gm Am — a mesma paleta da masmorra, agora com PESO: o fundo
-    // do mundo responde). Do nivel 1 em diante, com ganho crescendo por
-    // degrau; no nivel 0, só o presságio (bem de vez em quando, quase
-    // inaudível). Parcela da massa manda pro eco: o fundo repete de longe
+    // (Dm Bb Gm Am) — a MESMA paleta da masmorra, agora UMA OITAVA ACIMA:
+    // o fundo tem de SER OUVIDO (a revisão a registrou), e o registro do
+    // meio é onde a caixa de som de notebook também fala. Do nivel 1 em
+    // diante, com ganho crescendo por degrau; no nivel 0, só o presságio
+    // (bem de vez em quando, quase inaudível). Parcela da massa manda pro
+    // eco: o fundo repete de longe
     const coroG = AC.createGain();
     coroG.gain.value = 0.9;
     coroG.connect(ambGain);
@@ -111,10 +115,10 @@ export const trackBocarra = {
     coroEco.connect(eco);
     ambNodes.push(coroEco);
     const COROS = [
-      [38, 41, 45], // Dm: D2 F2 A2
-      [34, 38, 41], // Bb: Bb1 D2 F2
-      [31, 34, 38], // Gm: G1 Bb1 D2
-      [33, 36, 40], // Am: A1 C2 E2
+      [50, 53, 57], // Dm: D3 F3 A3
+      [46, 50, 53], // Bb: Bb2 D3 F3
+      [43, 46, 50], // Gm: G2 Bb2 D3
+      [45, 48, 52], // Am: A2 C3 E3
     ];
     let lastCoro = -1;
     // UM swell da massa: a função é reusada pelo tick e pelo surto do build
@@ -162,10 +166,11 @@ export const trackBocarra = {
     };
     setTimeout(coroTick, 3000 + Math.random() * 4000); // o presságio vem cedo
 
-    // o tambor do fundo: o CORAÇÃO GRANDE DO LUGAR — sine caindo (55→26 Hz,
-    // 0.9 s de caída), seco e enorme. Só a partir do nivel 2; no 3, o dub
-    // volta (a sístole de um coração que acorda). É o METRÔNOMO do pavor:
-    // quanto mais fundo, mais perto
+    // o tambor do fundo: o CORAÇÃO GRANDE DO LUGAR — o golpe tem CORPO
+    // audível (sine 90→38 Hz) e o sub embaixo (55→26 Hz) para o peso;
+    // seco e enorme. Só a partir do nivel 2; no 3, o dub volta (a sístole
+    // de um coração que acorda). É o METRÔNOMO do pavor: quanto mais
+    // fundo, mais perto
     const drumG = AC.createGain();
     drumG.gain.value = 1;
     drumG.connect(ambGain);
@@ -173,16 +178,26 @@ export const trackBocarra = {
     const drumHit = (t, v) => {
       const o = AC.createOscillator();
       o.type = 'sine';
-      o.frequency.setValueAtTime(55, t);
-      o.frequency.exponentialRampToValueAtTime(26, t + 0.9);
+      o.frequency.setValueAtTime(90, t);
+      o.frequency.exponentialRampToValueAtTime(38, t + 0.9);
+      const o2 = AC.createOscillator();
+      o2.type = 'sine';
+      o2.frequency.setValueAtTime(55, t);
+      o2.frequency.exponentialRampToValueAtTime(26, t + 0.9); // o sub que carrega o peso
       const g = AC.createGain();
       g.gain.setValueAtTime(0.0001, t);
       g.gain.linearRampToValueAtTime(v, t + 0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+      const g2 = AC.createGain();
+      g2.gain.value = 0.6; // o sub acompanha, mais baixo
       o.connect(g);
+      o2.connect(g2);
+      g2.connect(g);
       g.connect(drumG);
       o.start(t);
+      o2.start(t);
       o.stop(t + 1.6);
+      o2.stop(t + 1.6);
     };
     const drumTick = () => {
       if (!alive()) return;
@@ -198,14 +213,16 @@ export const trackBocarra = {
     };
     setTimeout(drumTick, 5000);
 
-    // a voz do acervo: O PICO — um canto de fundura (triângulo + saw abafada,
-    // vibrato lento, nota SEGURADA por 6-9 s) subindo do fundo a cada
-    // ~26-45 s, no eco grande. Só no nivel 3: a coisa do fundo tem voz
+    // a voz do acervo: O PICO — um canto de fundura (triângulo + saw
+    // abafada, vibrato lento, nota SEGURADA por 6-9 s) subindo do fundo a
+    // cada ~26-45 s, no eco grande. Registro em D3/F3/G3/A3: a voz tem de
+    // ser OUVIDA (a revisão mandou), o eco carrega o fundo. Só no nivel 3:
+    // a coisa do fundo tem voz
     const vozG = AC.createGain();
     vozG.gain.value = 0.9;
     vozG.connect(ambGain);
     ambNodes.push(vozG);
-    const VOZES = [38, 41, 43, 45]; // D2 F2 G2 A2 — o canto não sobe: afunda
+    const VOZES = [50, 53, 55, 57]; // D3 F3 G3 A3 — o canto fala no meio, o eco afunda por ele
     let lastVoz = -1;
     const vozTick = () => {
       if (!alive()) return;
@@ -228,7 +245,7 @@ export const trackBocarra = {
       o2.frequency.value = f * 1.003; // a voz é dupla e desafina: um coro de uma coisa só
       const lp = AC.createBiquadFilter();
       lp.type = 'lowpass';
-      lp.frequency.value = 500;
+      lp.frequency.value = 900;
       lp.Q.value = 0.7;
       const vib = AC.createOscillator();
       vib.frequency.value = 3.2 + Math.random() * 0.6; // vibrato lento: a voz balança, não treme
@@ -270,7 +287,7 @@ export const trackBocarra = {
       }
       if (nivel < 3) {
         nivel++;
-        padLp.frequency.setTargetAtTime(150 + nivel * 35, AC.currentTime, 8);
+        padLp.frequency.setTargetAtTime(260 + nivel * 40, AC.currentTime, 8);
         coroSwell(0.006); // o surto: a massa inchando mais forte que o normal
         if (nivel >= 2) drumHit(AC.currentTime + 0.1, 0.06); // o primeiro golpe do novo movimento
       }
