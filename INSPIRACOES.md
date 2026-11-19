@@ -207,6 +207,47 @@
      afinada, eco do canal por cima; frases curtas, chegam de cara e
      voltam sempre.
 
+### a música da Bocarra (toca no acervo, os três andares do fundo)
+
+- **Referência primária declarada**: Vikorra Doom — "From the Realm of
+  Dust and Darkness" (Cryo Crypt),
+  <https://youtu.be/wEsuJoBKAvA?t=2016> (a faixa começa nesse ponto) —
+  Bruce Moallem (o God Body Disconnect), o segundo nome do catálogo
+  Cryo Crypt: drones de fundura, massas que crescem devagar, o pavor
+  grandioso.
+- **A tese**: os três andares da Bocarra são UM lugar só e ENORME — e o
+  tema 3 não muda entre eles, então a trilha NÃO recomeça ao descer de
+  nível: a peça cresce em MOVIMENTOS (nivel 0..3, um degrau a cada
+  ~55-90 s) e o build up ATRAVESSA os andares — quem desce chega no
+  pico. Quando ELA caça perto (o glue entrega o estado no `buses.probe`),
+  a dramaturgia RECOLHE: nenhum swell novo, nenhum tambor — só o fundo
+  do mundo continua (o silêncio que prende o ar do acervo prende a
+  peça); o build espera e recomeça quando ela se afasta. E o ANTI-MASSA:
+  o glue já tem o ar da caverna (vento grave, respiração, dissonância,
+  ping) — a trilha NÃO adiciona textura de ruído nenhuma, só camadas
+  tonais graves no mesmo Dm + um tambor de sine, tudo num eco próprio.
+- **A peça**: Ré menor (a tônica chegando ao chão), quatro camadas, tudo
+  em `web/music/track-bocarra.js` (contrato de trilha `start(ctx, buses,
+  alive)`; registro no `TRACKS` do maestro; o glue chama
+  `setMusic('bocarra')` quando o tema é a Bocarra):
+  1. **o fundo do mundo** — D1+A1+D2 com sine sub pesado, lowpass
+     fechadíssimo (150 Hz) que o build VAI ABRINDO a degrau por degrau
+     (150 → 255 Hz: a caverna acorda com a peça);
+  2. **a massa da lenda** — acordes de longa forma Dm/Bb/Gm/Am (a mesma
+     paleta da masmorra, agora com PESO), ganho crescendo por degrau;
+     no nivel 0, só o presságio (raro, quase inaudível); parcela de 0.3
+     manda pro eco;
+  3. **o tambor do fundo** — o coração grande do lugar: sine caindo
+     (55→26 Hz), seco e enorme, só a partir do nivel 2; no 3, o dub
+     volta e os golpes apertam (9-14 s) — quanto mais fundo, mais
+     perto;
+  4. **a voz do acervo** — o PICO: um canto de fundura (triângulo + saw
+     abafada, vibrato lento, nota segurada por 6-9 s: D2/F2/G2/A2 — o
+     canto não sobe, afunda), no eco grande (delay 0.55 s, feedback
+     0.42, wet 0.45), só no nivel 3.
+- O SURTO de cada degrau: a massa inchando mais forte + um golpe do
+  tambor no mesmo instante — o movimento se anuncia.
+
 ### o ambiente por andar (não é música: é o lugar soando — `setAmbience`)
 
 - **Térreo**: o VENTO — corpo grave de ruído + assobio de fresta, puxado por
@@ -225,7 +266,9 @@
 - **Bocarra Diabólica**: a morada do TETO ALTO — ping gordo com eco de lago,
   vento fundo com deriva de afinação, dissonância de pares desafinados e a
   RESPIRAÇÃO do acervo (rumor que sobe e desce a cada 8-20 s). Tudo prende
-  quando ela caça perto: a caverna guarda o ar.
+  quando ela caça perto: a caverna guarda o ar — e a TRILHA dramática
+  (seção acima, `track-bocarra.js`) recolhe junto, deixando só o fundo do
+  mundo (o build up espera e recomeça quando ela se afasta).
 - Por baixo de tudo, o **hum do castelo**: 55/58,3 Hz batendo devagar.
 
 ### as regras de síntese (como AGENTS.md manda)

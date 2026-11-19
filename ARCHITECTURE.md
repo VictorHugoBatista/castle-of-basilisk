@@ -282,7 +282,14 @@ Decisoes:
   Phrygia, Eb/Cm por dentro do Dm, melodia que escorrega pra nota e
   ECO moderado de canal, delay 0.38 s — o gotejar do glue usa o eco do
   castelo, 0.17 s), mapeada em
-  `th === 2`; a peça do térreo mora DEBAIXO do
+  `th === 2`, e a BOCARRA também: `track-bocarra.js` (dark ambient
+  dramático com build up em movimentos nivel 0..3, um degrau a cada
+  ~55-90 s — o tema 3 não muda entre os três andares do fundo, a peça
+  NÃO recomeça ao descer e o build atravessa; zero textura de ruído
+  nova, só tonal grave + tambor de sine; ELA caçando perto, o glue
+  entrega o estado no `buses.probe` e a dramaturgia recolhe, o fundo
+  do mundo fica), mapeada em
+  `th === 3`; a peça do térreo mora DEBAIXO do
   vento (camadas mais baixas que o título, nenhuma voz na faixa do
   assobio da fresta). Primeiro passo da modularização do
   glue por domínio; trilha
@@ -306,6 +313,9 @@ Decisoes:
   e densa com eco de lago), vento grave constante com deriva de afinacao
   (lowpass 120 Hz, sem LFO de ganho algum), eco de caverna propria
   (delay 0.38 s, feedback 0.45 — o som nao acha parede nenhuma), a
+  trilha dramática por baixo (build up em movimentos; ela cacando, a
+  peça recolhe e só o fundo do mundo fica, o mesmo ar que a caverna
+  prende), a
   RESPIRACAO do acervo (rumor grave a cada 8-20 s em scheduler sorteado,
   swell one-shot) e a DISSONANCIA: dois pares de senoides desafinadas
   (82/87.3 Hz batendo ~5/s e 1740/1758 Hz batendo rapido) em ganho fixo e

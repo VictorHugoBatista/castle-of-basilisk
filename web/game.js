@@ -5,7 +5,7 @@ import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES, CUT_SOLID } from './cutsce
 // módulos de música versionados na URL (mesma filosofia do ?v= daqui):
 // mudou trilha/maestro, bumpa os ?v= dos imports junto — senão o browser
 // serve maestro/trilha velhos para o glue novo
-import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=15';
+import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=16';
 
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
@@ -179,7 +179,11 @@ function audioOn() {
   ambGain = AC.createGain();
   ambGain.gain.value = 1;
   ambGain.connect(master);
-  initMusic(AC, { amb: ambGain, sfx: sfxBus, master }); // o maestro acorda com o castelo
+  initMusic(AC, { amb: ambGain, sfx: sfxBus, master, // o maestro acorda com o castelo
+    // o probe: o ouvido do maestro no estado do jogo — a trilha da Bocarra
+    // lê ELA caçando perto (a mesma verdade do schedCave) e recolhe a
+    // dramaturgia: a caverna prende o ar e a peça junto
+    probe: () => ({ hunted: stats[0] === 1 && stats[7] === 2 }) });
   startDrone();
 }
 
@@ -219,8 +223,9 @@ function setAmbience(force) {
   // TÉRREO (o castelo) = 'terreo', a trilha fria que corre DEBAIXO do
   // vento; MASMORRA = 'masmorra', a trilha da cripta que corre DEBAIXO do
   // silêncio; ESGOTO = 'esgoto', a lenda aquática que corre DEBAIXO das
-  // goteiras
-  setMusic(th === 4 ? 'titulo' : th === 0 ? 'terreo' : th === 1 ? 'masmorra' : th === 2 ? 'esgoto' : null, force);
+  // goteiras; BOCARRA = 'bocarra', o build up dramático que NÃO recomeça
+  // entre os três andares do fundo (mesmo tema: a peça cresce atravessando)
+  setMusic(th === 4 ? 'titulo' : th === 0 ? 'terreo' : th === 1 ? 'masmorra' : th === 2 ? 'esgoto' : th === 3 ? 'bocarra' : null, force);
   // SFX abafados na masmorra: o silêncio sepulcral contrasta qualquer som
   sfxBus.gain.setTargetAtTime(th === 1 ? 0.7 : 1.0, now, 0.5);
   if (th === 0) {
@@ -370,7 +375,10 @@ function schedDrips() {
 // do leito) + a RESPIRAÇÃO do acervo — rumor grave que sobe e desce a cada
 // 8-20 s, sempre em scheduler irregular. Nada de LFO de amplitude periódico
 // (a regra de "ondas do mar" da seção 3 do AGENTS.md vale aqui por inteiro).
-// Quando ELA caça perto, tudo emudece: a caverna prende a respiração.
+// Quando ELA caça perto, tudo emudece: a caverna prende a respiração — e a
+// TRILHA (web/music/track-bocarra.js, o build up que o maestro já recebeu
+// lá em cima) recolhe a dramaturgia junto: o fundo do mundo fica, o resto
+// espera.
 function schedCave() {
   if (ambTheme !== 3 || !AC) return;
   ambTimer = setTimeout(() => {

@@ -163,7 +163,10 @@ conhece a casa.
   tudo, **o vento grande**: rajadas irregulares no nível do vento do térreo,
   e cada onda devolve eco de 0.38 s — é o tamanho da caverna falando (o
   rumble e a dissonância continuam audíveis por baixo; ELA caçando, a
-  rajada não sai). A paleta da tela
+  rajada não sai) — e, mais fundo ainda, a trilha dramática do acervo:
+  um build up em movimentos que NÃO recomeça ao descer de andar (a peça
+  cresce atravessando os três níveis; ela caçando, o drama recolhe e só
+  o fundo do mundo fica). A paleta da tela
   veste a cor do andar (âmbar de
   castelo / âmbar seco / verde-lodo / pedra-úmida de caverna).
 
