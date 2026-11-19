@@ -2,7 +2,10 @@
 // sintetizado, loop de ticks. WASM ABI crua: lemos grid/stats/diff direto da memória exportada.
 
 import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES, CUT_SOLID } from './cutscene.js';
-import { initMusic, setMusic } from './music/conductor.js';
+// módulos de música versionados na URL (mesma filosofia do ?v= daqui):
+// mudou trilha/maestro, bumpa os ?v= dos imports junto — senão o browser
+// serve maestro/trilha velhos para o glue novo
+import { initMusic, setMusic } from './music/conductor.js?v=9';
 
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
