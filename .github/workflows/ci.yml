@@ -1,0 +1,37 @@
+# Gate de testes do Castle of Basilisk: build do WASM + smoke headless a cada
+# push na master e em todo PR. O smoke (scripts/smoke.mjs) e o gate
+# obrigatorio do AGENTS.md. O CI testa o wasm que ele proprio compila:
+# NAO confere byte-a-byte com o .wasm commitado — bytes mudam entre versoes
+# de rustc (local vs runner), e a regra do wasm no mesmo commit segue sendo
+# disciplina do AGENTS.md, nao fiscalizacao de CI.
+name: Gate de testes (build + smoke)
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Compilar WASM (o build.sh do gate)
+        run: ./build.sh
+
+      - name: Smoke (gate headless — mortes, IA, medo, coroa, bot BFS, fuzz)
+        run: node scripts/smoke.mjs

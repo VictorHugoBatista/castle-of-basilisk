@@ -309,6 +309,10 @@ mais o drone ambiente do castelo (engorda enquanto o corpo dela está visível).
 node scripts/smoke.mjs
 ```
 
+O **CI roda o gate inteiro automaticamente** (`.github/workflows/ci.yml`):
+`build.sh` + verificação de que o `.wasm` commitado está em sync com `src/`
++ smoke, a cada push na `master` e em todo PR.
+
 Valida: morte por olhar (com CONE de visão dela), morte por toque, IA investigando
 ruído, **o KONAMI abrindo a ESCOLHA DE ANDAR (o cursor, o salto, o cravo do
 medo ao pousar no 8 e o ESC de volta)**, **o rastro de escamas existindo** (via `pfb_debug_body_ptr`) e **o corpo
