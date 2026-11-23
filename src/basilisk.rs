@@ -291,12 +291,14 @@ pub(crate) fn basilisk_turn() {
         // escama: ela EM CIMA de você é encontro físico, dentro ou fora dele
         if d2 <= 1 {
             death(2);
-        } else if eyes && GRACE <= 0 && d2 <= gaze_r() {
-            // o olhar mata o que o OLHO dela alcança NESTE tick — a mesma
-            // visão da percepção (`eyes`: raspa/cone/LOS/alcance + CORR!=1).
-            // Antes era LOS bruto + cone pós-passo: morria até quem o modelo
-            // já considerava invisível (sombra parada a 3-4; corredor entrado
-            // sem testemunha). Hoje o gate é um só: ela só olha quem vê.
+        } else if eyes && GRACE <= 0 && d2 <= gaze_r() && los(BX, BY, PX, PY) {
+            // o olhar mata o que ela viu no INÍCIO do tick (eyes: raspa/cone/
+            // LOS/alcance + hidden + CORR!=1) E ainda vê depois do passo dela:
+            // o recheck de LOS pós-passo é do master (`have_los &&` era conjunção
+            // dura — nem a raspa d<=2 matava sem LOS; sem ele o eyes puro matava
+            // atrás de pilar e na quina onde o próprio passo quebrou a visão).
+            // O que caiu fora é o LOS bruto de quem o modelo já considerava
+            // invisível (sombra parada a 3-4; corredor entrado sem testemunha).
             death(1);
         }
     }

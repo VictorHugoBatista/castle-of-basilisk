@@ -435,10 +435,11 @@ Pilares (constantes tunaveis no topo de `src/consts.rs`):
 - **Cone de visao** (`in_cone`): ~120 graus na direcao do ultimo passo dela.
   O olhar letal e DIRECIONADO e o gate da morte e UNICO: `death(1)` exige o
   MESMO `eyes` da percepcao (raspa d<=2 / cone + LOS dentro de `sight_range`,
-  com `hidden` e CORR!=1 engolindo o olho). Antes a morte recomputava LOS
-  bruto + cone pos-passo: morria quem o modelo ja considerava invisivel
-  (sombra parada a 3-4). Passar ATRAS dela nao mata — premia o flanco e
-  atravessadas dramaticas.
+  com `hidden` e CORR!=1 engolindo o olho) MAIS a LOS VIGENTE pos-passo
+  (`have_los` do master: a visao que o proprio passo dela quebrou nao mata,
+  nem na raspa). O que caiu fora e o LOS bruto de quem o modelo ja considera
+  invisivel — sombra parada a 3-4 e corredor entrado sem testemunha. Passar
+  ATRAS dela nao mata — premia o flanco e atravessadas dramaticas.
 - **Corredor escondido** (CORR, prova de entrada): pisar em corredor
   (`room_of < 0`, com `RN > 0`) registra se ELA viu entrar — o olho dela
   NESTE passo ou no anterior (`SEEN_LAST`: o dash de 2 tiles nao livra de
@@ -789,9 +790,9 @@ Ultima atualizacao: 2026-11-23
 
 - **Gaze**: linha de visao mutua entre basilisco e jogador dentro de
   `gaze_r()`: 4 tiles (5 nos esgotos, 6 na Bocarra). Mata instantaneamente —
-  e so o que o OLHO dela alcancou neste tick (`eyes`: percepcao com cone,
-  alcance e esconderijos; o gate vive no mesmo `eyes`, nao em LOS bruto).
-  Pilar/porta
+  e so o que o OLHO dela alcancou no inicio do tick (`eyes`: percepcao com
+  cone, alcance e esconderijos) E que ela ainda ve depois do proprio passo
+  (LOS vigente pos-passo). Pilar/porta
   fechada bloqueia o olhar.
 - **CORR (prova de entrada do corredor)**: 0 fora de corredor · 1 entrou SEM
   testemunha (la dentro ela nao ve nem olha; toque e barulho entregam) ·
