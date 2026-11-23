@@ -34,5 +34,5 @@ jobs:
       - name: O .wasm commitado esta em sync com src/
         run: git diff --exit-code -- web/wasm
 
-      - name: Smoke (gate headless: mortes, IA, medo, coroa, bot BFS, fuzz)
+      - name: Smoke (gate headless — mortes, IA, medo, coroa, bot BFS, fuzz)
         run: node scripts/smoke.mjs
