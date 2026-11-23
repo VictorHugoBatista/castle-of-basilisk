@@ -5,7 +5,7 @@ import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES, CUT_SOLID } from './cutsce
 // módulos de música versionados na URL (mesma filosofia do ?v= daqui):
 // mudou trilha/maestro, bumpa os ?v= dos imports junto — senão o browser
 // serve maestro/trilha velhos para o glue novo
-import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=16';
+import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=18';
 
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;
@@ -221,8 +221,11 @@ function setAmbience(force) {
   // silêncio; ESGOTO = 'esgoto', a lenda aquática que corre DEBAIXO das
   // goteiras; BOCARRA = 'bocarra', os tambores de guerra do acervo que
   // MANDAM no salão (referência: Vikorra Doom — From the Realm of Dust
-  // and Darkness)
-  setMusic(th === 4 ? 'titulo' : th === 0 ? 'terreo' : th === 1 ? 'masmorra' : th === 2 ? 'esgoto' : th === 3 ? 'bocarra' : null, force);
+  // and Darkness); MORTE = 'derrota' e VITÓRIA = 'vitoria', as codas
+  // one-shot dos fins — os motivos do título: a derrota os engole, a
+  // vitória os resolve em ré maior (th −1 cobre os dois estados; o estado
+  // em STATS[0] escolhe a coda)
+  setMusic(th === 4 ? 'titulo' : th === -1 ? (stats[0] === 3 ? 'vitoria' : 'derrota') : th === 0 ? 'terreo' : th === 1 ? 'masmorra' : th === 2 ? 'esgoto' : th === 3 ? 'bocarra' : null, force);
   // SFX abafados na masmorra: o silêncio sepulcral contrasta qualquer som
   sfxBus.gain.setTargetAtTime(th === 1 ? 0.7 : 1.0, now, 0.5);
   if (th === 0) {
@@ -1852,7 +1855,7 @@ function frame(nowMs) {
     safe(droneSwell, 'drone'); // garante que o drone volta ao normal fora do jogo
     if (st !== lastState) {
       safe(drainEvents, 'eventos'); // garantir que eventos finais (morte/vitória) soam
-      safe(() => setAmbience(false), 'ambiente'); // morte/vitória: silêncio absoluto
+      safe(() => setAmbience(false), 'ambiente'); // morte/vitória: o corpo do ar morre — a coda ('derrota'/'vitoria') fica com a tela
     }
   }
   lastState = stats[0];

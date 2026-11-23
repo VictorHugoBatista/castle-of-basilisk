@@ -289,7 +289,22 @@ Decisoes:
   sintetizados por compasso em scheduler, drone de poeira funda embaixo e
   corno raro e curto por cima; anti-massa: três camadas com faixa e ganho
   próprios), mapeada em
-  `th === 3`; a peça do térreo mora DEBAIXO do
+  `th === 3`; e os FINS também têm trilha do maestro: `track-derrota.js`
+  (a coda da morte, mapeada em `th === -1` com estado 2 — os motivos do
+  título RECONHECIDOS e depois ENGOLIDOS: o mesmo drone D2+A2+D3 com o
+  lowpass afundando 380→95 Hz, o ostinato do título inteiro e depois um tom
+  abaixo com os passos esticando até tombar em D3, a frase da flauta que sobe
+  e não resolve, o sino rachado, o tambor fundo fechando; peça one-shot
+  ~22 s que termina em silêncio) e `track-vitoria.js` (a coda da vitória,
+  `th === -1` com estado 3 — os mesmos motivos RESOLVIDOS em ré maior, a
+  tierce de Picardie: o lowpass ABRE 380→1100 Hz, o ostinato repete com F# e
+  cadencia com C# até D4, a flauta canta a frase 1 do título inteira e
+  responde com a frase 3 virando o Bb em F#, os sinos tocam a tríade D5-F#5-A5
+  e o acorde maior assenta no drone; one-shot ~30 s que assenta e apaga suave
+  no fim — a tela fica muda até o ENTER, igual à da morte).
+  As codas são peças de timeline único (tudo agendado no `start`, nada
+  re-agenda — `timers: []`): o ENTER que reinicia mata o que estiver vivo no
+  fade do maestro; a peça do térreo mora DEBAIXO do
   vento (camadas mais baixas que o título, nenhuma voz na faixa do
   assobio da fresta). Primeiro passo da modularização do
   glue por domínio; trilha
