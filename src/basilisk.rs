@@ -167,18 +167,18 @@ pub(crate) fn basilisk_turn() {
         let hidden = CROWN && (ptile == T_SHADOW || ptile == T_RUBBLE) && !MOVED;
         let d = cheb(BX, BY, PX, PY);
         let sr = sight_range();
-        let mut sees = false;
-        if CROWN && !hidden {
-            // o cheiro da coroa denuncia sua posição real (sem precisar de LOS)
-            sees = true;
-        } else if hidden {
-            sees = false;
-        } else if d <= 2 {
-            // a raspa dos olhos: colada nela, você é sentida de qualquer jeito
-            sees = true;
-        } else if d <= sr && los(BX, BY, PX, PY) && in_cone(PX, PY) {
-            sees = true;
-        }
+        // o OLHO: raspa (colada, d<=2) ou cone + LOS dentro do alcance — a
+        // MESMA visão que alimenta o olhar mortal lá embaixo. CORR==1 (entrou
+        // no corredor sem testemunha): a escuridão de lá engole o olho — sem
+        // raspa, sem cone, sem vislumbre; só o toque e o barulho entregam.
+        let eyes = CORR != 1 && !hidden
+            && (d <= 2 || (d <= sr && los(BX, BY, PX, PY) && in_cone(PX, PY)));
+        // o CHEIRO: a coroa denuncia sua posição real (sem precisar de LOS) —
+        // mas não é olho: no corredor escondido ela CAÇA o cheiro até o toque;
+        // o olhar continua morto (o gate da morte usa `eyes`).
+        let smell = CROWN && !hidden;
+        let sees = eyes || smell;
+        SEEN_LAST = eyes; // o olho deste tick: a prova de entrada do próximo passo
         if sees {
             if ptile == T_RUBBLE {
                 // te viu ENTRAR / ESTAR nos escombros: prova fresca de beco
@@ -287,12 +287,16 @@ pub(crate) fn basilisk_turn() {
 
         // ---- morte ----
         let d2 = cheb(BX, BY, PX, PY);
-        let have_los = los(BX, BY, PX, PY);
-        // olhar mútuo: é o OLHAR DELA que mata — o cone (raspa: colada d<=2).
-        // Nas costas dela a distância não interessa: morre quem atravessa a face.
+        // toque: o corpo não negocia — a escuridão do corredor não desvia de
+        // escama: ela EM CIMA de você é encontro físico, dentro ou fora dele
         if d2 <= 1 {
             death(2);
-        } else if have_los && d2 <= gaze_r() && GRACE <= 0 && (in_cone(PX, PY) || d2 <= 2) {
+        } else if eyes && GRACE <= 0 && d2 <= gaze_r() {
+            // o olhar mata o que o OLHO dela alcança NESTE tick — a mesma
+            // visão da percepção (`eyes`: raspa/cone/LOS/alcance + CORR!=1).
+            // Antes era LOS bruto + cone pós-passo: morria até quem o modelo
+            // já considerava invisível (sombra parada a 3-4; corredor entrado
+            // sem testemunha). Hoje o gate é um só: ela só olha quem vê.
             death(1);
         }
     }
@@ -339,15 +343,47 @@ pub(crate) fn noise(x: usize, y: usize, r: i32, loud: bool) {
             NX = x;
             NY = y;
         } else {
-            // barulho curto: ela só localiza a VIZINHANÇA do som
+            // barulho curto: ela só localiza a VIZINHANÇA do som. Em CORREDOR
+            // (fora de sala) a vizinhança é a BOCA: o tile caminhável da sala
+            // mais próxima — o mínimo do DMAP no interior dela (a rota por
+            // onde o som entrou). O corredor escondido não vira GPS por um
+            // passo manso: ela investiga a entrada, não o seu tile exato.
             let pr = room_of(x as i32, y as i32);
             if pr >= 0 {
                 let (cx, cy) = rcenter(pr as usize);
                 NX = cx as usize;
                 NY = cy as usize;
             } else {
-                NX = x;
-                NY = y;
+                let (mut bd, mut br) = (i32::MAX, -1i32);
+                for r in 0..RN {
+                    let (cx, cy) = rcenter(r);
+                    let dd = (cx - x as i32).abs() + (cy - y as i32).abs();
+                    if dd < bd { bd = dd; br = r as i32; }
+                }
+                if br < 0 {
+                    NX = x; // andar sem salas registradas: só resta o exato
+                    NY = y;
+                } else {
+                    let (mut bdm, mut bx, mut by) = (0xFFFFu16, x as i32, y as i32);
+                    let (x0, x1) = (rget(br as usize, 0), rget(br as usize, 2));
+                    let mut yy = rget(br as usize, 1);
+                    let y1 = rget(br as usize, 3);
+                    while yy <= y1 {
+                        let mut xx = x0;
+                        while xx <= x1 {
+                            let di = idx(xx as usize, yy as usize);
+                            if walkable(xx, yy) && DMAP[di] < bdm {
+                                bdm = DMAP[di];
+                                bx = xx;
+                                by = yy;
+                            }
+                            xx += 1;
+                        }
+                        yy += 1;
+                    }
+                    NX = bx as usize;
+                    NY = by as usize;
+                }
             }
         }
         if BST != B_INVEST { push_event(EV_ALERT); }

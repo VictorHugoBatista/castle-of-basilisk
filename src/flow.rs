@@ -80,6 +80,8 @@ pub(crate) fn enter_floor(depth: u8, ev: u32, by_exit: bool) {
         if SEEDS[di] == 0 { SEEDS[di] = rnd() | 1; }
         gen_floor(depth, SEEDS[di]);
         clear_player_trail();
+        CORR = 0; // andar novo: a prova de entrada recomeça
+        SEEN_LAST = false;
         if by_exit { place_player_at_exit(); } else { place_player_at_up(); }
         place_basilisk();
         // ---- A BOCARRA CRACA O MEDO NO TETO: pisar no acervo (6-8) é o
@@ -195,6 +197,22 @@ pub(crate) fn game_step(input: u32) {
                 PX = nx;
                 PY = ny;
                 MOVED = true;
+                // ---- esconderijo de corredor: a prova de entrada ----
+                // pisar em corredor (fora de sala, com salas no andar) registra
+                // se ELA viu você entrar: o olho dela NESTE passo ou no tick
+                // anterior. Entrou sem testemunha = CORR 1 (lá dentro ela não
+                // te vê nem te olha — basilisk.rs); entrada vista = CORR 2.
+                // O dash de 2 tiles não livra de quem viu a corrida: SEEN_LAST
+                // — e o CORR 2 é STICKY na estadia (o 2º subpasso do dash não
+                // "desvê" a boca que ela acabou de olhar).
+                if RN > 0 && room_of(PX as i32, PY as i32) < 0 {
+                    let d0 = cheb(BX, BY, PX, PY);
+                    let sr = sight_range();
+                    let eyes_now = d0 <= 2 || (d0 <= sr && los(BX, BY, PX, PY) && in_cone(PX, PY));
+                    CORR = if eyes_now || SEEN_LAST || CORR == 2 { 2 } else { 1 };
+                } else {
+                    CORR = 0;
+                }
                 // o acervo delata quem corre: pisar duro no osso (craque) e
                 // na carne (mush molhado) grita MAIS que a bota — coordenada
                 // exata. Andar é só cenário; CORRER é prova dela

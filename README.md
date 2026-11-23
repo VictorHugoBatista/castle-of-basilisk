@@ -84,6 +84,13 @@ conhece a casa.
 - Se ele **tocar** você, as escamas matam. Não existe vida.
 - `,` = **sombra**. Imóvel dentro dela, você é quase invisível (visão 2 tiles).
   Anda na sombra? 4 tiles. No claro? Ele te vê a 8.
+- **Corredores escondem — se ele não te viu entrar.** Pisou no corredor sem
+  testemunha (sem o olho dele neste passo nem no anterior — o dash de 2 tiles
+  não livra de quem viu a corrida)? Lá dentro ele não te vê: sem raspa de
+  perto, sem cone, sem olhar mortal — só o toque (ele EM CIMA de você) e o
+  barulho te entregam. Entrou visto? O corredor não esconde nada: o olhar
+  mata igual. Voltar para uma sala recomeça a prova. E com a coroa na mão
+  não há escuridão que segure o cheiro: ele caminha direto até você.
 - **`=` = água** (esgoto 4-5 e Bocarra 6-8). Caminhável por você — mas é o meio
   nativo dela: **na água ela apressa o passo**. Sob os pés, o passo respinga.
   Nos **canais imperiais** do esgoto, a água corre de cima a baixo (1–2,
@@ -114,7 +121,8 @@ conhece a casa.
   rasas: raso não é habitat, e a maré não acelera ela lá.
 - Ele **ouve**: passos no claro (raio 5), na sombra (raio 3), portas abertas
   (raio 12 — cuidado ao se esconder atrás delas). Ouvidos por andar: no térreo
-  ela demora a acordar; nos esgotos desperta na hora.
+  ela demora a acordar; nos esgotos desperta na hora. O passo manso em
+  corredor entrega só a BOCA — a sala mais próxima —, nunca o seu tile.
 - **`§` = a coroa**: brilha FORTE (duas ondas de brilho que tocam perto do
   branco + halo ambar ao redor) — no monte de osso do acervo ela não se
   perde: o `¶` é estático e baixo, a coroa guarda a luz. A
@@ -282,7 +290,7 @@ Nada de wasm-bindgen: o módulo expõe funções `#[no_mangle] extern "C"`:
 - `pfb_state()` — 0 título, 1 jogando, 2 morto, 3 vitória, 4 controles,
   5 escolha de andar (o konami)
 - `pfb_debug_*` — ferramentas dos testes (place/bas_place/map/**dmap**/probe/body_ptr/
-  ai/give_crown/**give_shard**/**shard_reset**/fear/fear_ptr/floor)
+  ai/**room_of**/give_crown/**give_shard**/**shard_reset**/fear/fear_ptr/floor)
 
 O WASM nunca aloca: as views JS são criadas uma vez e ficam válidas.
 
@@ -309,8 +317,10 @@ mais o drone ambiente do castelo (engorda enquanto o corpo dela está visível).
 node scripts/smoke.mjs
 ```
 
-Valida: morte por olhar (com CONE de visão dela), morte por toque, IA investigando
-ruído, **o KONAMI abrindo a ESCOLHA DE ANDAR (o cursor, o salto, o cravo do
+Valida: morte por olhar (com CONE de visão dela, em terra clara), morte por toque,
+IA investigando ruído, **o CORREDOR ESCONDIDO — entrada sem testemunha apaga o
+olhar dele lá dentro (CORR 1) e a entrada vista mata no próprio tick (CORR 2)**,
+**o KONAMI abrindo a ESCOLHA DE ANDAR (o cursor, o salto, o cravo do
 medo ao pousar no 8 e o ESC de volta)**, **o rastro de escamas existindo** (via `pfb_debug_body_ptr`) e **o corpo
 ficando visível em tela em algum momento**, **o MEDO subindo com exposição e
 caindo LONGE dela, a CICATRIZ do pico (nunca cai de metade), o PAVOR AMBIENTE

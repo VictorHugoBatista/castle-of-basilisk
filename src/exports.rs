@@ -67,6 +67,8 @@ pub extern "C" fn pfb_new_game(seed: u32) {
         clear_player_trail();
         EAR_CD = 0;
         RH = 0;
+        CORR = 0; // jogo novo: a prova de entrada recomeça
+        SEEN_LAST = false;
         PLOITER = 0;
         LOITER = 0;
         FEAR = 0;
@@ -251,9 +253,19 @@ pub extern "C" fn pfb_debug_dmap_ptr() -> u32 { unsafe { DMAP.as_ptr() as u32 } 
 pub extern "C" fn pfb_debug_body_ptr() -> u32 { unsafe { BODYBUF.as_ptr() as u32 } }
 
 /// [DEBUG] ponteiro para o estado da IA: [ROOMT, RTX, RTY, BST, PLOITER,
-/// LOITER, RH, EAR_CD] — usado pelo smoke/trace para depurar a mente da besta.
+/// LOITER, RH, EAR_CD, CORR] — usado pelo smoke/trace para depurar a mente
+/// da besta. CORR: 0 fora de corredor · 1 entrada sem testemunha (esconderijo)
+/// · 2 entrada vista.
 #[no_mangle]
 pub extern "C" fn pfb_debug_ai() -> u32 { unsafe { AI_DBG.as_ptr() as u32 } }
+
+/// [DEBUG] sala que contém o tile (≥ 0) ou -1 se corredor/fora de sala —
+/// o smoke precisa achar a fronteira sala→corredor para provar o esconderijo.
+#[no_mangle]
+pub extern "C" fn pfb_debug_room_of(px: u32, py: u32) -> i32 {
+    if (px as usize) >= W() || (py as usize) >= H() { return -1; }
+    room_of(px as i32, py as i32)
+}
 
 /// [DEBUG] probe de célula: bit0 = caminhável, bit1 = LOS do basilisco até lá,
 /// bits 2..7 = distância chebyshev (clamp 63), bit8 = dentro do cone de visão dela

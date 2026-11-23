@@ -679,5 +679,6 @@ pub(crate) fn sync_stats() {
         AI_DBG[5] = LOITER.max(0) as usize;
         AI_DBG[6] = RH.max(0) as usize;
         AI_DBG[7] = EAR_CD.max(0) as usize;
+        AI_DBG[8] = CORR as usize; // esconderijo de corredor (0 fora · 1 sem testemunha · 2 entrada vista)
     }
 }
