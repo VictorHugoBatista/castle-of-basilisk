@@ -317,6 +317,10 @@ mais o drone ambiente do castelo (engorda enquanto o corpo dela está visível).
 node scripts/smoke.mjs
 ```
 
+O **CI roda o gate inteiro automaticamente** (`.github/workflows/ci.yml`):
+`build.sh` + smoke, a cada push na `master` e em todo PR — sobre o wasm que
+o próprio runner compila.
+
 Valida: morte por olhar (com CONE de visão dela, em terra clara), morte por toque,
 IA investigando ruído, **o CORREDOR ESCONDIDO — entrada sem testemunha apaga o
 olhar dele lá dentro (CORR 1) e a entrada vista mata no próprio tick (CORR 2)**,

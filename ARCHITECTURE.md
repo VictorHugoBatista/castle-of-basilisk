@@ -741,6 +741,9 @@ transforma em codigo.
 
 Setup: rustup stable + target `wasm32-unknown-unknown`; Node >= 20 para os testes.
 Build: `./build.sh`. Teste: `node scripts/smoke.mjs` (espera-se `SMOKE OK`).
+O CI roda o gate inteiro sozinho (`.github/workflows/ci.yml`: build + smoke a
+cada push na master e em todo PR) — o smoke de lá testa o wasm que o próprio
+runner compila, o mesmo critério do deploy no Pages.
 
 Cenarios cobertos: morte por gaze (exigindo o CONE de visao dela), morte por
 toque, IA investiga ruido, rastro de escamas do corpo, playthrough completo
@@ -771,7 +774,6 @@ estados impossiveis.
   proprio ao entrar no esgoto).
 - Modularizar `game.js` por dominio (audio/render/input), como ja feito no
   Rust (ver secao 1).
-- CI (GitHub Actions) rodando build + smoke a cada push.
 - Save em localStorage (ver secao 4).
 - `wasm-opt` (binaryen) se o binario crescer; strip ja vem do cargo.
 
