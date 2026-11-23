@@ -5,7 +5,7 @@ import { CUT_PAL, CUT_TEXT, CUT_W, CUT_H, CUT_SCENES, CUT_SOLID } from './cutsce
 // módulos de música versionados na URL (mesma filosofia do ?v= daqui):
 // mudou trilha/maestro, bumpa os ?v= dos imports junto — senão o browser
 // serve maestro/trilha velhos para o glue novo
-import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=17';
+import { initMusic, setMusic, musicCoda } from './music/conductor.js?v=18';
 
 // viewport fixo da tela (câmera desliza por cima de mapas maiores)
 const VW = 56, VH = 32, CELL_W = 12, CELL_H = 18;

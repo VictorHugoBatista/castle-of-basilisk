@@ -300,7 +300,8 @@ Decisoes:
   tierce de Picardie: o lowpass ABRE 380→1100 Hz, o ostinato repete com F# e
   cadencia com C# até D4, a flauta canta a frase 1 do título inteira e
   responde com a frase 3 virando o Bb em F#, os sinos tocam a tríade D5-F#5-A5
-  e o acorde maior assenta no drone; one-shot ~30 s que fica aceso, quieto).
+  e o acorde maior assenta no drone; one-shot ~30 s que assenta e apaga suave
+  no fim — a tela fica muda até o ENTER, igual à da morte).
   As codas são peças de timeline único (tudo agendado no `start`, nada
   re-agenda — `timers: []`): o ENTER que reinicia mata o que estiver vivo no
   fade do maestro; a peça do térreo mora DEBAIXO do

@@ -172,7 +172,7 @@ conhece a casa.
   música**: ao morrer (ou vencer), os motivos da tela de título voltam na tela —
   na derrota eles são engolidos (o pulso afunda, o sino racha, as paredes
   fecham) e na vitória resolvem em ré maior (o sol entra, os sinos tocam a
-  tríade, o castelo fica aceso).
+  tríade, o acorde maior assenta).
 
 ## o medo (o terror que não mata)
 

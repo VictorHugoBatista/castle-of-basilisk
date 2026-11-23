@@ -12,7 +12,7 @@ import { trackMasmorra } from './track-masmorra.js?v=17';
 import { trackEsgoto } from './track-esgoto.js?v=17';
 import { trackBocarra } from './track-bocarra.js?v=17';
 import { trackDerrota } from './track-derrota.js?v=17';
-import { trackVitoria } from './track-vitoria.js?v=17';
+import { trackVitoria } from './track-vitoria.js?v=18';
 
 const TRACKS = { titulo: trackTitulo, abertura: trackAbertura, terreo: trackTerreo, masmorra: trackMasmorra, esgoto: trackEsgoto, bocarra: trackBocarra, derrota: trackDerrota, vitoria: trackVitoria };
 

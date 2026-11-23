@@ -8,8 +8,9 @@
 // a flauta da torre canta a PRIMEIRA frase do título por inteiro e responde
 // com a terceira, virando o Si bemol em Fá# e segurando o D5 no fim; os sinos
 // do salão tocam a tríade (D5, F#5, A5 — a terça maior é o sino novo); em
-// cima do drone entra o acorde maior (D4 A3 F#4) e o castelo fica aceso,
-// quieto, até o ENTER. Contrato de trilha: start(ctx, buses, alive) →
+// cima do drone entra o acorde maior (D4 A3 F#4), assenta e apaga suave no
+// fim — a tela fica muda até o ENTER, igual à da morte. Contrato de trilha:
+// start(ctx, buses, alive) →
 // { nodes, timers }. Tudo agendado de UMA vez no timeline do contexto (a
 // vitória só acontece com o castelo acordado); o fade do maestro mata o que
 // estiver vivo se o jogador apertar ENTER antes do fim.
@@ -28,11 +29,14 @@ export const trackVitoria = {
     // drone das muralhas: o MESMO acorde do título (D2 + A2 + D3, saws
     // desafinadas batendo devagar), mas o lowpass sobe de 380 para 1100 Hz —
     // o ar abre; o acorde MAIOR (D4 A3 F#4, a mesma matéria do pad) entra
-    // junto com os sinos e fica: a vitória não morre no fade, assenta
+    // junto com os sinos, assenta e apaga antes do stop (o mesmo final em
+    // silêncio da derrota)
     const padG = AC.createGain();
     padG.gain.value = 0;
     padG.gain.setTargetAtTime(0.05, t0, 1.2);
-    padG.gain.setTargetAtTime(0.02, t0 + 24, 4); // o castelo fica aceso, quieto
+    padG.gain.setTargetAtTime(0.02, t0 + 24, 1.5); // o acorde assenta no drone
+    padG.gain.setValueAtTime(0.02, t0 + 30);       // assentado: âncora do apagar
+    padG.gain.linearRampToValueAtTime(0.0001, t0 + 33.5); // apaga ANTES do stop (t0+34) — sem corte seco
     const padLp = AC.createBiquadFilter();
     padLp.type = 'lowpass';
     padLp.Q.value = 0.6;
