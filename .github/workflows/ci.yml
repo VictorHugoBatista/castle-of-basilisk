@@ -1,7 +1,9 @@
 # Gate de testes do Castle of Basilisk: build do WASM + smoke headless a cada
 # push na master e em todo PR. O smoke (scripts/smoke.mjs) e o gate
-# obrigatorio do AGENTS.md; o passo "wasm em sync" reprova o commit que
-# mexeu em src/ e esqueceu o .wasm do mesmo commit.
+# obrigatorio do AGENTS.md. O CI testa o wasm que ele proprio compila:
+# NAO confere byte-a-byte com o .wasm commitado — bytes mudam entre versoes
+# de rustc (local vs runner), e a regra do wasm no mesmo commit segue sendo
+# disciplina do AGENTS.md, nao fiscalizacao de CI.
 name: Gate de testes (build + smoke)
 
 on:
@@ -30,9 +32,6 @@ jobs:
 
       - name: Compilar WASM (o build.sh do gate)
         run: ./build.sh
-
-      - name: O .wasm commitado esta em sync com src/
-        run: git diff --exit-code -- web/wasm
 
       - name: Smoke (gate headless — mortes, IA, medo, coroa, bot BFS, fuzz)
         run: node scripts/smoke.mjs
