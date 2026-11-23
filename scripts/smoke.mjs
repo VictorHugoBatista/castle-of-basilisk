@@ -224,14 +224,16 @@ function scenario(name, fn) {
 }
 
 // 2a. olhar mútuo → morte (motivo 1) — aquece 15 ticks para passar o GRACE.
-// O olhar dela é DIRECIONADO: célula tem que estar dentro do cone (bit3).
+// O olhar dela é DIRECIONADO: célula tem que estar dentro do cone (bit3) —
+// e em terra CLARA (o gate unificado: quem o modelo já considera invisível —
+// sombra parada, corredor entrado sem testemunha — não morre de olhar).
 const gaze = scenario('gaze mata (O OLHAR TE ENCONTROU)', () => {
   w.pfb_new_game(1234567);
   for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
-  // regra real de morte: d<=4 com LOS e (cone OU d<=2 — nas costas colada mata)
-  const c = findCell((p) => {
+  const m = new Uint8Array(w.memory.buffer, w.pfb_debug_map_ptr(), Wd * Hd);
+  const c = findCell((p, x, y) => {
     const d = (p >> 2) & 63;
-    return (p & 1) && (p & 2) && d >= 2 && d <= 4 && (d <= 2 || ((p >> 8) & 1));
+    return m[y * Wd + x] === 46 && (p & 1) && (p & 2) && d >= 2 && d <= 4 && (d <= 2 || ((p >> 8) & 1));
   });
   if (!c) return false;
   place(c.x, c.y);
@@ -275,6 +277,104 @@ const alert = scenario('ruído acorda IA (EV_ALERT -> INVEST)', () => {
   if (stats[3] === sx && stats[4] === sy) return false; // o passo não afetou
   pump();
   return stats[7] === 1 && !!evSeen[10];
+});
+
+// ---- geometria do esconderijo de corredor: donos da fronteira e do olhar ----
+// fronteira sala→corredor: tile de SALA caminhável (terra clara/sombra/água)
+// com vizinho de CORREDOR caminhável. Portas e escadas fora: o passo nelas
+// não é passada (porta consome o turno, escada troca o andar).
+function findCorridorBoundary(roomOf) {
+  const okT = (xx, yy) => [46, 44, 61].includes(wmap[yy * Wd + xx]); // '.' ',' '='
+  for (let y = 1; y < Hd - 1; y++)
+    for (let x = 1; x < Wd - 1; x++) {
+      if (roomOf(x, y) < 0 || !okT(x, y) || !(w.pfb_debug_probe(x, y) & 1)) continue;
+      for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+        const cx2 = x + dx, cy2 = y + dy;
+        if (cx2 < 0 || cy2 < 0 || cx2 >= Wd || cy2 >= Hd) continue;
+        if (roomOf(cx2, cy2) >= 0 || !okT(cx2, cy2) || !(w.pfb_debug_probe(cx2, cy2) & 1)) continue;
+        return { room: { x, y }, corr: { x: cx2, y: cy2 }, dx, dy };
+      }
+    }
+  return null;
+}
+
+// ela olhando a boca: tile de corredor a cheb 3..4 do tile de corredor do
+// par, com LOS + cone sobre ele — a geometria que era sentença de morte no
+// contrato antigo. bas_place ANTES do probe: o cone é da posição dela.
+function basStareMouth(corr, roomOf) {
+  for (let dy = -4; dy <= 4; dy++)
+    for (let dx = -4; dx <= 4; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 3) continue;
+      const sx = corr.x + dx, sy = corr.y + dy;
+      if (sx < 1 || sy < 1 || sx >= Wd - 1 || sy >= Hd - 1) continue;
+      if (roomOf(sx, sy) >= 0 || !(w.pfb_debug_probe(sx, sy) & 1)) continue;
+      w.pfb_debug_bas_place(sx, sy);
+      const p = w.pfb_debug_probe(corr.x, corr.y);
+      if ((p & 2) && ((p >> 8) & 1)) return { x: sx, y: sy };
+    }
+  return null;
+}
+
+// ponto cego dela: corredor longe de rota (> 6) da fronteira e, depois de
+// colocada, SEM LOS para nenhum dos dois tiles do par
+function basBlindSpot(boundary, roomOf) {
+  for (let y = 1; y < Hd - 1; y++)
+    for (let x = 1; x < Wd - 1; x++) {
+      if (roomOf(x, y) >= 0 || !(w.pfb_debug_probe(x, y) & 1)) continue;
+      if (routeDist({ x, y }, boundary.room) <= 6 || routeDist({ x, y }, boundary.corr) <= 6) continue;
+      w.pfb_debug_bas_place(x, y);
+      if (!(w.pfb_debug_probe(boundary.room.x, boundary.room.y) & 2) &&
+          !(w.pfb_debug_probe(boundary.corr.x, boundary.corr.y) & 2)) return { x, y };
+    }
+  return null;
+}
+
+const aiCorr = () => new DataView(w.memory.buffer, w.pfb_debug_ai(), 36).getUint32(32, true); // AI_DBG[8] = CORR
+
+// 2c-bis. corredor esconde: a prova de entrada. Ela não te viu entrar (ponto
+// cego, longe de rota) → CORR 1: ela olha na sua direção do meio do corredor
+// (LOS + cone, d 3..4) e NADA acontece — sem raspa, sem caça, sem olhar.
+// Toque (d<=1) e barulho ficam de pé: esconderijo não é fantasia.
+const corridorHide = scenario('corredor esconde: entrada sem testemunha, olhar morto la dentro', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const roomOf = (x, y) => w.pfb_debug_room_of(x, y);
+  const boundary = findCorridorBoundary(roomOf);
+  if (!boundary) return false;
+  const blind = basBlindSpot(boundary, roomOf);
+  if (!blind) return false;
+  // jogador na boca da sala + um tick de escuta com ela no ponto cego: zera
+  // o SEEN_LAST (o aquecimento pode ter deixado o olho dela no spawn)
+  place(boundary.room.x, boundary.room.y);
+  w.pfb_step(0); pump();
+  if (stats[0] !== 1) return false;
+  w.pfb_debug_bas_place(blind.x, blind.y); // ela de volta ao cego (a patrulha andou)
+  const fx = stats[3], fy = stats[4];
+  const dirBit = boundary.dy < 0 ? 1 : boundary.dy > 0 ? 2 : boundary.dx < 0 ? 4 : 8;
+  w.pfb_step(dirBit); pump(); // a entrada: CORR tem que nascer 1
+  if (stats[3] !== fx + boundary.dx || stats[4] !== fy + boundary.dy) return false;
+  if (aiCorr() !== 1) return false;
+  // ela CRUZA e olha na sua direção de dentro do corredor: no contrato
+  // antigo era morte por olhar no mesmo tick. O gate novo: quem não viu
+  // entrar não vê lá dentro — vivo, e o corredor continua 1
+  if (!basStareMouth(boundary.corr, roomOf)) return false;
+  w.pfb_step(0); pump();
+  return stats[0] === 1 && aiCorr() === 1;
+});
+
+// 2c-ter. o controle: a MESMA geometria, entrada VISTA — o corredor não
+// esconde de quem viu: CORR 2 e o olhar mata no próprio tick da entrada.
+const corridorSeen = scenario('corredor não esconde de quem viu: entrada vista, o olhar mata', () => {
+  w.pfb_new_game(1234567);
+  for (let k = 0; k < 40; k++) { w.pfb_step(0); pump(); }
+  const roomOf = (x, y) => w.pfb_debug_room_of(x, y);
+  const boundary = findCorridorBoundary(roomOf);
+  if (!boundary) return false;
+  if (!basStareMouth(boundary.corr, roomOf)) return false; // ela já olhando a boca
+  place(boundary.room.x, boundary.room.y);
+  const dirBit = boundary.dy < 0 ? 1 : boundary.dy > 0 ? 2 : boundary.dx < 0 ? 4 : 8;
+  w.pfb_step(dirBit); pump(); // a entrada VISTA: olhar no mesmo tick
+  return stats[0] === 2 && stats[1] === 1 && aiCorr() === 2;
 });
 
 // 2d. o rastro: cada passo dela deixa escamas para trás. Dona da geometria:
@@ -1198,6 +1298,6 @@ console.log(bodyProof
   : 'FAIL - corpo nunca ficou visível em tela');
 
 console.log('\neventos vistos:', evSeen);
-const all = [gaze, touch, alert, trail, playthroughOK, dungeonDecor, caveDecor, pista, farStairs, deadUi, bodyProof, traps === 0, menuOk, konami, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract, shardOK, shardPulseOK].every(Boolean);
+const all = [gaze, touch, alert, corridorHide, corridorSeen, trail, playthroughOK, dungeonDecor, caveDecor, pista, farStairs, deadUi, bodyProof, traps === 0, menuOk, konami, fear, haunt, collapse, brake, trauma, sightOnly, ambient, calmWhisper, crownOK, sib, renderDiff, diffContract, shardOK, shardPulseOK].every(Boolean);
 console.log(all ? 'SMOKE OK' : 'SMOKE FAILED');
 process.exit(all ? 0 : 1);

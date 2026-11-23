@@ -433,14 +433,31 @@ Pilares (constantes tunaveis no topo de `src/consts.rs`):
   desgasta o rng do mundo. Vol/pan/brilho pela proximidade ficam no JS (a
   voz: dois sopros emendados + a "lingua" no fim, caso 22 do playEvent).
 - **Cone de visao** (`in_cone`): ~120 graus na direcao do ultimo passo dela.
-  O olhar letal e DIRECIONADO: gaze morte exige LOS + cone (raspa: d<=2 mata
-  de qualquer modo). Passar ATRAS dela nao mata — premia o flanco e
-  atravessadas dramaticas.
+  O olhar letal e DIRECIONADO e o gate da morte e UNICO: `death(1)` exige o
+  MESMO `eyes` da percepcao (raspa d<=2 / cone + LOS dentro de `sight_range`,
+  com `hidden` e CORR!=1 engolindo o olho) MAIS a LOS VIGENTE pos-passo
+  (`have_los` do master: a visao que o proprio passo dela quebrou nao mata,
+  nem na raspa). O que caiu fora e o LOS bruto de quem o modelo ja considera
+  invisivel — sombra parada a 3-4 e corredor entrado sem testemunha. Passar
+  ATRAS dela nao mata — premia o flanco e atravessadas dramaticas.
+- **Corredor escondido** (CORR, prova de entrada): pisar em corredor
+  (`room_of < 0`, com `RN > 0`) registra se ELA viu entrar — o olho dela
+  NESTE passo ou no anterior (`SEEN_LAST`: o dash de 2 tiles nao livra de
+  quem viu a corrida). Entrou sem testemunha = CORR 1: la dentro o olho nao
+  alcaca (`eyes = false`) — sem raspa, sem vislumbre, sem morte por olhar;
+  so o toque (d<=1, sempre) e o barulho entregam. Entrada vista = CORR 2:
+  caça normal. Voltar para sala zera (CORR 0). Com a coroa o cheiro segue
+  dando a posicao (`smell` separado do `eyes`): ela CAÇA ate o toque, mas o
+  olhar continua morto — farol, nao raio-X. Andar sem salas registradas
+  (`RN == 0`) nao tem corredor para esconder. Espelho em `AI_DBG[8]`.
 - **Ruido por rota** (`noise`): BFS no mapa real dela ATE a fonte (distancia
   de rota, nao chebyshev); cada porta fechada na linha engole -3 (max 2) e
   escombro engole -3. Ruido ALTO (correr r=15, abrir porta r=13, ou
-  efeito>=10) entrega coordenada exata; ruido curto entrega so o CENTRO da
-  sala mais proxima (regiao). Ruido alto acorda ela sempre; ruido curto
+  efeito>=10) entrega coordenada exata; ruido curto entrega so a VIZINHANCA:
+  o centro da sala mais proxima — e em CORREDOR, a BOCA: o tile caminhavel
+  da sala mais proxima ao som (minimo do DMAP no interior dela; andar sem
+  salas cai no tile exato, como antes). O corredor escondido nao vira GPS
+  por um passo manso. Ruido alto acorda ela sempre; ruido curto
   respeita o EAR_COOL.
 - **Escombro** (`'%'`, T_RUBBLE / attr 12 cor `#54421c`): becos-sem-saida de
   2-4 tiles escavados em parede de corredor (`dig_pockets`, 1-3 por andar;
@@ -769,14 +786,19 @@ Repo: https://github.com/VictorHugoBatista/castle-of-basilisk
 
 Owner: Victor Hugo Batista
 
-Ultima atualizacao: 2026-11-06
+Ultima atualizacao: 2026-11-23
 
 ## 11. Glossario
 
 - **Gaze**: linha de visao mutua entre basilisco e jogador dentro de
-  `gaze_r()`: 4 tiles (5 nos esgotos, 6 na Bocarra). Mata instantaneamente.
-  Pilar/porta
+  `gaze_r()`: 4 tiles (5 nos esgotos, 6 na Bocarra). Mata instantaneamente —
+  e so o que o OLHO dela alcancou no inicio do tick (`eyes`: percepcao com
+  cone, alcance e esconderijos) E que ela ainda ve depois do proprio passo
+  (LOS vigente pos-passo). Pilar/porta
   fechada bloqueia o olhar.
+- **CORR (prova de entrada do corredor)**: 0 fora de corredor · 1 entrou SEM
+  testemunha (la dentro ela nao ve nem olha; toque e barulho entregam) ·
+  2 entrou VISTA (caça normal). Espelhado em `AI_DBG[8]` para o smoke.
 - **GRACE**: 14 ticks de imunidade apos cada troca de andar (evita morte
   injusta ao emergir na escada).
 - **Rastro do corpo**: ultimas ~24 posicoes da cabeca (`BODYBUF`, via

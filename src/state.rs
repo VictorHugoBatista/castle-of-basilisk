@@ -66,6 +66,13 @@ pub(crate) static mut MOVED: bool = false;
 pub(crate) static mut LD: usize = 0; // última direção de patrulha
 pub(crate) static mut CFREEZE: i32 = 0; // atordoamento do basilisco ao pegar a coroa
 
+// ---- esconderijo de corredor: a prova de entrada ----
+// 0 = fora de corredor (sala/escada); 1 = dentro, entrada SEM testemunha —
+// ela não te viu entrar: lá dentro ela não te vê nem te mata com o olhar
+// (só o toque e o barulho entregam); 2 = dentro, entrada VISTA (caça normal).
+pub(crate) static mut CORR: u8 = 0;
+pub(crate) static mut SEEN_LAST: bool = false; // o olho dela no tick anterior: o dash (2 tiles num tick) não livra de quem viu a corrida
+
 // ---- novo sistema: passada, fôlego, escombro e patrulha por salas ----
 pub(crate) static mut CSNEAK: bool = false; // passada silenciosa VÁLIDA neste tick
 pub(crate) static mut SNEAKP: u32 = 0;      // cadência do meio-passo (move a cada 2 ticks)
@@ -151,7 +158,8 @@ pub(crate) static mut DIFF_ST: u8 = 0xFF;
 pub(crate) static mut DIFF_DP: u8 = 0xFF;
 
 // [DEBUG] espelho do estado da IA, atualizado a cada tick (leitura pelo smoke)
-pub(crate) static mut AI_DBG: [usize; 8] = [0; 8];
+// — [8] = CORR (esconderijo de corredor: 0 fora · 1 entrada sem testemunha · 2 entrada vista)
+pub(crate) static mut AI_DBG: [usize; 9] = [0; 9];
 pub(crate) static mut AI_DBG_FEAR: [usize; 5] = [0; 5]; // [FEAR, nível, n fantasmas, fake B, coroa falsa]
 
 pub(crate) static mut ROOMS: [i32; 64] = [0; 64]; // x0,y0,x1,y1 × 16
